@@ -16,9 +16,10 @@ function Pill({ color, children }) {
 const selectStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
 const selectClass = 'rounded-lg px-2.5 py-2 text-xs outline-none';
 
-export default function ClientsBoard({ userId }) {
+export default function ClientsBoard({ userId, isAdmin }) {
   const [clients, setClients] = useState([]);
   const [activities, setActivities] = useState([]);
+  const [owners, setOwners] = useState({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('all');
@@ -36,12 +37,21 @@ export default function ClientsBoard({ userId }) {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: c }, { data: a }] = await Promise.all([
-      supabase.from('clients').select('*').eq('owner_id', userId).order('created_at', { ascending: false }),
-      supabase.from('activities').select('*').eq('owner_id', userId).order('date', { ascending: false }),
-    ]);
+    let clientsQuery = supabase.from('clients').select('*').order('created_at', { ascending: false });
+    let activitiesQuery = supabase.from('activities').select('*').order('date', { ascending: false });
+    if (!isAdmin) {
+      clientsQuery = clientsQuery.eq('owner_id', userId);
+      activitiesQuery = activitiesQuery.eq('owner_id', userId);
+    }
+    const [{ data: c }, { data: a }] = await Promise.all([clientsQuery, activitiesQuery]);
     setClients(c || []);
     setActivities(a || []);
+    if (isAdmin) {
+      const { data: p } = await supabase.from('profiles').select('id, full_name');
+      const map = {};
+      (p || []).forEach((row) => { map[row.id] = row.full_name || '—'; });
+      setOwners(map);
+    }
     setLoading(false);
   };
 
@@ -131,17 +141,21 @@ export default function ClientsBoard({ userId }) {
       <div className="text-center py-16">
         <Users size={32} className="mx-auto mb-3" style={{ color: C.muted }} />
         <p className="font-display font-bold mb-1">No clients yet</p>
-        <p className="text-sm mb-4" style={{ color: C.muted }}>Tap "New Client" to start tracking your first one, or import a CSV file</p>
+        <p className="text-sm mb-4" style={{ color: C.muted }}>
+          {isAdmin ? 'Tap "New Client" to start tracking your first one, or import a CSV file' : 'Tap "New Client" to start tracking your first one'}
+        </p>
         <div className="flex items-center justify-center gap-2">
           <button onClick={() => setShowAdd(true)} className="px-4 py-2 rounded-lg font-bold text-sm" style={{ backgroundColor: C.gold, color: '#14181F' }}>
             + New Client
           </button>
-          <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
-            <Upload size={14} /> {importing ? 'Importing...' : 'Import CSV'}
-          </button>
+          {isAdmin && (
+            <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
+              <Upload size={14} /> {importing ? 'Importing...' : 'Import CSV'}
+            </button>
+          )}
         </div>
-        {importMsg && <p className="text-xs mt-3" style={{ color: importMsg.startsWith('Error') ? '#C9714F' : '#7FA887' }}>{importMsg}</p>}
-        <input ref={fileInputRef} type="file" accept=".csv" onChange={handleImportFile} className="hidden" />
+        {isAdmin && importMsg && <p className="text-xs mt-3" style={{ color: importMsg.startsWith('Error') ? '#C9714F' : '#7FA887' }}>{importMsg}</p>}
+        {isAdmin && <input ref={fileInputRef} type="file" accept=".csv" onChange={handleImportFile} className="hidden" />}
         {showAdd && <ClientModal mode="add" userId={userId} onClose={() => setShowAdd(false)} onSaved={load} />}
       </div>
     );
@@ -196,23 +210,28 @@ export default function ClientsBoard({ userId }) {
             <option value="no">Not Potential</option>
           </select>
           <span className="flex-1" />
-          <button onClick={exportCsv} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
-            <Download size={14} /> Export
-          </button>
-          <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0 disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
-            <Upload size={14} /> {importing ? 'Importing...' : 'Import'}
-          </button>
-          <input ref={fileInputRef} type="file" accept=".csv" onChange={handleImportFile} className="hidden" />
+          {isAdmin && (
+            <>
+              <button onClick={exportCsv} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
+                <Download size={14} /> Export
+              </button>
+              <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0 disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
+                <Upload size={14} /> {importing ? 'Importing...' : 'Import'}
+              </button>
+              <input ref={fileInputRef} type="file" accept=".csv" onChange={handleImportFile} className="hidden" />
+            </>
+          )}
         </div>
-        {importMsg && <p className="text-xs" style={{ color: importMsg.startsWith('Error') ? '#C9714F' : '#7FA887' }}>{importMsg}</p>}
+        {isAdmin && importMsg && <p className="text-xs" style={{ color: importMsg.startsWith('Error') ? '#C9714F' : '#7FA887' }}>{importMsg}</p>}
       </div>
 
       {/* Table */}
       <div className="rounded-xl overflow-x-auto" style={{ border: `1px solid ${C.border}` }}>
-        <table className="text-sm" style={{ minWidth: '1300px', width: '100%' }}>
+        <table className="text-sm" style={{ minWidth: isAdmin ? '1450px' : '1300px', width: '100%' }}>
           <thead>
             <tr style={{ backgroundColor: C.surface, color: C.muted }} className="text-left text-xs">
               <th className="py-2.5 px-3 font-medium">Name</th>
+              {isAdmin && <th className="py-2.5 px-3 font-medium">Owner</th>}
               <th className="py-2.5 px-3 font-medium">Phone</th>
               <th className="py-2.5 px-3 font-medium">Stage</th>
               <th className="py-2.5 px-3 font-medium">Project</th>
@@ -244,6 +263,7 @@ export default function ClientsBoard({ userId }) {
                       <span className="ml-1.5 text-xs" style={{ color: '#9B7EBD' }} title="Rotated lead">🔄</span>
                     )}
                   </td>
+                  {isAdmin && <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{owners[c.owner_id] || '—'}</td>}
                   <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.phone || '—'}</td>
                   <td className="py-2.5 px-3"><Pill color={stage.color}>{stage.label}</Pill></td>
                   <td className="py-2.5 px-3 whitespace-nowrap">{c.project || '—'}</td>

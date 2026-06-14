@@ -56,7 +56,7 @@ export default function App() {
   return (
     <Layout profile={profile} tab={tab} setTab={setTab}>
       {tab === 'dashboard' && <Dashboard userId={session.user.id} />}
-      {tab === 'clients' && <ClientsBoard userId={session.user.id} />}
+      {tab === 'clients' && <ClientsBoard userId={session.user.id} isAdmin={profile.role === 'admin'} />}
       {tab === 'orgchart' && <OrgChart isAdmin={profile.role === 'admin'} />}
       {tab === 'followups' && <FollowUps userId={session.user.id} />}
       {tab === 'targets' && <Targets userId={session.user.id} />}
