@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../supabaseClient';
-import { C, stageOf, fmtDate, todayStr } from '../lib/constants';
+import { supabase } from './supabaseClient';
+import { C, stageOf, fmtDate, todayStr } from './constants';
 import { Clock } from 'lucide-react';
 import ClientModal from './ClientModal';
 

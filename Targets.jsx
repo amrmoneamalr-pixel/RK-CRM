@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../supabaseClient';
-import { C, monthKey } from '../lib/constants';
+import { supabase } from './supabaseClient';
+import { C, monthKey } from './constants';
 import { ProgressBar } from './Dashboard';
 
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };

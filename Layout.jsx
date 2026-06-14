@@ -1,6 +1,6 @@
 import React from 'react';
-import { supabase } from '../supabaseClient';
-import { C } from '../lib/constants';
+import { supabase } from './supabaseClient';
+import { C } from './constants';
 import { BarChart3, Users, Clock, Target, LogOut, Briefcase } from 'lucide-react';
 
 export default function Layout({ profile, tab, setTab, children }) {

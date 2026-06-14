@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../supabaseClient';
-import { C, STAGES, monthKey } from '../lib/constants';
+import { supabase } from './supabaseClient';
+import { C, STAGES, monthKey } from './constants';
 import { Briefcase } from 'lucide-react';
 
 export default function Reports() {

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../supabaseClient';
-import { C, STAGES, SOURCES, ACTIVITY_TYPES, fmtMoney, fmtDate, todayStr, stageOf } from '../lib/constants';
+import { supabase } from './supabaseClient';
+import { C, STAGES, SOURCES, ACTIVITY_TYPES, fmtMoney, fmtDate, todayStr, stageOf } from './constants';
 import { X, Phone, Trash2, AlertCircle } from 'lucide-react';
 
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };

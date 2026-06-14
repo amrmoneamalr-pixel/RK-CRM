@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../supabaseClient';
-import { C, STAGES, ACTIVITY_TYPES, monthKey, todayStr, fmtDate } from '../lib/constants';
+import { supabase } from './supabaseClient';
+import { C, STAGES, ACTIVITY_TYPES, monthKey, todayStr, fmtDate } from './constants';
 import { Users, Clock, CheckCircle2, BarChart3 } from 'lucide-react';
 
 export function ProgressBar({ value, target, color }) {

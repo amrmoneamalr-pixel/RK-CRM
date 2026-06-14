@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
-import Login from './components/Login';
-import Layout from './components/Layout';
-import Dashboard from './components/Dashboard';
-import ClientsBoard from './components/ClientsBoard';
-import FollowUps from './components/FollowUps';
-import Targets from './components/Targets';
-import Reports from './components/Reports';
-import { C } from './lib/constants';
+import Login from './Login';
+import Layout from './Layout';
+import Dashboard from './Dashboard';
+import ClientsBoard from './ClientsBoard';
+import FollowUps from './FollowUps';
+import Targets from './Targets';
+import Reports from './Reports';
+import { C } from './constants';
 
 export default function App() {
   const [session, setSession] = useState(null);
