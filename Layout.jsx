@@ -5,28 +5,28 @@ import { BarChart3, Users, Clock, Target, LogOut, Briefcase } from 'lucide-react
 
 export default function Layout({ profile, tab, setTab, children }) {
   const tabs = [
-    { id: 'dashboard', label: 'لوحة التحكم', icon: BarChart3 },
-    { id: 'clients', label: 'العملاء', icon: Users },
-    { id: 'followups', label: 'المتابعات', icon: Clock },
-    { id: 'targets', label: 'الأهداف الشهرية', icon: Target },
+    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: 'clients', label: 'Clients', icon: Users },
+    { id: 'followups', label: 'Follow-ups', icon: Clock },
+    { id: 'targets', label: 'Monthly Targets', icon: Target },
   ];
   if (profile.role === 'admin') {
-    tabs.push({ id: 'reports', label: 'تقارير الفريق', icon: Briefcase });
+    tabs.push({ id: 'reports', label: 'Team Reports', icon: Briefcase });
   }
 
   return (
-    <div dir="rtl" lang="ar" className="min-h-screen font-body" style={{ backgroundColor: C.bg, color: C.text }}>
+    <div dir="ltr" lang="en" className="min-h-screen font-body" style={{ backgroundColor: C.bg, color: C.text }}>
       <header className="sticky top-0 z-20 border-b" style={{ backgroundColor: C.bg, borderColor: C.border }}>
         <div className="max-w-5xl mx-auto px-4 pt-4 pb-2">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="font-display text-xl font-extrabold tracking-tight" style={{ color: C.gold }}>RK CRM</h1>
               <p className="text-xs mt-0.5" style={{ color: C.muted }}>
-                {profile.full_name || 'مرحبًا'}{profile.role === 'admin' ? ' · أدمن' : ''}
+                {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
               </p>
             </div>
             <button onClick={() => supabase.auth.signOut()} className="flex items-center gap-1 text-xs" style={{ color: C.muted }}>
-              <LogOut size={14} /> خروج
+              <LogOut size={14} /> Sign out
             </button>
           </div>
 

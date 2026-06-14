@@ -11,7 +11,7 @@ export default function Targets({ userId }) {
   const [dealsThisMonth, setDealsThisMonth] = useState(0);
   const [meetingsThisMonth, setMeetingsThisMonth] = useState(0);
   const [loading, setLoading] = useState(true);
-  const monthLabel = new Date().toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
+  const monthLabel = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   useEffect(() => {
     load();
@@ -38,16 +38,16 @@ export default function Targets({ userId }) {
       .upsert({ owner_id: userId, month: monthKey(), deals_target: next.deals_target || 0, meetings_target: next.meetings_target || 0 }, { onConflict: 'owner_id,month' });
   };
 
-  if (loading) return <p style={{ color: C.muted }} className="text-sm">جاري التحميل...</p>;
+  if (loading) return <p style={{ color: C.muted }} className="text-sm">Loading...</p>;
 
   return (
     <div className="rounded-xl p-4" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
-      <h2 className="font-display font-bold text-sm mb-1">أهداف {monthLabel}</h2>
-      <p className="text-xs mb-4" style={{ color: C.muted }}>حدد هدفك الشهري وتابع تقدمك من لوحة التحكم</p>
+      <h2 className="font-display font-bold text-sm mb-1">{monthLabel} Targets</h2>
+      <p className="text-xs mb-4" style={{ color: C.muted }}>Set your monthly goals and track progress from the dashboard</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
         <label className="flex flex-col gap-1.5 text-sm">
-          <span style={{ color: C.muted }}>هدف عدد الصفقات المغلقة</span>
+          <span style={{ color: C.muted }}>Deals Target</span>
           <input
             type="number"
             min="0"
@@ -55,11 +55,11 @@ export default function Targets({ userId }) {
             onChange={(e) => save({ deals_target: Number(e.target.value) || 0 })}
             className={inputClass}
             style={inputStyle}
-            placeholder="مثال: 3"
+            placeholder="e.g. 3"
           />
         </label>
         <label className="flex flex-col gap-1.5 text-sm">
-          <span style={{ color: C.muted }}>هدف عدد الاجتماعات</span>
+          <span style={{ color: C.muted }}>Meetings Target</span>
           <input
             type="number"
             min="0"
@@ -67,18 +67,18 @@ export default function Targets({ userId }) {
             onChange={(e) => save({ meetings_target: Number(e.target.value) || 0 })}
             className={inputClass}
             style={inputStyle}
-            placeholder="مثال: 10"
+            placeholder="e.g. 10"
           />
         </label>
       </div>
 
       <div className="space-y-4">
         <div>
-          <div className="text-xs mb-1.5" style={{ color: C.muted }}>الصفقات المغلقة</div>
+          <div className="text-xs mb-1.5" style={{ color: C.muted }}>Deals Closed</div>
           <ProgressBar value={dealsThisMonth} target={targets.deals_target || 0} color="#7FA887" />
         </div>
         <div>
-          <div className="text-xs mb-1.5" style={{ color: C.muted }}>الاجتماعات</div>
+          <div className="text-xs mb-1.5" style={{ color: C.muted }}>Meetings</div>
           <ProgressBar value={meetingsThisMonth} target={targets.meetings_target || 0} color="#6E8CAE" />
         </div>
       </div>

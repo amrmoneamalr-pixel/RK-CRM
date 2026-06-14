@@ -25,7 +25,7 @@ export default function FollowUps({ userId }) {
     setLoading(false);
   };
 
-  if (loading) return <p style={{ color: C.muted }} className="text-sm">جاري التحميل...</p>;
+  if (loading) return <p style={{ color: C.muted }} className="text-sm">Loading...</p>;
 
   const today = todayStr();
   const overdue = clients.filter((c) => c.next_follow_up < today);
@@ -36,8 +36,8 @@ export default function FollowUps({ userId }) {
     return (
       <div className="text-center py-16">
         <Clock size={32} className="mx-auto mb-3" style={{ color: C.muted }} />
-        <p className="font-display font-bold mb-1">مفيش متابعات مجدولة</p>
-        <p className="text-sm" style={{ color: C.muted }}>افتح أي عميل وحدد "تاريخ المتابعة القادمة" عشان يظهر هنا</p>
+        <p className="font-display font-bold mb-1">No follow-ups scheduled</p>
+        <p className="text-sm" style={{ color: C.muted }}>Open any client and set a "Next Follow-up Date" to see it here</p>
       </div>
     );
   }
@@ -53,14 +53,14 @@ export default function FollowUps({ userId }) {
               <button
                 key={c.id}
                 onClick={() => setSelected(c)}
-                className="w-full flex items-center justify-between p-3 rounded-lg text-right"
+                className="w-full flex items-center justify-between p-3 rounded-lg text-left"
                 style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
               >
                 <div>
                   <div className="font-bold text-sm">{c.name}</div>
                   <div className="text-xs mt-0.5" style={{ color: C.muted }}>{c.project || '—'}</div>
                 </div>
-                <div className="text-left">
+                <div className="text-right">
                   <div className="text-xs font-medium" style={{ color }}>{fmtDate(c.next_follow_up)}</div>
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: `${st.color}22`, color: st.color }}>
                     {st.label}
@@ -75,9 +75,9 @@ export default function FollowUps({ userId }) {
 
   return (
     <div className="space-y-6">
-      <Section title="متأخرة" items={overdue} color="#C9714F" />
-      <Section title="اليوم" items={dueToday} color={C.gold} />
-      <Section title="قادمة" items={upcoming} color="#6E8CAE" />
+      <Section title="Overdue" items={overdue} color="#C9714F" />
+      <Section title="Today" items={dueToday} color={C.gold} />
+      <Section title="Upcoming" items={upcoming} color="#6E8CAE" />
       {selected && <ClientModal mode="detail" userId={userId} client={selected} onClose={() => setSelected(null)} onSaved={load} />}
     </div>
   );

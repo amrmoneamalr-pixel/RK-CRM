@@ -29,7 +29,7 @@ export default function Reports() {
     setLoading(false);
   };
 
-  if (loading) return <p style={{ color: C.muted }} className="text-sm">جاري التحميل...</p>;
+  if (loading) return <p style={{ color: C.muted }} className="text-sm">Loading...</p>;
 
   const funnelTotal = STAGES.map((s) => ({ ...s, count: clients.filter((c) => c.stage === s.id).length }));
   const funnelMax = Math.max(1, ...funnelTotal.map((f) => f.count));
@@ -38,12 +38,12 @@ export default function Reports() {
     <div className="space-y-6">
       <div className="rounded-xl p-4" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
         <h2 className="font-display font-bold text-sm mb-4 flex items-center gap-2">
-          <Briefcase size={15} style={{ color: C.gold }} /> قمع المبيعات - الفريق كله
+          <Briefcase size={15} style={{ color: C.gold }} /> Team Sales Funnel
         </h2>
         <div className="space-y-2.5">
           {funnelTotal.map((s) => (
             <div key={s.id} className="flex items-center gap-3">
-              <div className="w-24 text-xs shrink-0" style={{ color: C.muted }}>{s.label}</div>
+              <div className="w-28 text-xs shrink-0" style={{ color: C.muted }}>{s.label}</div>
               <div className="flex-1 h-6 rounded-md overflow-hidden" style={{ backgroundColor: C.bg }}>
                 <div
                   className="h-full rounded-md flex items-center justify-end px-2"
@@ -59,16 +59,16 @@ export default function Reports() {
 
       <div className="rounded-xl p-4 overflow-x-auto" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
         <h2 className="font-display font-bold text-sm mb-4">
-          أداء السيلز - {new Date().toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' })}
+          Sales Performance - {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
         </h2>
         <table className="w-full text-sm">
           <thead>
-            <tr style={{ color: C.muted }} className="text-right text-xs">
-              <th className="py-2 pr-2">الاسم</th>
-              <th className="py-2">عملاء نشطين</th>
-              <th className="py-2">اجتماعات الشهر</th>
-              <th className="py-2">صفقات الشهر / الهدف</th>
-              <th className="py-2">التقدم</th>
+            <tr style={{ color: C.muted }} className="text-left text-xs">
+              <th className="py-2 pl-2">Name</th>
+              <th className="py-2">Active Clients</th>
+              <th className="py-2">Meetings This Month</th>
+              <th className="py-2">Deals / Target</th>
+              <th className="py-2">Progress</th>
             </tr>
           </thead>
           <tbody>

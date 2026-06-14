@@ -30,11 +30,11 @@ export default function Login() {
           options: { data: { full_name: fullName } },
         });
         if (error) throw error;
-        setInfo('تم إنشاء الحساب بنجاح، تقدر تسجل دخول دلوقتي.');
+        setInfo('Account created successfully. You can log in now.');
         setMode('login');
       }
     } catch (err) {
-      setError(err.message || 'حدث خطأ');
+      setError(err.message || 'Something went wrong');
     } finally {
       setLoading(false);
     }
@@ -42,15 +42,15 @@ export default function Login() {
 
   return (
     <div
-      dir="rtl"
-      lang="ar"
+      dir="ltr"
+      lang="en"
       className="min-h-screen flex items-center justify-center font-body px-4"
       style={{ backgroundColor: C.bg, color: C.text }}
     >
       <div className="w-full max-w-sm p-6 rounded-2xl" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
         <h1 className="font-display text-2xl font-extrabold mb-1" style={{ color: C.gold }}>RK CRM</h1>
         <p className="text-sm mb-6" style={{ color: C.muted }}>
-          {mode === 'login' ? 'تسجيل الدخول لحسابك' : 'إنشاء حساب جديد'}
+          {mode === 'login' ? 'Log in to your account' : 'Create a new account'}
         </p>
 
         <form onSubmit={submit} className="space-y-3">
@@ -58,7 +58,7 @@ export default function Login() {
             <input
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="الاسم بالكامل"
+              placeholder="Full name"
               className={inputClass}
               style={inputStyle}
               required
@@ -68,20 +68,18 @@ export default function Login() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="البريد الإلكتروني"
+            placeholder="Email"
             className={inputClass}
             style={inputStyle}
-            dir="ltr"
             required
           />
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="كلمة المرور (٦ أحرف على الأقل)"
+            placeholder="Password (min 6 characters)"
             className={inputClass}
             style={inputStyle}
-            dir="ltr"
             required
             minLength={6}
           />
@@ -95,7 +93,7 @@ export default function Login() {
             className="w-full py-2.5 rounded-lg font-bold text-sm disabled:opacity-50"
             style={{ backgroundColor: C.gold, color: '#14181F' }}
           >
-            {loading ? '...' : mode === 'login' ? 'دخول' : 'إنشاء حساب'}
+            {loading ? '...' : mode === 'login' ? 'Log in' : 'Create account'}
           </button>
         </form>
 
@@ -108,7 +106,7 @@ export default function Login() {
           className="w-full text-xs mt-4"
           style={{ color: C.muted }}
         >
-          {mode === 'login' ? 'معندك حساب؟ اعمل حساب جديد' : 'عندك حساب؟ سجل دخول'}
+          {mode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Log in'}
         </button>
       </div>
     </div>

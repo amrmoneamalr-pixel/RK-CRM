@@ -46,8 +46,8 @@ export default function App() {
 
   if (loading || !profile) {
     return (
-      <div dir="rtl" className="min-h-screen flex items-center justify-center font-body" style={{ backgroundColor: C.bg, color: C.muted }}>
-        جاري التحميل...
+      <div dir="ltr" className="min-h-screen flex items-center justify-center font-body" style={{ backgroundColor: C.bg, color: C.muted }}>
+        Loading...
       </div>
     );
   }

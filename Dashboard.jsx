@@ -11,7 +11,7 @@ export function ProgressBar({ value, target, color }) {
         <span className="font-display font-bold">
           {value} <span style={{ color: C.muted, fontWeight: 400 }}>/ {target || '—'}</span>
         </span>
-        <span style={{ color: C.muted }}>{target > 0 ? `${pct}%` : 'لم يتم تحديد هدف'}</span>
+        <span style={{ color: C.muted }}>{target > 0 ? `${pct}%` : 'No target set'}</span>
       </div>
       <div className="h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: C.bg }}>
         <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
@@ -43,7 +43,7 @@ export default function Dashboard({ userId }) {
     setLoading(false);
   };
 
-  if (loading) return <p style={{ color: C.muted }} className="text-sm">جاري التحميل...</p>;
+  if (loading) return <p style={{ color: C.muted }} className="text-sm">Loading...</p>;
 
   const activeClients = clients.filter((c) => c.stage !== 'won' && c.stage !== 'lost');
   const today = todayStr();
@@ -59,16 +59,16 @@ export default function Dashboard({ userId }) {
   const funnelMax = Math.max(1, ...funnelCounts.map((f) => f.count));
 
   const stats = [
-    { label: 'عملاء نشطين', value: activeClients.length, icon: Users, color: C.gold },
+    { label: 'Active Clients', value: activeClients.length, icon: Users, color: C.gold },
     {
-      label: 'متابعات مستحقة',
+      label: 'Follow-ups Due',
       value: overdue + dueToday,
       icon: Clock,
       color: overdue > 0 ? '#C9714F' : '#6E8CAE',
-      sub: overdue > 0 ? `${overdue} متأخرة` : null,
+      sub: overdue > 0 ? `${overdue} overdue` : null,
     },
-    { label: 'صفقات هذا الشهر', value: `${dealsThisMonth} / ${targets.deals_target || 0}`, icon: CheckCircle2, color: '#7FA887' },
-    { label: 'معدل التحويل', value: `${conversionRate}%`, icon: BarChart3, color: '#9B7EBD' },
+    { label: 'Deals This Month', value: `${dealsThisMonth} / ${targets.deals_target || 0}`, icon: CheckCircle2, color: '#7FA887' },
+    { label: 'Conversion Rate', value: `${conversionRate}%`, icon: BarChart3, color: '#9B7EBD' },
   ];
 
   const recent = [...activities]
@@ -94,11 +94,11 @@ export default function Dashboard({ userId }) {
       </div>
 
       <div className="rounded-xl p-4" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
-        <h2 className="font-display font-bold text-sm mb-4">قمع المبيعات</h2>
+        <h2 className="font-display font-bold text-sm mb-4">Sales Funnel</h2>
         <div className="space-y-2.5">
           {funnelCounts.map((s) => (
             <div key={s.id} className="flex items-center gap-3">
-              <div className="w-24 text-xs shrink-0" style={{ color: C.muted }}>{s.label}</div>
+              <div className="w-28 text-xs shrink-0" style={{ color: C.muted }}>{s.label}</div>
               <div className="flex-1 h-6 rounded-md overflow-hidden" style={{ backgroundColor: C.bg }}>
                 <div
                   className="h-full rounded-md flex items-center justify-end px-2 transition-all"
@@ -113,14 +113,14 @@ export default function Dashboard({ userId }) {
       </div>
 
       <div className="rounded-xl p-4" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
-        <h2 className="font-display font-bold text-sm mb-3">الاجتماعات هذا الشهر</h2>
+        <h2 className="font-display font-bold text-sm mb-3">Meetings This Month</h2>
         <ProgressBar value={meetingsThisMonth} target={targets.meetings_target || 0} color="#6E8CAE" />
       </div>
 
       <div className="rounded-xl p-4" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
-        <h2 className="font-display font-bold text-sm mb-3">آخر نشاط</h2>
+        <h2 className="font-display font-bold text-sm mb-3">Recent Activity</h2>
         {recent.length === 0 ? (
-          <p className="text-sm" style={{ color: C.muted }}>لسه معندك أي متابعات مسجلة.</p>
+          <p className="text-sm" style={{ color: C.muted }}>No activity logged yet.</p>
         ) : (
           <div className="space-y-2">
             {recent.map((a) => {
