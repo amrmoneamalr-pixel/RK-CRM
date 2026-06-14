@@ -4,8 +4,30 @@ import { C, fmtTime } from './constants';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 const REP_COLORS = [C.gold, '#6E8CAE', '#7FA887', '#9B7EBD', '#C9714F', '#E8C66B', '#5BA3D0'];
-const MAX_SESSION_HOURS = 12; // sanity cap for a single session
+const MAX_SESSION_HOURS = 12; // sanity cap for a single merged block
 const ONLINE_THRESHOLD_MS = 4 * 60 * 1000; // heartbeat is every 2 min
+const MERGE_GAP_MS = 10 * 60 * 1000; // merge sessions less than 10 min apart
+
+// Merge sessions (sorted ascending by login_at) that are close together
+// (e.g. from page refreshes / multiple tabs) into single continuous blocks.
+function mergeSessions(rows) {
+  const merged = [];
+  for (const r of rows) {
+    const start = new Date(r.login_at).getTime();
+    const end = new Date(r.ended_at || r.last_seen_at).getTime();
+    const isOpen = !r.ended_at;
+    if (merged.length > 0) {
+      const last = merged[merged.length - 1];
+      if (start - last.end <= MERGE_GAP_MS) {
+        if (end > last.end) last.end = end;
+        last.isOpen = last.isOpen || isOpen;
+        continue;
+      }
+    }
+    merged.push({ start, end, isOpen });
+  }
+  return merged;
+}
 
 export default function Activity() {
   const [loading, setLoading] = useState(true);
@@ -32,7 +54,7 @@ export default function Activity() {
     sevenDaysAgo.setHours(0, 0, 0, 0);
 
     const [{ data: sessions }, { data: profiles }] = await Promise.all([
-      supabase.from('user_sessions').select('user_id, login_at, last_seen_at, ended_at').gte('login_at', sevenDaysAgo.toISOString()),
+      supabase.from('user_sessions').select('user_id, login_at, last_seen_at, ended_at').gte('login_at', sevenDaysAgo.toISOString()).order('login_at', { ascending: true }),
       supabase.from('profiles').select('id, full_name, username, is_pool').eq('is_pool', false).order('full_name'),
     ]);
 
@@ -41,6 +63,12 @@ export default function Activity() {
     const repList = (profiles || []).map((p) => ({ id: p.id, name: profileMap[p.id] }));
     setReps(repList);
     if (!logUserId && repList.length > 0) setLogUserId(repList[0].id);
+
+    // Group by user, then merge close-together sessions per user
+    const byUser = {};
+    (sessions || []).forEach((s) => {
+      (byUser[s.user_id] = byUser[s.user_id] || []).push(s);
+    });
 
     // Build last 7 days (oldest -> newest)
     const days = [];
@@ -54,14 +82,21 @@ export default function Activity() {
       byDay[d] = { date: d, label: new Date(d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' }) };
     });
 
-    (sessions || []).forEach((s) => {
-      const day = s.login_at.slice(0, 10);
-      if (!byDay[day]) return;
-      const end = s.ended_at || s.last_seen_at;
-      let hours = (new Date(end) - new Date(s.login_at)) / 3600000;
-      hours = Math.max(0, Math.min(hours, MAX_SESSION_HOURS));
-      const repName = profileMap[s.user_id] || 'Unknown';
-      byDay[day][repName] = (byDay[day][repName] || 0) + hours;
+    const now = Date.now();
+    const latestBlockByUser = {};
+
+    Object.entries(byUser).forEach(([userId, rows]) => {
+      const merged = mergeSessions(rows);
+      merged.forEach((m) => {
+        const day = new Date(m.start).toISOString().slice(0, 10);
+        if (byDay[day]) {
+          let hours = (m.end - m.start) / 3600000;
+          hours = Math.max(0, Math.min(hours, MAX_SESSION_HOURS));
+          const repName = profileMap[userId] || 'Unknown';
+          byDay[day][repName] = (byDay[day][repName] || 0) + hours;
+        }
+      });
+      if (merged.length > 0) latestBlockByUser[userId] = merged[merged.length - 1];
     });
 
     setChartData(days.map((d) => {
@@ -70,20 +105,10 @@ export default function Activity() {
       return row;
     }));
 
-    // Online status: not explicitly ended, and seen recently
-    const now = Date.now();
-    const latestByUser = {};
-    (sessions || []).forEach((s) => {
-      const existing = latestByUser[s.user_id];
-      if (!existing || new Date(s.last_seen_at) > new Date(existing.last_seen_at)) {
-        latestByUser[s.user_id] = s;
-      }
-    });
     setStatus(repList.map((r) => {
-      const latest = latestByUser[r.id];
-      const lastSeen = latest?.last_seen_at;
-      const online = latest && !latest.ended_at && lastSeen && (now - new Date(lastSeen).getTime()) < ONLINE_THRESHOLD_MS;
-      return { ...r, lastSeen, online };
+      const latest = latestBlockByUser[r.id];
+      const online = latest && latest.isOpen && (now - latest.end) < ONLINE_THRESHOLD_MS;
+      return { ...r, lastSeen: latest ? latest.end : null, online };
     }));
 
     setLoading(false);
@@ -95,24 +120,23 @@ export default function Activity() {
       .from('user_sessions')
       .select('login_at, last_seen_at, ended_at')
       .eq('user_id', logUserId)
-      .order('login_at', { ascending: false })
-      .limit(300);
+      .order('login_at', { ascending: true })
+      .limit(500);
 
-    const dayStart = new Date(`${logDate}T00:00:00`);
-    const dayEnd = new Date(`${logDate}T23:59:59.999`);
+    const dayStart = new Date(`${logDate}T00:00:00`).getTime();
+    const dayEnd = new Date(`${logDate}T23:59:59.999`).getTime();
     const now = Date.now();
 
-    const sessions = (data || []).filter((s) => {
-      const t = new Date(s.login_at);
-      return t >= dayStart && t <= dayEnd;
-    }).map((s) => {
-      const online = !s.ended_at && (now - new Date(s.last_seen_at).getTime()) < ONLINE_THRESHOLD_MS;
-      const endLabel = s.ended_at ? fmtTime(s.ended_at) : online ? 'Now' : `${fmtTime(s.last_seen_at)} (idle)`;
-      const endForDuration = s.ended_at || s.last_seen_at;
-      let hours = (new Date(endForDuration) - new Date(s.login_at)) / 3600000;
-      hours = Math.max(0, Math.min(hours, MAX_SESSION_HOURS));
-      return { start: fmtTime(s.login_at), end: endLabel, hours };
-    }).reverse();
+    const merged = mergeSessions(data || []);
+    const sessions = merged
+      .filter((m) => m.start <= dayEnd && m.end >= dayStart)
+      .map((m) => {
+        const online = m.isOpen && (now - m.end) < ONLINE_THRESHOLD_MS;
+        const endLabel = online ? 'Now' : m.isOpen ? `${fmtTime(m.end)} (idle)` : fmtTime(m.end);
+        let hours = (m.end - m.start) / 3600000;
+        hours = Math.max(0, Math.min(hours, MAX_SESSION_HOURS));
+        return { start: fmtTime(m.start), end: endLabel, hours };
+      });
 
     setLogSessions(sessions);
     setLogLoading(false);
@@ -215,8 +239,8 @@ export default function Activity() {
   );
 }
 
-function timeAgo(iso) {
-  const diffMs = Date.now() - new Date(iso).getTime();
+function timeAgo(ms) {
+  const diffMs = Date.now() - ms;
   const mins = Math.round(diffMs / 60000);
   if (mins < 1) return 'just now';
   if (mins < 60) return `${mins}m ago`;
