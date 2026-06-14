@@ -145,6 +145,9 @@ function DetailView({ userId, client, onClose, onSaved }) {
   const [location, setLocation] = useState(client.location || '');
   const [potential, setPotential] = useState(client.potential || false);
   const [callResult, setCallResult] = useState(client.call_result || '');
+  const [noAnswerCount, setNoAnswerCount] = useState(client.no_answer_count || 0);
+  const [previousOwners, setPreviousOwners] = useState(client.previous_owners || []);
+  const [rotated, setRotated] = useState(false);
   const [activityForm, setActivityForm] = useState({ type: 'call', date: todayStr(), notes: '' });
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -173,7 +176,18 @@ function DetailView({ userId, client, onClose, onSaved }) {
   const saveNotes = async () => update({ notes });
   const saveDeveloper = async () => update({ developer: developer || null });
   const saveLocation = async () => update({ location: location || null });
-  const saveCallResult = async (val) => { setCallResult(val); await update({ call_result: val || null }); };
+  const saveCallResult = async (val) => {
+    setCallResult(val);
+    await update({ call_result: val || null });
+    const { data } = await supabase.from('clients').select('*').eq('id', client.id).maybeSingle();
+    if (!data) {
+      // ownership changed (rotated to another sales rep) - this client is no longer visible to us
+      setRotated(true);
+    } else {
+      setNoAnswerCount(data.no_answer_count || 0);
+      setPreviousOwners(data.previous_owners || []);
+    }
+  };
   const savePotential = async (val) => { setPotential(val); await update({ potential: val }); };
 
   const addActivity = async () => {
@@ -194,6 +208,26 @@ function DetailView({ userId, client, onClose, onSaved }) {
   };
 
   const st = stageOf(stage);
+
+  if (rotated) {
+    return (
+      <Modal title={client.name} onClose={() => { onSaved(); onClose(); }}>
+        <div className="text-center py-8">
+          <p className="font-display font-bold mb-2">Lead Rotated</p>
+          <p className="text-sm mb-4" style={{ color: C.muted }}>
+            This lead had 3 consecutive "No Answer" results and has been automatically reassigned to another sales rep.
+          </p>
+          <button
+            onClick={() => { onSaved(); onClose(); }}
+            className="px-4 py-2 rounded-lg font-bold text-sm"
+            style={{ backgroundColor: C.gold, color: '#14181F' }}
+          >
+            OK
+          </button>
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal title={client.name} onClose={onClose}>
@@ -248,6 +282,16 @@ function DetailView({ userId, client, onClose, onSaved }) {
             {CALL_RESULTS.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
         </Field>
+
+        {noAnswerCount > 0 && (
+          <p className="text-xs" style={{ color: noAnswerCount >= 3 ? '#C9714F' : C.muted }}>
+            No-answer streak: {noAnswerCount}/3 — after 3 in a row this lead auto-rotates to another sales rep.
+          </p>
+        )}
+
+        {previousOwners.length > 0 && (
+          <Pill color="#9B7EBD">Rotated lead ({previousOwners.length} previous {previousOwners.length === 1 ? 'rep' : 'reps'})</Pill>
+        )}
 
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={potential} onChange={(e) => savePotential(e.target.checked)} />

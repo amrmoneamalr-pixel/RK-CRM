@@ -139,7 +139,12 @@ export default function ClientsBoard({ userId }) {
                   className="cursor-pointer transition-colors"
                   style={{ borderTop: `1px solid ${C.border}` }}
                 >
-                  <td className="py-2.5 px-3 font-medium whitespace-nowrap">{c.name}</td>
+                  <td className="py-2.5 px-3 font-medium whitespace-nowrap">
+                    {c.name}
+                    {c.previous_owners && c.previous_owners.length > 0 && (
+                      <span className="ml-1.5 text-xs" style={{ color: '#9B7EBD' }} title="Rotated lead">🔄</span>
+                    )}
+                  </td>
                   <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.phone || '—'}</td>
                   <td className="py-2.5 px-3"><Pill color={stage.color}>{stage.label}</Pill></td>
                   <td className="py-2.5 px-3 whitespace-nowrap">{c.project || '—'}</td>
