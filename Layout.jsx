@@ -2,7 +2,7 @@ import React from 'react';
 import { supabase } from './supabaseClient';
 import { C } from './constants';
 import logo from './logo.png';
-import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog } from 'lucide-react';
+import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, Activity as ActivityIcon } from 'lucide-react';
 import LeadPanels from './LeadPanels';
 
 export default function Layout({ profile, tab, setTab, children }) {
@@ -15,6 +15,7 @@ export default function Layout({ profile, tab, setTab, children }) {
   ];
   if (profile.role === 'admin') {
     tabs.push({ id: 'reports', label: 'Team Reports', icon: Briefcase });
+    tabs.push({ id: 'activity', label: 'Activity', icon: ActivityIcon });
     tabs.push({ id: 'team', label: 'Teams', icon: UserCog });
   }
 

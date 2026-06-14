@@ -1,7 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
-import { C, STAGES, SOURCES, DEVELOPERS, LOCATIONS, CALL_RESULTS, ACTIVITY_TYPES, activityLabel, fmtMoney, fmtDate, fmtTime, todayStr, stageOf } from './constants';
+import { C, STAGES, SOURCES, DEVELOPERS, LOCATIONS, CALL_RESULTS, ACTIVITY_TYPES, activityLabel, fmtMoney, fmtDate, fmtTime, todayStr, stageOf, waLink } from './constants';
 import { X, Phone, Trash2, AlertCircle } from 'lucide-react';
+
+function WhatsAppIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M17.5 14.4c-.3-.1-1.6-.8-1.9-.9-.2-.1-.4-.1-.6.1-.2.2-.6.8-.8 1-.1.2-.3.2-.5.1-1.5-.7-2.5-1.3-3.5-3-.1-.2-.1-.4.1-.6.2-.2.5-.5.6-.7.1-.2.1-.4 0-.5-.1-.2-.6-1.5-.8-2-.2-.4-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2 0 1.3 1 2.6 1.1 2.8.1.2 1.9 3 4.6 4.1 2.3.9 2.3.6 2.7.6.4 0 1.4-.6 1.6-1.1.2-.5.2-1 .1-1.1-.1-.1-.3-.2-.6-.3z"/>
+      <path d="M12 2C6.5 2 2 6.5 2 12c0 1.9.5 3.7 1.5 5.3L2 22l4.8-1.5c1.6.9 3.3 1.3 5.2 1.3 5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18.2c-1.7 0-3.4-.5-4.8-1.3l-.3-.2-3.2 1 1-3.1-.2-.3C3.5 14.9 3 13.5 3 12c0-5 4-9 9-9s9 4 9 9-4 9-9 9z"/>
+    </svg>
+  );
+}
 
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
 const inputClass = 'rounded-lg px-3 py-2 text-sm outline-none w-full';
@@ -251,9 +260,14 @@ function DetailView({ userId, client, isAdmin, profilesList, onClose, onSaved })
         )}
 
         {client.phone && (
-          <a href={`tel:${client.phone}`} className="flex items-center gap-2 text-sm" style={{ color: C.text }}>
-            <Phone size={14} style={{ color: C.gold }} /> <span>{client.phone}</span>
-          </a>
+          <div className="flex items-center gap-2">
+            <a href={`tel:${client.phone}`} className="flex items-center gap-2 text-sm flex-1" style={{ color: C.text }}>
+              <Phone size={14} style={{ color: C.gold }} /> <span>{client.phone}</span>
+            </a>
+            <a href={waLink(client.phone)} target="_blank" rel="noreferrer" className="px-2.5 py-1.5 rounded-lg shrink-0 flex items-center" style={{ border: `1px solid ${C.border}`, color: '#25D366' }} title="Open WhatsApp chat">
+              <WhatsAppIcon size={14} />
+            </a>
+          </div>
         )}
 
         <Field label="Secondary Number">
@@ -263,9 +277,14 @@ function DetailView({ userId, client, isAdmin, profilesList, onClose, onSaved })
               <button onClick={saveSecondaryPhone} className="px-2.5 py-2 rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: C.gold, color: '#14181F' }}>Save</button>
             )}
             {secondaryPhone && (
-              <a href={`tel:${secondaryPhone}`} className="px-2.5 py-2 rounded-lg shrink-0 flex items-center" style={{ border: `1px solid ${C.border}`, color: C.gold }}>
-                <Phone size={14} />
-              </a>
+              <>
+                <a href={`tel:${secondaryPhone}`} className="px-2.5 py-2 rounded-lg shrink-0 flex items-center" style={{ border: `1px solid ${C.border}`, color: C.gold }}>
+                  <Phone size={14} />
+                </a>
+                <a href={waLink(secondaryPhone)} target="_blank" rel="noreferrer" className="px-2.5 py-2 rounded-lg shrink-0 flex items-center" style={{ border: `1px solid ${C.border}`, color: '#25D366' }} title="Open WhatsApp chat">
+                  <WhatsAppIcon size={14} />
+                </a>
+              </>
             )}
           </div>
         </Field>

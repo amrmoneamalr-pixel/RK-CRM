@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import Login from './Login';
 import Layout from './Layout';
@@ -9,6 +9,7 @@ import Targets from './Targets';
 import Reports from './Reports';
 import OrgChart from './OrgChart';
 import TeamPage from './TeamPage';
+import Activity from './Activity';
 import { C } from './constants';
 
 export default function App() {
@@ -44,6 +45,26 @@ export default function App() {
     })();
   }, [session]);
 
+  useEffect(() => {
+    if (!profile) return;
+    let sessionId = null;
+    let interval = null;
+
+    (async () => {
+      const { data } = await supabase.from('user_sessions').insert({ user_id: profile.id }).select().single();
+      if (data) sessionId = data.id;
+      interval = setInterval(() => {
+        if (sessionId) {
+          supabase.from('user_sessions').update({ last_seen_at: new Date().toISOString() }).eq('id', sessionId);
+        }
+      }, 2 * 60 * 1000);
+    })();
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [profile?.id]);
+
   if (!session) return <Login />;
 
   if (loading || !profile) {
@@ -63,6 +84,7 @@ export default function App() {
       {tab === 'targets' && <Targets userId={session.user.id} />}
       {tab === 'reports' && profile.role === 'admin' && <Reports />}
       {tab === 'team' && profile.role === 'admin' && <TeamPage currentUserId={session.user.id} />}
+      {tab === 'activity' && profile.role === 'admin' && <Activity />}
     </Layout>
   );
 }

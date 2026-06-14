@@ -71,3 +71,13 @@ export const fmtTime = (d) => {
   if (!d) return '';
   return new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 };
+
+// Builds a wa.me link from an Egyptian-style number (e.g. 01012345678 -> 201012345678)
+export const waLink = (phone) => {
+  if (!phone) return null;
+  let digits = String(phone).replace(/\D/g, '');
+  if (!digits) return null;
+  if (digits.startsWith('0')) digits = '20' + digits.slice(1);
+  else if (!digits.startsWith('20')) digits = '20' + digits;
+  return `https://wa.me/${digits}`;
+};
