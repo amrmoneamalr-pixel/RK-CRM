@@ -52,6 +52,16 @@ export const fmtMoney = (n) => (n ? Number(n).toLocaleString('en-US') : '');
 
 export const stageOf = (id) => STAGES.find((s) => s.id === id) || STAGES[0];
 
+export const stageIdFromInput = (val) => {
+  if (!val) return 'new';
+  const v = String(val).trim().toLowerCase();
+  const byId = STAGES.find((s) => s.id.toLowerCase() === v);
+  if (byId) return byId.id;
+  const byLabel = STAGES.find((s) => s.label.toLowerCase() === v);
+  if (byLabel) return byLabel.id;
+  return 'new';
+};
+
 export const fmtDate = (d) => {
   if (!d) return '';
   return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });

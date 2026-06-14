@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import Papa from 'papaparse';
 import { supabase } from './supabaseClient';
-import { C, STAGES, SOURCES, fmtMoney, fmtDate, todayStr, stageOf } from './constants';
-import { Plus, Search, Users } from 'lucide-react';
+import { C, STAGES, SOURCES, fmtMoney, fmtDate, todayStr, stageOf, stageIdFromInput } from './constants';
+import { Plus, Search, Users, Download, Upload } from 'lucide-react';
 import ClientModal from './ClientModal';
 
 function Pill({ color, children }) {
@@ -25,6 +26,9 @@ export default function ClientsBoard({ userId }) {
   const [potentialFilter, setPotentialFilter] = useState('all');
   const [showAdd, setShowAdd] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState('');
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     load();
@@ -43,15 +47,101 @@ export default function ClientsBoard({ userId }) {
 
   if (loading) return <p style={{ color: C.muted }} className="text-sm">Loading...</p>;
 
+  const exportCsv = () => {
+    const rows = clients.map((c) => ({
+      Name: c.name,
+      Phone: c.phone || '',
+      Stage: stageOf(c.stage).label,
+      Project: c.project || '',
+      Developer: c.developer || '',
+      Location: c.location || '',
+      Budget: c.budget || '',
+      Source: c.source || '',
+      Potential: c.potential ? 'Yes' : 'No',
+      'Call Result': c.call_result || '',
+      'Next Follow-up': c.next_follow_up || '',
+      Notes: c.notes || '',
+      Created: c.created_at ? c.created_at.slice(0, 10) : '',
+    }));
+    const csv = Papa.unparse(rows);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rk-crm-clients-${todayStr()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImporting(true);
+    setImportMsg('');
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        const rows = results.data
+          .map((r) => ({
+            owner_id: userId,
+            name: (r.Name || r.name || '').toString().trim(),
+            phone: r.Phone || r.phone || null,
+            project: r.Project || r.project || null,
+            developer: r.Developer || r.developer || null,
+            location: r.Location || r.location || null,
+            budget: (r.Budget || r.budget) ? Number(String(r.Budget || r.budget).replace(/[, ]/g, '')) || null : null,
+            source: r.Source || r.source || null,
+            stage: stageIdFromInput(r.Stage || r.stage),
+            potential: ['yes', 'true', '1'].includes(String(r.Potential || r.potential || '').trim().toLowerCase()),
+            call_result: r['Call Result'] || r.call_result || null,
+            next_follow_up: /^\d{4}-\d{2}-\d{2}$/.test(String(r['Next Follow-up'] || r.next_follow_up || '')) ? (r['Next Follow-up'] || r.next_follow_up) : null,
+            notes: r.Notes || r.notes || null,
+          }))
+          .filter((r) => r.name);
+
+        if (rows.length === 0) {
+          setImportMsg('No valid rows found (a "Name" column is required).');
+          setImporting(false);
+          return;
+        }
+
+        let insertedCount = 0;
+        for (let i = 0; i < rows.length; i += 300) {
+          const batch = rows.slice(i, i + 300);
+          const { error } = await supabase.from('clients').insert(batch);
+          if (error) {
+            setImportMsg(`Error after importing ${insertedCount}: ${error.message}`);
+            setImporting(false);
+            load();
+            return;
+          }
+          insertedCount += batch.length;
+        }
+        setImportMsg(`Imported ${insertedCount} client${insertedCount === 1 ? '' : 's'} successfully.`);
+        setImporting(false);
+        load();
+      },
+    });
+    e.target.value = '';
+  };
+
   if (clients.length === 0 && !showAdd) {
     return (
       <div className="text-center py-16">
         <Users size={32} className="mx-auto mb-3" style={{ color: C.muted }} />
         <p className="font-display font-bold mb-1">No clients yet</p>
-        <p className="text-sm mb-4" style={{ color: C.muted }}>Tap "New Client" to start tracking your first one</p>
-        <button onClick={() => setShowAdd(true)} className="px-4 py-2 rounded-lg font-bold text-sm" style={{ backgroundColor: C.gold, color: '#14181F' }}>
-          + New Client
-        </button>
+        <p className="text-sm mb-4" style={{ color: C.muted }}>Tap "New Client" to start tracking your first one, or import a CSV file</p>
+        <div className="flex items-center justify-center gap-2">
+          <button onClick={() => setShowAdd(true)} className="px-4 py-2 rounded-lg font-bold text-sm" style={{ backgroundColor: C.gold, color: '#14181F' }}>
+            + New Client
+          </button>
+          <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
+            <Upload size={14} /> {importing ? 'Importing...' : 'Import CSV'}
+          </button>
+        </div>
+        {importMsg && <p className="text-xs mt-3" style={{ color: importMsg.startsWith('Error') ? '#C9714F' : '#7FA887' }}>{importMsg}</p>}
+        <input ref={fileInputRef} type="file" accept=".csv" onChange={handleImportFile} className="hidden" />
         {showAdd && <ClientModal mode="add" userId={userId} onClose={() => setShowAdd(false)} onSaved={load} />}
       </div>
     );
@@ -91,7 +181,7 @@ export default function ClientsBoard({ userId }) {
             style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text }}
           />
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
           <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)} className={selectClass} style={selectStyle}>
             <option value="all">All Stages</option>
             {STAGES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
@@ -105,7 +195,16 @@ export default function ClientsBoard({ userId }) {
             <option value="yes">Potential Only</option>
             <option value="no">Not Potential</option>
           </select>
+          <span className="flex-1" />
+          <button onClick={exportCsv} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
+            <Download size={14} /> Export
+          </button>
+          <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0 disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
+            <Upload size={14} /> {importing ? 'Importing...' : 'Import'}
+          </button>
+          <input ref={fileInputRef} type="file" accept=".csv" onChange={handleImportFile} className="hidden" />
         </div>
+        {importMsg && <p className="text-xs" style={{ color: importMsg.startsWith('Error') ? '#C9714F' : '#7FA887' }}>{importMsg}</p>}
       </div>
 
       {/* Table */}
