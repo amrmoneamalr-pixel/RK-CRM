@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import Papa from 'papaparse';
 import { supabase } from './supabaseClient';
 import { C, STAGES, SOURCES, fmtMoney, fmtDate, todayStr, stageOf, stageIdFromInput } from './constants';
-import { Plus, Search, Users, Download, Upload } from 'lucide-react';
+import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
 import ClientModal from './ClientModal';
 
 function Pill({ color, children }) {
@@ -30,6 +30,8 @@ export default function ClientsBoard({ userId, isAdmin }) {
   const [selected, setSelected] = useState(null);
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState('');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 30;
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -170,6 +172,10 @@ export default function ClientsBoard({ userId, isAdmin }) {
     if (!current || a.date > current.date) lastActivity[a.client_id] = a;
   });
 
+  useEffect(() => {
+    setPage(1);
+  }, [search, stageFilter, sourceFilter, potentialFilter]);
+
   const filtered = clients.filter((c) => {
     const q = search.trim().toLowerCase();
     if (q) {
@@ -182,6 +188,13 @@ export default function ClientsBoard({ userId, isAdmin }) {
     if (potentialFilter === 'no' && c.potential) return false;
     return true;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const startIdx = (currentPage - 1) * PAGE_SIZE;
+  const paged = filtered.slice(startIdx, startIdx + PAGE_SIZE);
+  const rangeStart = filtered.length === 0 ? 0 : startIdx + 1;
+  const rangeEnd = Math.min(startIdx + PAGE_SIZE, filtered.length);
 
   return (
     <div className="space-y-4">
@@ -249,7 +262,7 @@ export default function ClientsBoard({ userId, isAdmin }) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((c) => {
+            {paged.map((c) => {
               const stage = stageOf(c.stage);
               const last = lastActivity[c.id];
               return (
@@ -291,6 +304,35 @@ export default function ClientsBoard({ userId, isAdmin }) {
 
       {filtered.length === 0 && (
         <p className="text-sm text-center py-6" style={{ color: C.muted }}>No clients match these filters.</p>
+      )}
+
+      {filtered.length > 0 && (
+        <div className="flex items-center justify-between gap-3 pt-1">
+          <span className="text-xs" style={{ color: C.muted }}>
+            {rangeStart}–{rangeEnd} of {filtered.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage <= 1}
+              className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40"
+              style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span className="text-xs font-medium" style={{ color: C.muted }}>
+              Page {currentPage} / {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage >= totalPages}
+              className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40"
+              style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
       )}
 
       <button
