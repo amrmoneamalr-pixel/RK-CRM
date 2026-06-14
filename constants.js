@@ -81,3 +81,26 @@ export const waLink = (phone) => {
   else if (!digits.startsWith('20')) digits = '20' + digits;
   return `https://wa.me/${digits}`;
 };
+
+export const COLD_RESULTS = ['No Answer', 'No Answer - Multiple Times', 'Call Again'];
+
+export const LEAD_CATEGORY_LABELS = {
+  fresh: 'Fresh Leads',
+  callbackToday: 'Call Back Today',
+  late: 'Late Leads',
+  oldFresh: 'Old Fresh Leads',
+  cold: 'Cold Calls',
+};
+
+export const matchesLeadCategory = (c, category) => {
+  const today = todayStr();
+  const sevenDaysAgoIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  switch (category) {
+    case 'fresh': return c.stage === 'new' && !c.ever_contacted && c.created_at >= sevenDaysAgoIso;
+    case 'oldFresh': return c.stage === 'new' && !c.ever_contacted && c.created_at < sevenDaysAgoIso;
+    case 'callbackToday': return c.next_follow_up === today;
+    case 'late': return !!c.next_follow_up && c.next_follow_up < today;
+    case 'cold': return COLD_RESULTS.includes(c.call_result);
+    default: return true;
+  }
+};

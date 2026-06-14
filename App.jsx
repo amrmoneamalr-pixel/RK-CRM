@@ -17,6 +17,17 @@ export default function App() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('dashboard');
+  const [leadFilter, setLeadFilter] = useState(null);
+
+  const handleSetTab = (t) => {
+    setLeadFilter(null);
+    setTab(t);
+  };
+
+  const selectLeadCategory = (category) => {
+    setLeadFilter(category);
+    setTab('clients');
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -76,9 +87,9 @@ export default function App() {
   }
 
   return (
-    <Layout profile={profile} tab={tab} setTab={setTab}>
+    <Layout profile={profile} tab={tab} setTab={handleSetTab} onSelectCategory={selectLeadCategory}>
       {tab === 'dashboard' && <Dashboard userId={session.user.id} />}
-      {tab === 'clients' && <ClientsBoard userId={session.user.id} isAdmin={profile.role === 'admin'} />}
+      {tab === 'clients' && <ClientsBoard userId={session.user.id} isAdmin={profile.role === 'admin'} leadFilter={leadFilter} onClearLeadFilter={() => setLeadFilter(null)} />}
       {tab === 'orgchart' && <OrgChart isAdmin={profile.role === 'admin'} />}
       {tab === 'followups' && <FollowUps userId={session.user.id} />}
       {tab === 'targets' && <Targets userId={session.user.id} />}

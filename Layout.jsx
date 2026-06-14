@@ -5,7 +5,7 @@ import logo from './logo.png';
 import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, Activity as ActivityIcon } from 'lucide-react';
 import LeadPanels from './LeadPanels';
 
-export default function Layout({ profile, tab, setTab, children }) {
+export default function Layout({ profile, tab, setTab, onSelectCategory, children }) {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'clients', label: 'Clients', icon: Users },
@@ -98,7 +98,7 @@ export default function Layout({ profile, tab, setTab, children }) {
       </div>
 
       {(tab === 'dashboard' || tab === 'clients') && (
-        <LeadPanels userId={profile.id} isAdmin={profile.role === 'admin'} />
+        <LeadPanels userId={profile.id} isAdmin={profile.role === 'admin'} onSelectCategory={onSelectCategory} />
       )}
     </div>
   );

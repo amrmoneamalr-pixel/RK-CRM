@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Papa from 'papaparse';
 import { supabase } from './supabaseClient';
-import { C, STAGES, SOURCES, fmtMoney, fmtDate, todayStr, stageOf, stageIdFromInput } from './constants';
-import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
+import { C, STAGES, SOURCES, fmtMoney, fmtDate, todayStr, stageOf, stageIdFromInput, matchesLeadCategory, LEAD_CATEGORY_LABELS } from './constants';
+import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import ClientModal from './ClientModal';
 
 function Pill({ color, children }) {
@@ -16,7 +16,7 @@ function Pill({ color, children }) {
 const selectStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
 const selectClass = 'rounded-lg px-2.5 py-2 text-xs outline-none';
 
-export default function ClientsBoard({ userId, isAdmin }) {
+export default function ClientsBoard({ userId, isAdmin, leadFilter, onClearLeadFilter }) {
   const [clients, setClients] = useState([]);
   const [activities, setActivities] = useState([]);
   const [owners, setOwners] = useState({});
@@ -40,7 +40,7 @@ export default function ClientsBoard({ userId, isAdmin }) {
 
   useEffect(() => {
     setPage(1);
-  }, [search, stageFilter, sourceFilter, potentialFilter]);
+  }, [search, stageFilter, sourceFilter, potentialFilter, leadFilter]);
 
   const load = async () => {
     setLoading(true);
@@ -184,6 +184,9 @@ export default function ClientsBoard({ userId, isAdmin }) {
       const haystack = [c.name, c.phone, c.project, c.developer, c.location].filter(Boolean).join(' ').toLowerCase();
       if (!haystack.includes(q)) return false;
     }
+    if (leadFilter) {
+      return matchesLeadCategory(c, leadFilter);
+    }
     if (stageFilter !== 'all' && c.stage !== stageFilter) return false;
     if (sourceFilter !== 'all' && c.source !== sourceFilter) return false;
     if (potentialFilter === 'yes' && !c.potential) return false;
@@ -200,6 +203,17 @@ export default function ClientsBoard({ userId, isAdmin }) {
 
   return (
     <div className="space-y-4">
+      {leadFilter && (
+        <div className="flex items-center justify-between gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: C.surface, border: `1px solid ${C.gold}` }}>
+          <span className="text-sm font-medium">
+            Showing: <span style={{ color: C.gold }}>{LEAD_CATEGORY_LABELS[leadFilter]}</span> ({filtered.length})
+          </span>
+          <button onClick={onClearLeadFilter} className="flex items-center gap-1 text-xs font-medium" style={{ color: C.muted }}>
+            <X size={14} /> Clear
+          </button>
+        </div>
+      )}
+
       {/* Search + filters */}
       <div className="space-y-2">
         <div className="relative">
@@ -213,19 +227,23 @@ export default function ClientsBoard({ userId, isAdmin }) {
           />
         </div>
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)} className={selectClass} style={selectStyle}>
-            <option value="all">All Stages</option>
-            {STAGES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-          </select>
-          <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className={selectClass} style={selectStyle}>
-            <option value="all">All Sources</option>
-            {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <select value={potentialFilter} onChange={(e) => setPotentialFilter(e.target.value)} className={selectClass} style={selectStyle}>
-            <option value="all">Potential: All</option>
-            <option value="yes">Potential Only</option>
-            <option value="no">Not Potential</option>
-          </select>
+          {!leadFilter && (
+            <>
+              <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)} className={selectClass} style={selectStyle}>
+                <option value="all">All Stages</option>
+                {STAGES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+              </select>
+              <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className={selectClass} style={selectStyle}>
+                <option value="all">All Sources</option>
+                {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <select value={potentialFilter} onChange={(e) => setPotentialFilter(e.target.value)} className={selectClass} style={selectStyle}>
+                <option value="all">Potential: All</option>
+                <option value="yes">Potential Only</option>
+                <option value="no">Not Potential</option>
+              </select>
+            </>
+          )}
           <span className="flex-1" />
           {isAdmin && (
             <>

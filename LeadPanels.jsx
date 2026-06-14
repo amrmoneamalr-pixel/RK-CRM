@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
-import { C, fmtDate, todayStr, waLink } from './constants';
-import { Sparkles, Archive, PhoneCall, AlertTriangle, Snowflake, Phone } from 'lucide-react';
-
-const COLD_RESULTS = ['No Answer', 'No Answer - Multiple Times', 'Call Again'];
+import { C, fmtDate, todayStr, waLink, matchesLeadCategory, LEAD_CATEGORY_LABELS } from './constants';
+import { Sparkles, Archive, PhoneCall, AlertTriangle, Snowflake, Phone, ChevronRight } from 'lucide-react';
 
 function WhatsAppIcon({ size = 12 }) {
   return (
@@ -14,7 +12,7 @@ function WhatsAppIcon({ size = 12 }) {
   );
 }
 
-export default function LeadPanels({ userId, isAdmin }) {
+export default function LeadPanels({ userId, isAdmin, onSelectCategory }) {
   const [groups, setGroups] = useState({ fresh: [], oldFresh: [], callbackToday: [], late: [], cold: [] });
   const [loading, setLoading] = useState(true);
 
@@ -32,55 +30,50 @@ export default function LeadPanels({ userId, isAdmin }) {
     const { data } = await q;
     const clients = data || [];
 
-    const today = todayStr();
-    const sevenDaysAgoIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-
-    const fresh = [], oldFresh = [], callbackToday = [], late = [], cold = [];
-
+    const next = { fresh: [], oldFresh: [], callbackToday: [], late: [], cold: [] };
     clients.forEach((c) => {
-      if (c.stage === 'new' && !c.ever_contacted) {
-        if (c.created_at >= sevenDaysAgoIso) fresh.push(c);
-        else oldFresh.push(c);
-      }
-      if (c.next_follow_up) {
-        if (c.next_follow_up === today) callbackToday.push(c);
-        else if (c.next_follow_up < today) late.push(c);
-      }
-      if (COLD_RESULTS.includes(c.call_result)) cold.push(c);
+      Object.keys(next).forEach((cat) => {
+        if (matchesLeadCategory(c, cat)) next[cat].push(c);
+      });
     });
+    next.callbackToday.sort((a, b) => (a.next_follow_up < b.next_follow_up ? -1 : 1));
+    next.late.sort((a, b) => (a.next_follow_up < b.next_follow_up ? -1 : 1));
 
-    callbackToday.sort((a, b) => (a.next_follow_up < b.next_follow_up ? -1 : 1));
-    late.sort((a, b) => (a.next_follow_up < b.next_follow_up ? -1 : 1));
-
-    setGroups({ fresh, oldFresh, callbackToday, late, cold });
+    setGroups(next);
     setLoading(false);
   };
 
   return (
     <aside className="hidden lg:flex flex-col w-64 shrink-0 border-l sticky top-0 h-screen overflow-y-auto p-4 space-y-4" style={{ borderColor: C.border }}>
-      <Section title="Fresh Leads" icon={Sparkles} color="#7FA887" loading={loading} items={groups.fresh}
+      <Section category="fresh" icon={Sparkles} color="#7FA887" loading={loading} items={groups.fresh} onSelectCategory={onSelectCategory}
         subtitle={(c) => `Added ${fmtDate(c.created_at)}`} />
-      <Section title="Call Back Today" icon={PhoneCall} color="#6E8CAE" loading={loading} items={groups.callbackToday}
+      <Section category="callbackToday" icon={PhoneCall} color="#6E8CAE" loading={loading} items={groups.callbackToday} onSelectCategory={onSelectCategory}
         subtitle={(c) => `Due ${fmtDate(c.next_follow_up)}`} />
-      <Section title="Late Leads" icon={AlertTriangle} color="#C9714F" loading={loading} items={groups.late}
+      <Section category="late" icon={AlertTriangle} color="#C9714F" loading={loading} items={groups.late} onSelectCategory={onSelectCategory}
         subtitle={(c) => `Was due ${fmtDate(c.next_follow_up)}`} />
-      <Section title="Old Fresh Leads" icon={Archive} color="#9B7EBD" loading={loading} items={groups.oldFresh}
+      <Section category="oldFresh" icon={Archive} color="#9B7EBD" loading={loading} items={groups.oldFresh} onSelectCategory={onSelectCategory}
         subtitle={(c) => `Added ${fmtDate(c.created_at)}`} />
-      <Section title="Cold Calls" icon={Snowflake} color="#8B93A3" loading={loading} items={groups.cold}
+      <Section category="cold" icon={Snowflake} color="#8B93A3" loading={loading} items={groups.cold} onSelectCategory={onSelectCategory}
         subtitle={(c) => c.call_result} />
     </aside>
   );
 }
 
-function Section({ title, icon: Icon, color, loading, items, subtitle }) {
+function Section({ category, icon: Icon, color, loading, items, subtitle, onSelectCategory }) {
   return (
     <div className="rounded-xl p-3" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
-      <div className="flex items-center justify-between mb-2">
+      <button
+        onClick={() => onSelectCategory && onSelectCategory(category)}
+        className="flex items-center justify-between mb-2 w-full text-left"
+      >
         <div className="flex items-center gap-1.5 text-sm font-bold">
-          <Icon size={14} style={{ color }} /> {title}
+          <Icon size={14} style={{ color }} /> {LEAD_CATEGORY_LABELS[category]}
         </div>
-        <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${color}22`, color }}>{items.length}</span>
-      </div>
+        <span className="flex items-center gap-1">
+          <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${color}22`, color }}>{items.length}</span>
+          <ChevronRight size={14} style={{ color: C.muted }} />
+        </span>
+      </button>
       {loading ? (
         <p className="text-xs" style={{ color: C.muted }}>Loading...</p>
       ) : items.length === 0 ? (
