@@ -56,17 +56,18 @@ export default function App() {
     })();
   }, [session]);
 
+  const sessionIdRef = useRef(null);
+
   useEffect(() => {
     if (!profile) return;
-    let sessionId = null;
     let interval = null;
 
     (async () => {
       const { data } = await supabase.from('user_sessions').insert({ user_id: profile.id }).select().single();
-      if (data) sessionId = data.id;
+      if (data) sessionIdRef.current = data.id;
       interval = setInterval(() => {
-        if (sessionId) {
-          supabase.from('user_sessions').update({ last_seen_at: new Date().toISOString() }).eq('id', sessionId);
+        if (sessionIdRef.current) {
+          supabase.from('user_sessions').update({ last_seen_at: new Date().toISOString() }).eq('id', sessionIdRef.current);
         }
       }, 2 * 60 * 1000);
     })();
@@ -75,6 +76,14 @@ export default function App() {
       if (interval) clearInterval(interval);
     };
   }, [profile?.id]);
+
+  const handleSignOut = async () => {
+    if (sessionIdRef.current) {
+      const now = new Date().toISOString();
+      await supabase.from('user_sessions').update({ ended_at: now, last_seen_at: now }).eq('id', sessionIdRef.current);
+    }
+    await supabase.auth.signOut();
+  };
 
   if (!session) return <Login />;
 
@@ -87,7 +96,7 @@ export default function App() {
   }
 
   return (
-    <Layout profile={profile} tab={tab} setTab={handleSetTab} onSelectCategory={selectLeadCategory}>
+    <Layout profile={profile} tab={tab} setTab={handleSetTab} onSelectCategory={selectLeadCategory} onSignOut={handleSignOut}>
       {tab === 'dashboard' && <Dashboard userId={session.user.id} />}
       {tab === 'clients' && <ClientsBoard userId={session.user.id} isAdmin={profile.role === 'admin'} leadFilter={leadFilter} onClearLeadFilter={() => setLeadFilter(null)} />}
       {tab === 'orgchart' && <OrgChart isAdmin={profile.role === 'admin'} />}

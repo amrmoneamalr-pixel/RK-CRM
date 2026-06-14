@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
-import { C } from './constants';
+import { C, fmtTime } from './constants';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 const REP_COLORS = [C.gold, '#6E8CAE', '#7FA887', '#9B7EBD', '#C9714F', '#E8C66B', '#5BA3D0'];
 const MAX_SESSION_HOURS = 12; // sanity cap for a single session
+const ONLINE_THRESHOLD_MS = 4 * 60 * 1000; // heartbeat is every 2 min
 
 export default function Activity() {
   const [loading, setLoading] = useState(true);
@@ -12,9 +13,18 @@ export default function Activity() {
   const [reps, setReps] = useState([]);
   const [status, setStatus] = useState([]);
 
+  const [logUserId, setLogUserId] = useState('');
+  const [logDate, setLogDate] = useState(new Date().toISOString().slice(0, 10));
+  const [logSessions, setLogSessions] = useState([]);
+  const [logLoading, setLogLoading] = useState(false);
+
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (logUserId) loadLog();
+  }, [logUserId, logDate]);
 
   const load = async () => {
     setLoading(true);
@@ -22,7 +32,7 @@ export default function Activity() {
     sevenDaysAgo.setHours(0, 0, 0, 0);
 
     const [{ data: sessions }, { data: profiles }] = await Promise.all([
-      supabase.from('user_sessions').select('user_id, login_at, last_seen_at').gte('login_at', sevenDaysAgo.toISOString()),
+      supabase.from('user_sessions').select('user_id, login_at, last_seen_at, ended_at').gte('login_at', sevenDaysAgo.toISOString()),
       supabase.from('profiles').select('id, full_name, username, is_pool').eq('is_pool', false).order('full_name'),
     ]);
 
@@ -30,6 +40,7 @@ export default function Activity() {
     (profiles || []).forEach((p) => { profileMap[p.id] = p.full_name || p.username || 'Unknown'; });
     const repList = (profiles || []).map((p) => ({ id: p.id, name: profileMap[p.id] }));
     setReps(repList);
+    if (!logUserId && repList.length > 0) setLogUserId(repList[0].id);
 
     // Build last 7 days (oldest -> newest)
     const days = [];
@@ -46,7 +57,8 @@ export default function Activity() {
     (sessions || []).forEach((s) => {
       const day = s.login_at.slice(0, 10);
       if (!byDay[day]) return;
-      let hours = (new Date(s.last_seen_at) - new Date(s.login_at)) / 3600000;
+      const end = s.ended_at || s.last_seen_at;
+      let hours = (new Date(end) - new Date(s.login_at)) / 3600000;
       hours = Math.max(0, Math.min(hours, MAX_SESSION_HOURS));
       const repName = profileMap[s.user_id] || 'Unknown';
       byDay[day][repName] = (byDay[day][repName] || 0) + hours;
@@ -58,27 +70,57 @@ export default function Activity() {
       return row;
     }));
 
-    // Online status: last_seen within 5 minutes
+    // Online status: not explicitly ended, and seen recently
     const now = Date.now();
     const latestByUser = {};
     (sessions || []).forEach((s) => {
-      if (!latestByUser[s.user_id] || new Date(s.last_seen_at) > new Date(latestByUser[s.user_id])) {
-        latestByUser[s.user_id] = s.last_seen_at;
+      const existing = latestByUser[s.user_id];
+      if (!existing || new Date(s.last_seen_at) > new Date(existing.last_seen_at)) {
+        latestByUser[s.user_id] = s;
       }
     });
     setStatus(repList.map((r) => {
-      const lastSeen = latestByUser[r.id];
-      return {
-        ...r,
-        lastSeen,
-        online: lastSeen ? (now - new Date(lastSeen).getTime()) < 5 * 60 * 1000 : false,
-      };
+      const latest = latestByUser[r.id];
+      const lastSeen = latest?.last_seen_at;
+      const online = latest && !latest.ended_at && lastSeen && (now - new Date(lastSeen).getTime()) < ONLINE_THRESHOLD_MS;
+      return { ...r, lastSeen, online };
     }));
 
     setLoading(false);
   };
 
+  const loadLog = async () => {
+    setLogLoading(true);
+    const { data } = await supabase
+      .from('user_sessions')
+      .select('login_at, last_seen_at, ended_at')
+      .eq('user_id', logUserId)
+      .order('login_at', { ascending: false })
+      .limit(300);
+
+    const dayStart = new Date(`${logDate}T00:00:00`);
+    const dayEnd = new Date(`${logDate}T23:59:59.999`);
+    const now = Date.now();
+
+    const sessions = (data || []).filter((s) => {
+      const t = new Date(s.login_at);
+      return t >= dayStart && t <= dayEnd;
+    }).map((s) => {
+      const online = !s.ended_at && (now - new Date(s.last_seen_at).getTime()) < ONLINE_THRESHOLD_MS;
+      const endLabel = s.ended_at ? fmtTime(s.ended_at) : online ? 'Now' : `${fmtTime(s.last_seen_at)} (idle)`;
+      const endForDuration = s.ended_at || s.last_seen_at;
+      let hours = (new Date(endForDuration) - new Date(s.login_at)) / 3600000;
+      hours = Math.max(0, Math.min(hours, MAX_SESSION_HOURS));
+      return { start: fmtTime(s.login_at), end: endLabel, hours };
+    }).reverse();
+
+    setLogSessions(sessions);
+    setLogLoading(false);
+  };
+
   if (loading) return <p style={{ color: C.muted }} className="text-sm">Loading...</p>;
+
+  const totalLogHours = logSessions.reduce((sum, s) => sum + s.hours, 0);
 
   return (
     <div className="space-y-6">
@@ -123,6 +165,50 @@ export default function Activity() {
               )}
             </div>
           ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="font-display font-bold text-sm mb-2">Daily Session Log</h3>
+        <div className="flex gap-2 mb-3">
+          <select
+            value={logUserId}
+            onChange={(e) => setLogUserId(e.target.value)}
+            className="rounded-lg px-2.5 py-2 text-sm outline-none flex-1"
+            style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text }}
+          >
+            {reps.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+          </select>
+          <input
+            type="date"
+            value={logDate}
+            onChange={(e) => setLogDate(e.target.value)}
+            className="rounded-lg px-2.5 py-2 text-sm outline-none"
+            style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text }}
+          />
+        </div>
+
+        <div className="rounded-xl p-3" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
+          {logLoading ? (
+            <p className="text-xs" style={{ color: C.muted }}>Loading...</p>
+          ) : logSessions.length === 0 ? (
+            <p className="text-xs" style={{ color: C.muted }}>No sessions on this day.</p>
+          ) : (
+            <>
+              <div className="space-y-1.5 mb-2">
+                {logSessions.map((s, i) => (
+                  <div key={i} className="flex items-center justify-between text-sm">
+                    <span>{s.start} – {s.end}</span>
+                    <span style={{ color: C.muted }}>{s.hours.toFixed(1)}h</span>
+                  </div>
+                ))}
+              </div>
+              <div className="pt-2 flex items-center justify-between text-xs font-bold" style={{ borderTop: `1px solid ${C.border}`, color: C.gold }}>
+                <span>Total</span>
+                <span>{totalLogHours.toFixed(1)}h</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

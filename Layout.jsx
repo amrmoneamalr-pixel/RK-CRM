@@ -1,11 +1,10 @@
 import React from 'react';
-import { supabase } from './supabaseClient';
 import { C } from './constants';
 import logo from './logo.png';
 import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, Activity as ActivityIcon } from 'lucide-react';
 import LeadPanels from './LeadPanels';
 
-export default function Layout({ profile, tab, setTab, onSelectCategory, children }) {
+export default function Layout({ profile, tab, setTab, onSelectCategory, onSignOut, children }) {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'clients', label: 'Clients', icon: Users },
@@ -50,7 +49,7 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, childre
           })}
         </nav>
 
-        <button onClick={() => supabase.auth.signOut()} className="flex items-center gap-2 text-sm mt-4 px-3 py-2" style={{ color: C.muted }}>
+        <button onClick={onSignOut} className="flex items-center gap-2 text-sm mt-4 px-3 py-2" style={{ color: C.muted }}>
           <LogOut size={15} /> Sign out
         </button>
       </aside>
@@ -68,7 +67,7 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, childre
                 </p>
               </div>
             </div>
-            <button onClick={() => supabase.auth.signOut()} className="flex items-center gap-1 text-xs" style={{ color: C.muted }}>
+            <button onClick={onSignOut} className="flex items-center gap-1 text-xs" style={{ color: C.muted }}>
               <LogOut size={14} /> Sign out
             </button>
           </div>
