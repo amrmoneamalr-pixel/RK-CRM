@@ -58,9 +58,9 @@ export default function ClientsBoard({ userId }) {
       Budget: c.budget || '',
       Source: c.source || '',
       Potential: c.potential ? 'Yes' : 'No',
-      'Call Result': c.call_result || '',
+      'Action': c.call_result || '',
       'Next Follow-up': c.next_follow_up || '',
-      Notes: c.notes || '',
+      Comment: c.notes || '',
       Created: c.created_at ? c.created_at.slice(0, 10) : '',
     }));
     const csv = Papa.unparse(rows);
@@ -94,9 +94,9 @@ export default function ClientsBoard({ userId }) {
             source: r.Source || r.source || null,
             stage: stageIdFromInput(r.Stage || r.stage),
             potential: ['yes', 'true', '1'].includes(String(r.Potential || r.potential || '').trim().toLowerCase()),
-            call_result: r['Call Result'] || r.call_result || null,
+            call_result: r['Action'] || r.action || r['Call Result'] || r.call_result || null,
             next_follow_up: /^\d{4}-\d{2}-\d{2}$/.test(String(r['Next Follow-up'] || r.next_follow_up || '')) ? (r['Next Follow-up'] || r.next_follow_up) : null,
-            notes: r.Notes || r.notes || null,
+            notes: r.Comment || r.comment || r.Notes || r.notes || null,
           }))
           .filter((r) => r.name);
 
@@ -220,7 +220,7 @@ export default function ClientsBoard({ userId }) {
               <th className="py-2.5 px-3 font-medium">Location</th>
               <th className="py-2.5 px-3 font-medium">Source</th>
               <th className="py-2.5 px-3 font-medium">Potential</th>
-              <th className="py-2.5 px-3 font-medium">Call Result</th>
+              <th className="py-2.5 px-3 font-medium">Action</th>
               <th className="py-2.5 px-3 font-medium">Last Comment</th>
               <th className="py-2.5 px-3 font-medium">Last Comment Date</th>
               <th className="py-2.5 px-3 font-medium">Next Follow-up</th>

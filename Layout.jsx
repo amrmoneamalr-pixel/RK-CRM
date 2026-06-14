@@ -2,12 +2,13 @@ import React from 'react';
 import { supabase } from './supabaseClient';
 import { C } from './constants';
 import logo from './logo.png';
-import { BarChart3, Users, Clock, Target, LogOut, Briefcase } from 'lucide-react';
+import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network } from 'lucide-react';
 
 export default function Layout({ profile, tab, setTab, children }) {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'clients', label: 'Clients', icon: Users },
+    { id: 'orgchart', label: 'Org Chart', icon: Network },
     { id: 'followups', label: 'Follow-ups', icon: Clock },
     { id: 'targets', label: 'Monthly Targets', icon: Target },
   ];

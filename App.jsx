@@ -7,6 +7,7 @@ import ClientsBoard from './ClientsBoard';
 import FollowUps from './FollowUps';
 import Targets from './Targets';
 import Reports from './Reports';
+import OrgChart from './OrgChart';
 import { C } from './constants';
 
 export default function App() {
@@ -56,6 +57,7 @@ export default function App() {
     <Layout profile={profile} tab={tab} setTab={setTab}>
       {tab === 'dashboard' && <Dashboard userId={session.user.id} />}
       {tab === 'clients' && <ClientsBoard userId={session.user.id} />}
+      {tab === 'orgchart' && <OrgChart isAdmin={profile.role === 'admin'} />}
       {tab === 'followups' && <FollowUps userId={session.user.id} />}
       {tab === 'targets' && <Targets userId={session.user.id} />}
       {tab === 'reports' && profile.role === 'admin' && <Reports />}

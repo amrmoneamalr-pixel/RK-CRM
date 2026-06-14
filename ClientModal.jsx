@@ -107,7 +107,7 @@ function AddForm({ userId, onClose, onSaved }) {
             {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </Field>
-        <Field label="Last Call Result">
+        <Field label="Last Action">
           <select value={form.call_result} onChange={set('call_result')} className={inputClass} style={inputStyle}>
             <option value="">—</option>
             {CALL_RESULTS.map((r) => <option key={r} value={r}>{r}</option>)}
@@ -120,7 +120,7 @@ function AddForm({ userId, onClose, onSaved }) {
         <Field label="Next Follow-up Date">
           <input type="date" value={form.next_follow_up} onChange={set('next_follow_up')} className={inputClass} style={inputStyle} />
         </Field>
-        <Field label="Notes">
+        <Field label="Comment">
           <textarea value={form.notes} onChange={set('notes')} className={inputClass} style={inputStyle} rows={2} />
         </Field>
       </div>
@@ -276,7 +276,7 @@ function DetailView({ userId, client, onClose, onSaved }) {
           </Field>
         </div>
 
-        <Field label="Last Call Result">
+        <Field label="Last Action">
           <select value={callResult} onChange={(e) => saveCallResult(e.target.value)} className={inputClass} style={inputStyle}>
             <option value="">—</option>
             {CALL_RESULTS.map((r) => <option key={r} value={r}>{r}</option>)}
@@ -309,7 +309,7 @@ function DetailView({ userId, client, onClose, onSaved }) {
           </div>
         </Field>
 
-        <Field label="Notes">
+        <Field label="Comment">
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={saveNotes} className={inputClass} style={inputStyle} rows={2} />
         </Field>
 
