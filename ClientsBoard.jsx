@@ -38,6 +38,10 @@ export default function ClientsBoard({ userId, isAdmin }) {
     load();
   }, [userId]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [search, stageFilter, sourceFilter, potentialFilter]);
+
   const load = async () => {
     setLoading(true);
     let clientsQuery = supabase.from('clients').select('*').order('created_at', { ascending: false });
@@ -171,10 +175,6 @@ export default function ClientsBoard({ userId, isAdmin }) {
     const current = lastActivity[a.client_id];
     if (!current || a.date > current.date) lastActivity[a.client_id] = a;
   });
-
-  useEffect(() => {
-    setPage(1);
-  }, [search, stageFilter, sourceFilter, potentialFilter]);
 
   const filtered = clients.filter((c) => {
     const q = search.trim().toLowerCase();
