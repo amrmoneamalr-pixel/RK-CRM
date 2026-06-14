@@ -8,6 +8,7 @@ import FollowUps from './FollowUps';
 import Targets from './Targets';
 import Reports from './Reports';
 import OrgChart from './OrgChart';
+import TeamPage from './TeamPage';
 import { C } from './constants';
 
 export default function App() {
@@ -61,6 +62,7 @@ export default function App() {
       {tab === 'followups' && <FollowUps userId={session.user.id} />}
       {tab === 'targets' && <Targets userId={session.user.id} />}
       {tab === 'reports' && profile.role === 'admin' && <Reports />}
+      {tab === 'team' && profile.role === 'admin' && <TeamPage currentUserId={session.user.id} />}
     </Layout>
   );
 }
