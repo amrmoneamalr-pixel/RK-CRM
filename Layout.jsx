@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient';
 import { C } from './constants';
 import logo from './logo.png';
 import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog } from 'lucide-react';
+import LeadPanels from './LeadPanels';
 
 export default function Layout({ profile, tab, setTab, children }) {
   const tabs = [
@@ -94,6 +95,10 @@ export default function Layout({ profile, tab, setTab, children }) {
       <div className="flex-1 min-w-0">
         <main className="max-w-5xl mx-auto px-4 py-5 pb-24">{children}</main>
       </div>
+
+      {(tab === 'dashboard' || tab === 'clients') && (
+        <LeadPanels userId={profile.id} isAdmin={profile.role === 'admin'} />
+      )}
     </div>
   );
 }
