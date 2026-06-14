@@ -69,6 +69,7 @@ export default function ClientsBoard({ userId, isAdmin }) {
     const rows = clients.map((c) => ({
       Name: c.name,
       Phone: c.phone || '',
+      'Secondary Phone': c.secondary_phone || '',
       Stage: stageOf(c.stage).label,
       Project: c.project || '',
       Developer: c.developer || '',
@@ -105,6 +106,7 @@ export default function ClientsBoard({ userId, isAdmin }) {
             owner_id: userId,
             name: (r.Name || r.name || '').toString().trim(),
             phone: r.Phone || r.phone || null,
+            secondary_phone: r['Secondary Phone'] || r.secondary_phone || null,
             project: r.Project || r.project || null,
             developer: r.Developer || r.developer || null,
             location: r.Location || r.location || null,
@@ -164,7 +166,7 @@ export default function ClientsBoard({ userId, isAdmin }) {
         </div>
         {isAdmin && importMsg && <p className="text-xs mt-3" style={{ color: importMsg.startsWith('Error') ? '#C9714F' : '#7FA887' }}>{importMsg}</p>}
         {isAdmin && <input ref={fileInputRef} type="file" accept=".csv" onChange={handleImportFile} className="hidden" />}
-        {showAdd && <ClientModal mode="add" userId={userId} onClose={() => setShowAdd(false)} onSaved={load} />}
+        {showAdd && <ClientModal mode="add" userId={userId} isAdmin={isAdmin} profilesList={profilesList} onClose={() => setShowAdd(false)} onSaved={load} />}
       </div>
     );
   }
@@ -343,7 +345,7 @@ export default function ClientsBoard({ userId, isAdmin }) {
         <Plus size={18} /> New Client
       </button>
 
-      {showAdd && <ClientModal mode="add" userId={userId} onClose={() => setShowAdd(false)} onSaved={load} />}
+      {showAdd && <ClientModal mode="add" userId={userId} isAdmin={isAdmin} profilesList={profilesList} onClose={() => setShowAdd(false)} onSaved={load} />}
       {selected && <ClientModal mode="detail" userId={userId} client={selected} isAdmin={isAdmin} profilesList={profilesList} onClose={() => setSelected(null)} onSaved={load} />}
     </div>
   );

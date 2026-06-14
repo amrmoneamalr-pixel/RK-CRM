@@ -41,14 +41,14 @@ function Modal({ title, children, onClose }) {
 }
 
 export default function ClientModal({ mode, userId, client, isAdmin, profilesList, onClose, onSaved }) {
-  if (mode === 'add') return <AddForm userId={userId} onClose={onClose} onSaved={onSaved} />;
+  if (mode === 'add') return <AddForm userId={userId} isAdmin={isAdmin} profilesList={profilesList} onClose={onClose} onSaved={onSaved} />;
   return <DetailView userId={userId} client={client} isAdmin={isAdmin} profilesList={profilesList} onClose={onClose} onSaved={onSaved} />;
 }
 
-function AddForm({ userId, onClose, onSaved }) {
+function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
   const [form, setForm] = useState({
-    name: '', phone: '', project: 'Mountain View Creek View', developer: '', location: '', budget: '',
-    source: SOURCES[0], next_follow_up: '', notes: '', potential: false, call_result: '',
+    name: '', project: 'Mountain View Creek View', developer: '', phone: '', secondary_phone: '',
+    source: SOURCES[0], location: '', notes: '', owner_id: userId,
   });
   const [saving, setSaving] = useState(false);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -56,19 +56,16 @@ function AddForm({ userId, onClose, onSaved }) {
   const save = async () => {
     setSaving(true);
     await supabase.from('clients').insert({
-      owner_id: userId,
+      owner_id: form.owner_id || userId,
       name: form.name,
-      phone: form.phone,
       project: form.project,
       developer: form.developer || null,
-      location: form.location || null,
-      budget: form.budget ? Number(form.budget) : null,
+      phone: form.phone || null,
+      secondary_phone: form.secondary_phone || null,
       source: form.source,
+      location: form.location || null,
       stage: 'new',
-      notes: form.notes,
-      next_follow_up: form.next_follow_up || null,
-      potential: form.potential,
-      call_result: form.call_result || null,
+      notes: form.notes || null,
     });
     setSaving(false);
     onSaved();
@@ -76,15 +73,12 @@ function AddForm({ userId, onClose, onSaved }) {
   };
 
   return (
-    <Modal title="New Client" onClose={onClose}>
+    <Modal title="New Lead" onClose={onClose}>
       <div className="space-y-3">
-        <Field label="Name *">
+        <Field label="Full Name *">
           <input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} placeholder="Client name" />
         </Field>
-        <Field label="Phone">
-          <input value={form.phone} onChange={set('phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
-        </Field>
-        <Field label="Project">
+        <Field label="Project Name">
           <input value={form.project} onChange={set('project')} className={inputClass} style={inputStyle} />
         </Field>
         <Field label="Developer">
@@ -93,34 +87,33 @@ function AddForm({ userId, onClose, onSaved }) {
             {DEVELOPERS.map((d) => <option key={d} value={d} />)}
           </datalist>
         </Field>
-        <Field label="Location">
-          <input value={form.location} onChange={set('location')} className={inputClass} style={inputStyle} list="locations-list" placeholder="e.g. New Cairo" />
-          <datalist id="locations-list">
-            {LOCATIONS.map((l) => <option key={l} value={l} />)}
-          </datalist>
+        <Field label="Mobile Number">
+          <input value={form.phone} onChange={set('phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
         </Field>
-        <Field label="Approximate Budget (EGP)">
-          <input type="number" value={form.budget} onChange={set('budget')} className={inputClass} style={inputStyle} />
+        <Field label="Secondary Number">
+          <input value={form.secondary_phone} onChange={set('secondary_phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
         </Field>
         <Field label="Lead Source">
           <select value={form.source} onChange={set('source')} className={inputClass} style={inputStyle}>
             {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </Field>
-        <Field label="Last Action">
-          <select value={form.call_result} onChange={set('call_result')} className={inputClass} style={inputStyle}>
-            <option value="">—</option>
-            {CALL_RESULTS.map((r) => <option key={r} value={r}>{r}</option>)}
-          </select>
+        <Field label="District">
+          <input value={form.location} onChange={set('location')} className={inputClass} style={inputStyle} list="locations-list" placeholder="e.g. New Cairo" />
+          <datalist id="locations-list">
+            {LOCATIONS.map((l) => <option key={l} value={l} />)}
+          </datalist>
         </Field>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={form.potential} onChange={(e) => setForm((f) => ({ ...f, potential: e.target.checked }))} />
-          <span style={{ color: C.muted }}>Mark as high-potential lead</span>
-        </label>
-        <Field label="Next Follow-up Date">
-          <input type="date" value={form.next_follow_up} onChange={set('next_follow_up')} className={inputClass} style={inputStyle} />
-        </Field>
-        <Field label="Comment">
+        {isAdmin && profilesList && profilesList.length > 0 && (
+          <Field label="Assign To">
+            <select value={form.owner_id} onChange={set('owner_id')} className={inputClass} style={inputStyle}>
+              {profilesList.map((p) => (
+                <option key={p.id} value={p.id}>{p.is_pool ? 'Unassigned Pool' : (p.full_name || p.username || p.id)}</option>
+              ))}
+            </select>
+          </Field>
+        )}
+        <Field label="Notes">
           <textarea value={form.notes} onChange={set('notes')} className={inputClass} style={inputStyle} rows={2} />
         </Field>
       </div>
@@ -130,7 +123,7 @@ function AddForm({ userId, onClose, onSaved }) {
         className="w-full mt-5 py-2.5 rounded-lg font-bold text-sm disabled:opacity-40"
         style={{ backgroundColor: C.gold, color: '#14181F' }}
       >
-        {saving ? '...' : 'Save Client'}
+        {saving ? '...' : 'Save Lead'}
       </button>
     </Modal>
   );
@@ -144,6 +137,7 @@ function DetailView({ userId, client, isAdmin, profilesList, onClose, onSaved })
   const [stage, setStage] = useState(client.stage);
   const [developer, setDeveloper] = useState(client.developer || '');
   const [location, setLocation] = useState(client.location || '');
+  const [secondaryPhone, setSecondaryPhone] = useState(client.secondary_phone || '');
   const [potential, setPotential] = useState(client.potential || false);
   const [callResult, setCallResult] = useState(client.call_result || '');
   const [noAnswerCount, setNoAnswerCount] = useState(client.no_answer_count || 0);
@@ -177,6 +171,7 @@ function DetailView({ userId, client, isAdmin, profilesList, onClose, onSaved })
   const saveNotes = async () => update({ notes });
   const saveDeveloper = async () => update({ developer: developer || null });
   const saveLocation = async () => update({ location: location || null });
+  const saveSecondaryPhone = async () => update({ secondary_phone: secondaryPhone || null });
   const saveCallResult = async (val) => {
     setCallResult(val);
     await update({ call_result: val || null });
@@ -260,6 +255,20 @@ function DetailView({ userId, client, isAdmin, profilesList, onClose, onSaved })
             <Phone size={14} style={{ color: C.gold }} /> <span>{client.phone}</span>
           </a>
         )}
+
+        <Field label="Secondary Number">
+          <div className="flex gap-2">
+            <input value={secondaryPhone} onChange={(e) => setSecondaryPhone(e.target.value)} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
+            {secondaryPhone !== (client.secondary_phone || '') && (
+              <button onClick={saveSecondaryPhone} className="px-2.5 py-2 rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: C.gold, color: '#14181F' }}>Save</button>
+            )}
+            {secondaryPhone && (
+              <a href={`tel:${secondaryPhone}`} className="px-2.5 py-2 rounded-lg shrink-0 flex items-center" style={{ border: `1px solid ${C.border}`, color: C.gold }}>
+                <Phone size={14} />
+              </a>
+            )}
+          </div>
+        </Field>
 
         <Field label="Stage">
           <select value={stage} onChange={(e) => changeStage(e.target.value)} className={inputClass} style={inputStyle}>
