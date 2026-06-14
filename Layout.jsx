@@ -1,6 +1,7 @@
 import React from 'react';
 import { supabase } from './supabaseClient';
 import { C } from './constants';
+import logo from './logo.png';
 import { BarChart3, Users, Clock, Target, LogOut, Briefcase } from 'lucide-react';
 
 export default function Layout({ profile, tab, setTab, children }) {
@@ -19,11 +20,14 @@ export default function Layout({ profile, tab, setTab, children }) {
       <header className="sticky top-0 z-20 border-b" style={{ backgroundColor: C.bg, borderColor: C.border }}>
         <div className="max-w-5xl mx-auto px-4 pt-4 pb-2">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="font-display text-xl font-extrabold tracking-tight" style={{ color: C.gold }}>RK CRM</h1>
-              <p className="text-xs mt-0.5" style={{ color: C.muted }}>
-                {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
-              </p>
+            <div className="flex items-center gap-2.5">
+              <img src={logo} alt="RK Real Estate" className="h-9" />
+              <div>
+                <h1 className="font-display text-xl font-extrabold tracking-tight" style={{ color: C.gold }}>RK CRM</h1>
+                <p className="text-xs mt-0.5" style={{ color: C.muted }}>
+                  {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
+                </p>
+              </div>
             </div>
             <button onClick={() => supabase.auth.signOut()} className="flex items-center gap-1 text-xs" style={{ color: C.muted }}>
               <LogOut size={14} /> Sign out

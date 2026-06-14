@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from './supabaseClient';
 import { C } from './constants';
+import logo from './logo.png';
 
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
 const inputClass = 'rounded-lg px-3 py-2 text-sm outline-none w-full';
@@ -48,8 +49,9 @@ export default function Login() {
       style={{ backgroundColor: C.bg, color: C.text }}
     >
       <div className="w-full max-w-sm p-6 rounded-2xl" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
-        <h1 className="font-display text-2xl font-extrabold mb-1" style={{ color: C.gold }}>RK CRM</h1>
-        <p className="text-sm mb-6" style={{ color: C.muted }}>
+        <img src={logo} alt="RK Real Estate" className="h-16 mx-auto mb-3" />
+        <h1 className="font-display text-2xl font-extrabold mb-1 text-center" style={{ color: C.gold }}>RK CRM</h1>
+        <p className="text-sm mb-6 text-center" style={{ color: C.muted }}>
           {mode === 'login' ? 'Log in to your account' : 'Create a new account'}
         </p>
 
