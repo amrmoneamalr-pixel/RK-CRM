@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
-import { C, STAGES, ACTIVITY_TYPES, monthKey, todayStr, fmtDate } from './constants';
+import { C, STAGES, ACTIVITY_TYPES, activityLabel, monthKey, todayStr, fmtDate } from './constants';
 import { Users, Clock, CheckCircle2, BarChart3 } from 'lucide-react';
 
 export function ProgressBar({ value, target, color }) {
@@ -124,10 +124,12 @@ export default function Dashboard({ userId }) {
         ) : (
           <div className="space-y-2">
             {recent.map((a) => {
-              const type = ACTIVITY_TYPES.find((t) => t.id === a.type) || ACTIVITY_TYPES[0];
+              const isSystem = a.type === 'system';
               return (
                 <div key={a.id} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: C.bg }}>
-                  <div className="text-sm">{a.client.name} — {type.label}</div>
+                  <div className="text-sm">
+                    {a.client.name} — {isSystem ? <span style={{ color: C.muted, fontStyle: 'italic' }}>{a.notes}</span> : activityLabel(a.type)}
+                  </div>
                   <div className="text-[11px]" style={{ color: C.muted }}>{fmtDate(a.date)}</div>
                 </div>
               );

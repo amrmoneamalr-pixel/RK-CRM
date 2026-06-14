@@ -25,6 +25,16 @@ export const ACTIVITY_TYPES = [
   { id: 'visit',    label: 'Visit' },
 ];
 
+export const ACTIVITY_TYPE_LABELS = {
+  call: 'Call',
+  meeting: 'Meeting',
+  whatsapp: 'WhatsApp',
+  visit: 'Visit',
+  system: 'Update',
+};
+
+export const activityLabel = (type) => ACTIVITY_TYPE_LABELS[type] || type;
+
 export const SOURCES = ['Facebook / Instagram', 'Referral', 'Ad Campaign', 'Inbound Call', 'Other'];
 
 export const DEVELOPERS = ['Mountain View', 'Tatweer Misr', 'City Edge', 'SODIC', 'Palm Hills', 'Emaar Misr', 'Madinet Nasr Housing', 'Modon Developments', 'Hassan Allam', 'Ora Developers'];

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
-import { C, STAGES, SOURCES, DEVELOPERS, LOCATIONS, CALL_RESULTS, ACTIVITY_TYPES, fmtMoney, fmtDate, todayStr, stageOf } from './constants';
+import { C, STAGES, SOURCES, DEVELOPERS, LOCATIONS, CALL_RESULTS, ACTIVITY_TYPES, activityLabel, fmtMoney, fmtDate, todayStr, stageOf } from './constants';
 import { X, Phone, Trash2, AlertCircle } from 'lucide-react';
 
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
@@ -350,19 +350,23 @@ function DetailView({ userId, client, onClose, onSaved }) {
           ) : (
             <div className="space-y-1.5">
               {activities.map((a) => {
-                const type = ACTIVITY_TYPES.find((t) => t.id === a.type) || ACTIVITY_TYPES[0];
+                const isSystem = a.type === 'system';
                 return (
-                  <div key={a.id} className="flex items-start gap-2 p-2 rounded-lg" style={{ backgroundColor: C.bg }}>
+                  <div key={a.id} className="flex items-start gap-2 p-2 rounded-lg" style={{ backgroundColor: isSystem ? 'transparent' : C.bg }}>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold">{type.label}</span>
+                        <span className="text-xs font-bold" style={isSystem ? { color: C.muted, fontWeight: 400, fontStyle: 'italic' } : undefined}>
+                          {isSystem ? a.notes : activityLabel(a.type)}
+                        </span>
                         <span className="text-[11px]" style={{ color: C.muted }}>{fmtDate(a.date)}</span>
                       </div>
-                      {a.notes && <p className="text-xs mt-0.5" style={{ color: C.muted }}>{a.notes}</p>}
+                      {!isSystem && a.notes && <p className="text-xs mt-0.5" style={{ color: C.muted }}>{a.notes}</p>}
                     </div>
-                    <button onClick={() => deleteActivity(a.id)} className="shrink-0">
-                      <X size={12} style={{ color: C.muted }} />
-                    </button>
+                    {!isSystem && (
+                      <button onClick={() => deleteActivity(a.id)} className="shrink-0">
+                        <X size={12} style={{ color: C.muted }} />
+                      </button>
+                    )}
                   </div>
                 );
               })}
