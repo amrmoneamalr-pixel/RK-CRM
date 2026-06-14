@@ -184,7 +184,7 @@ export default function Activity() {
                 </span>
               ) : (
                 <span className="text-xs" style={{ color: C.muted }}>
-                  {s.lastSeen ? `Last seen ${timeAgo(s.lastSeen)}` : 'No activity yet'}
+                  {s.lastSeen ? `Last active ${timeAgo(s.lastSeen)}` : 'No activity yet'}
                 </span>
               )}
             </div>

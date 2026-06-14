@@ -37,14 +37,15 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
             const Icon = t.icon;
             const active = tab === t.id;
             return (
-              <button
+              <a
                 key={t.id}
-                onClick={() => setTab(t.id)}
-                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-left transition-colors"
+                href={`#${t.id}`}
+                onClick={(e) => { e.preventDefault(); setTab(t.id); }}
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-left transition-colors no-underline"
                 style={{ backgroundColor: active ? C.gold : 'transparent', color: active ? '#14181F' : C.muted }}
               >
                 <Icon size={16} /> {t.label}
-              </button>
+              </a>
             );
           })}
         </nav>
@@ -77,14 +78,15 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
               const Icon = t.icon;
               const active = tab === t.id;
               return (
-                <button
+                <a
                   key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors shrink-0"
+                  href={`#${t.id}`}
+                  onClick={(e) => { e.preventDefault(); setTab(t.id); }}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors shrink-0 no-underline"
                   style={{ backgroundColor: active ? C.gold : 'transparent', color: active ? '#14181F' : C.muted }}
                 >
                   <Icon size={15} /> {t.label}
-                </button>
+                </a>
               );
             })}
           </nav>

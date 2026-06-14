@@ -16,3 +16,7 @@ body {
 .font-body {
   font-family: 'Tajawal', sans-serif;
 }
+
+input[type="date"] {
+  color-scheme: dark;
+}

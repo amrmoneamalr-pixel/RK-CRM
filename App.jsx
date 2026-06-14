@@ -12,12 +12,30 @@ import TeamPage from './TeamPage';
 import Activity from './Activity';
 import { C } from './constants';
 
+const VALID_TABS = ['dashboard', 'clients', 'orgchart', 'followups', 'targets', 'reports', 'activity', 'team'];
+
+const tabFromHash = () => {
+  const h = window.location.hash.replace('#', '');
+  return VALID_TABS.includes(h) ? h : 'dashboard';
+};
+
 export default function App() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('dashboard');
+  const [tab, setTabState] = useState(tabFromHash);
   const [leadFilter, setLeadFilter] = useState(null);
+
+  const setTab = (t) => {
+    setTabState(t);
+    if (window.location.hash !== `#${t}`) window.location.hash = t;
+  };
+
+  useEffect(() => {
+    const onHashChange = () => setTabState(tabFromHash());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   const handleSetTab = (t) => {
     setLeadFilter(null);
