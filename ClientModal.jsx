@@ -40,9 +40,9 @@ function Modal({ title, children, onClose }) {
   );
 }
 
-export default function ClientModal({ mode, userId, client, onClose, onSaved }) {
+export default function ClientModal({ mode, userId, client, isAdmin, profilesList, onClose, onSaved }) {
   if (mode === 'add') return <AddForm userId={userId} onClose={onClose} onSaved={onSaved} />;
-  return <DetailView userId={userId} client={client} onClose={onClose} onSaved={onSaved} />;
+  return <DetailView userId={userId} client={client} isAdmin={isAdmin} profilesList={profilesList} onClose={onClose} onSaved={onSaved} />;
 }
 
 function AddForm({ userId, onClose, onSaved }) {
@@ -136,9 +136,10 @@ function AddForm({ userId, onClose, onSaved }) {
   );
 }
 
-function DetailView({ userId, client, onClose, onSaved }) {
+function DetailView({ userId, client, isAdmin, profilesList, onClose, onSaved }) {
   const [activities, setActivities] = useState([]);
   const [notes, setNotes] = useState(client.notes || '');
+  const [ownerId, setOwnerId] = useState(client.owner_id);
   const [nextFollowUp, setNextFollowUp] = useState(client.next_follow_up || '');
   const [stage, setStage] = useState(client.stage);
   const [developer, setDeveloper] = useState(client.developer || '');
@@ -190,6 +191,11 @@ function DetailView({ userId, client, onClose, onSaved }) {
   };
   const savePotential = async (val) => { setPotential(val); await update({ potential: val }); };
 
+  const saveOwner = async (val) => {
+    setOwnerId(val);
+    await update({ owner_id: val, previous_owners: [...(previousOwners || []), client.owner_id], no_answer_count: 0, call_result: null });
+  };
+
   const addActivity = async () => {
     await supabase.from('activities').insert({ client_id: client.id, owner_id: userId, ...activityForm });
     setActivityForm({ type: 'call', date: todayStr(), notes: '' });
@@ -238,6 +244,16 @@ function DetailView({ userId, client, onClose, onSaved }) {
           {client.budget ? <Pill color="#6E8CAE">{fmtMoney(client.budget)} EGP</Pill> : null}
           {client.source && <Pill color={C.muted}>{client.source}</Pill>}
         </div>
+
+        {isAdmin && profilesList && profilesList.length > 0 && (
+          <Field label="Owner">
+            <select value={ownerId} onChange={(e) => saveOwner(e.target.value)} className={inputClass} style={inputStyle}>
+              {profilesList.map((p) => (
+                <option key={p.id} value={p.id}>{p.is_pool ? 'Unassigned Pool' : (p.full_name || p.username || p.id)}</option>
+              ))}
+            </select>
+          </Field>
+        )}
 
         {client.phone && (
           <a href={`tel:${client.phone}`} className="flex items-center gap-2 text-sm" style={{ color: C.text }}>

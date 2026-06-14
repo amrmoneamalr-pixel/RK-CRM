@@ -20,6 +20,7 @@ export default function ClientsBoard({ userId, isAdmin }) {
   const [clients, setClients] = useState([]);
   const [activities, setActivities] = useState([]);
   const [owners, setOwners] = useState({});
+  const [profilesList, setProfilesList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('all');
@@ -47,10 +48,11 @@ export default function ClientsBoard({ userId, isAdmin }) {
     setClients(c || []);
     setActivities(a || []);
     if (isAdmin) {
-      const { data: p } = await supabase.from('profiles').select('id, full_name');
+      const { data: p } = await supabase.from('profiles').select('id, full_name, username, is_pool').order('full_name');
       const map = {};
-      (p || []).forEach((row) => { map[row.id] = row.full_name || '—'; });
+      (p || []).forEach((row) => { map[row.id] = row.is_pool ? 'Unassigned Pool' : (row.full_name || row.username || '—'); });
       setOwners(map);
+      setProfilesList(p || []);
     }
     setLoading(false);
   };
@@ -300,7 +302,7 @@ export default function ClientsBoard({ userId, isAdmin }) {
       </button>
 
       {showAdd && <ClientModal mode="add" userId={userId} onClose={() => setShowAdd(false)} onSaved={load} />}
-      {selected && <ClientModal mode="detail" userId={userId} client={selected} onClose={() => setSelected(null)} onSaved={load} />}
+      {selected && <ClientModal mode="detail" userId={userId} client={selected} isAdmin={isAdmin} profilesList={profilesList} onClose={() => setSelected(null)} onSaved={load} />}
     </div>
   );
 }
