@@ -56,3 +56,8 @@ export const fmtDate = (d) => {
   if (!d) return '';
   return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 };
+
+export const fmtTime = (d) => {
+  if (!d) return '';
+  return new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+};

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
-import { C, STAGES, SOURCES, DEVELOPERS, LOCATIONS, CALL_RESULTS, ACTIVITY_TYPES, activityLabel, fmtMoney, fmtDate, todayStr, stageOf } from './constants';
+import { C, STAGES, SOURCES, DEVELOPERS, LOCATIONS, CALL_RESULTS, ACTIVITY_TYPES, activityLabel, fmtMoney, fmtDate, fmtTime, todayStr, stageOf } from './constants';
 import { X, Phone, Trash2, AlertCircle } from 'lucide-react';
 
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
@@ -358,7 +358,9 @@ function DetailView({ userId, client, onClose, onSaved }) {
                         <span className="text-xs font-bold" style={isSystem ? { color: C.muted, fontWeight: 400, fontStyle: 'italic' } : undefined}>
                           {isSystem ? a.notes : activityLabel(a.type)}
                         </span>
-                        <span className="text-[11px]" style={{ color: C.muted }}>{fmtDate(a.date)}</span>
+                        <span className="text-[11px]" style={{ color: C.muted }}>
+                          {fmtDate(a.date)}{isSystem && a.created_at ? ` · ${fmtTime(a.created_at)}` : ''}
+                        </span>
                       </div>
                       {!isSystem && a.notes && <p className="text-xs mt-0.5" style={{ color: C.muted }}>{a.notes}</p>}
                     </div>
