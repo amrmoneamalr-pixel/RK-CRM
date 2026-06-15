@@ -33,6 +33,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   const [potentialFilter, setPotentialFilter] = useState('all');
   const [showAdd, setShowAdd] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [editTarget, setEditTarget] = useState(null);
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState('');
   const [exporting, setExporting] = useState(false);
@@ -58,7 +59,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   useEffect(() => {
     if (!hasTeamAccess) return;
     (async () => {
-      const { data: p } = await supabase.from('profiles').select('id, full_name, username, is_pool').order('full_name');
+      const { data: p } = await supabase.from('profiles').select('id, full_name, username, is_pool, title').order('full_name');
       const map = {};
       (p || []).forEach((row) => { map[row.id] = row.is_pool ? 'Unassigned Pool' : (row.full_name || row.username || '—'); });
       setOwners(map);
@@ -436,7 +437,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                       <td className="py-2.5 px-3" onClick={(e) => e.stopPropagation()}>
                         <input type="checkbox" checked={selectedIds.has(c.id)} onChange={() => toggleSelect(c.id)} />
                       </td>
-                      <td className="py-2.5 px-3" onClick={(e) => { e.stopPropagation(); setActionTarget(c); }}>
+                      <td className="py-2.5 px-3" onClick={(e) => { e.stopPropagation(); if (isAdmin) setEditTarget(c); else setActionTarget(c); }}>
                         {isAdmin ? (
                           <Pencil size={14} style={{ color: C.muted }} />
                         ) : (
@@ -512,6 +513,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
 
       {showAdd && <ClientModal mode="add" userId={userId} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setShowAdd(false)} onSaved={load} />}
       {selected && <ClientModal mode="detail" userId={userId} client={selected} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setSelected(null)} onSaved={load} />}
+      {editTarget && <ClientModal mode="edit" userId={userId} client={editTarget} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setEditTarget(null)} onSaved={load} />}
       {actionTarget && <ClientModal mode="detail" userId={userId} client={actionTarget} isAdmin={hasTeamAccess} profilesList={profilesList} autoFocusActivity={!isAdmin} onClose={() => setActionTarget(null)} onSaved={load} />}
     </div>
   );

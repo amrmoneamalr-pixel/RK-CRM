@@ -35,7 +35,13 @@ export const ACTIVITY_TYPE_LABELS = {
 
 export const activityLabel = (type) => ACTIVITY_TYPE_LABELS[type] || type;
 
-export const SOURCES = ['Facebook', 'Instagram', 'TikTok', 'WhatsApp', 'Referral', 'Ad Campaign', 'Inbound Call', 'Other'];
+export const SOURCES = ['Facebook Campaign', 'Instagram Campaign', 'Facebook Organic', 'Instagram Organic', 'WhatsApp', 'TikTok', 'Outsource Marketing'];
+
+export const LEAD_ORIGINS = ['RK', 'Marketing', 'Top Management'];
+export const TOP_MANAGEMENT_NAMES = ['Rania Khalid', 'Amr Abdel Moneam', 'Mohamed Khalid'];
+
+// Action options shown to everyone when logging a touchpoint on a lead
+export const ACTIONS = ['Contacted', 'No Answer', 'Switched Off', 'Send WhatsApp', 'Not Interested', 'Not Qualified', 'Interest in Resale', 'Interest in Separate'];
 
 export const DEVELOPERS = ['Mountain View', 'Tatweer Misr', 'City Edge', 'SODIC', 'Palm Hills', 'Emaar Misr', 'Madinet Nasr Housing', 'Modon Developments', 'Hassan Allam', 'Ora Developers'];
 

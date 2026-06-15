@@ -78,8 +78,12 @@ const SOURCE_ICONS = {
 
 export function sourceIcon(source) {
   if (!source) return null;
-  const key = Object.keys(SOURCE_ICONS).find((k) => source.toLowerCase().includes(k.toLowerCase()));
-  return key ? SOURCE_ICONS[key] : null;
+  const s = source.toLowerCase();
+  if (s.includes('facebook')) return FacebookIcon;
+  if (s.includes('instagram')) return InstagramIcon;
+  if (s.includes('tiktok')) return TiktokIcon;
+  if (s.includes('whatsapp')) return WhatsAppIcon;
+  return null;
 }
 
 // Renders a source name with its brand icon (if any) next to it.
