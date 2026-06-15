@@ -78,16 +78,46 @@ export default function Settings() {
     setLocations((prev) => prev.includes(loc) ? prev.filter((l) => l !== loc) : [...prev, loc]);
   };
 
+  const sameLocations = (a, b) => {
+    const sa = [...a].sort().join(',');
+    const sb = [...b].sort().join(',');
+    return sa === sb;
+  };
+
+  const isDirty = !!settings && (
+    enabled !== settings.rotation_enabled ||
+    time !== (settings.rotation_time || '09:00').slice(0, 5) ||
+    count !== settings.rotation_count ||
+    noAnswerEnabled !== (settings.no_answer_rotation_enabled ?? true) ||
+    !sameLocations(locations, settings.rotation_locations || [])
+  );
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="font-display font-bold text-lg mb-1 flex items-center gap-2">
+      {/* Sticky save bar */}
+      <div
+        className="sticky top-0 z-10 -mx-4 sm:mx-0 px-4 sm:px-0 py-3 flex items-center justify-between gap-3"
+        style={{ backgroundColor: C.bg, borderBottom: `1px solid ${C.border}` }}
+      >
+        <h2 className="font-display font-bold text-lg flex items-center gap-2">
           <SettingsIcon size={18} style={{ color: C.gold }} /> Settings
         </h2>
-        <p className="text-sm" style={{ color: C.muted }}>Automatic lead rotation</p>
+        <button
+          onClick={save}
+          disabled={saving || !isDirty}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
+          style={isDirty
+            ? { backgroundColor: C.gold, color: '#14181F' }
+            : { backgroundColor: C.surface, color: C.muted, border: `1px solid ${C.border}` }}
+        >
+          {saved ? <Check size={14} /> : null} {saving ? 'Saving...' : saved ? 'Saved' : isDirty ? 'Save changes' : 'Saved'}
+        </button>
       </div>
 
+      {error && <p className="text-xs" style={{ color: '#C9714F' }}>{error}</p>}
+
       <div className="rounded-xl p-4 space-y-4" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
+        <h3 className="font-display font-bold text-sm">Automatic daily lead rotation</h3>
         <p className="text-xs" style={{ color: C.muted }}>
           Every day at the chosen time, the system picks stale leads (old fresh leads, late follow-ups, and otherwise
           untouched old clients) and hands a batch of them to the next sales rep in line — never the same rep twice
@@ -135,18 +165,12 @@ export default function Settings() {
           </div>
         </div>
 
-        {error && <p className="text-xs" style={{ color: '#C9714F' }}>{error}</p>}
-
-        <div className="flex flex-wrap gap-2">
-          <button onClick={save} disabled={saving} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50" style={{ backgroundColor: C.gold, color: '#14181F' }}>
-            {saved ? <Check size={14} /> : null} {saving ? 'Saving...' : saved ? 'Saved' : 'Save'}
-          </button>
+        <div className="pt-2" style={{ borderTop: `1px solid ${C.border}` }}>
           <button onClick={runNow} disabled={running} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text }}>
             <RefreshCw size={14} className={running ? 'animate-spin' : ''} /> {running ? 'Running...' : 'Run rotation now'}
           </button>
+          {runMsg && <p className="text-xs mt-2" style={{ color: '#7FA887' }}>{runMsg}</p>}
         </div>
-
-        {runMsg && <p className="text-xs" style={{ color: '#7FA887' }}>{runMsg}</p>}
 
         {settings && (
           <div className="pt-2 text-xs space-y-1" style={{ borderTop: `1px solid ${C.border}`, color: C.muted }}>
@@ -168,7 +192,6 @@ export default function Settings() {
           <input type="checkbox" checked={noAnswerEnabled} onChange={(e) => setNoAnswerEnabled(e.target.checked)} />
           <span>Move client to another rep after 3 "No Answer" results</span>
         </label>
-        <p className="text-xs" style={{ color: C.muted }}>Don't forget to press Save above to apply this.</p>
       </div>
     </div>
   );

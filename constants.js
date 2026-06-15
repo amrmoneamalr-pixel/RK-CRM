@@ -10,7 +10,7 @@ export const C = {
 };
 
 export const STAGES = [
-  { id: 'new',         label: 'New Lead',         color: '#C9714F' },
+  { id: 'new',         label: 'New Lead',         color: '#D6453E' },
   { id: 'contacted',   label: 'Contacted',        color: '#6E8CAE' },
   { id: 'meeting',     label: 'Meeting Scheduled', color: '#D4A24E' },
   { id: 'negotiation', label: 'Negotiation',      color: '#9B7EBD' },
@@ -35,7 +35,7 @@ export const ACTIVITY_TYPE_LABELS = {
 
 export const activityLabel = (type) => ACTIVITY_TYPE_LABELS[type] || type;
 
-export const SOURCES = ['Facebook / Instagram', 'Referral', 'Ad Campaign', 'Inbound Call', 'Other'];
+export const SOURCES = ['Facebook', 'Instagram', 'TikTok', 'WhatsApp', 'Referral', 'Ad Campaign', 'Inbound Call', 'Other'];
 
 export const DEVELOPERS = ['Mountain View', 'Tatweer Misr', 'City Edge', 'SODIC', 'Palm Hills', 'Emaar Misr', 'Madinet Nasr Housing', 'Modon Developments', 'Hassan Allam', 'Ora Developers'];
 

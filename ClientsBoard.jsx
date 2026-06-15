@@ -4,6 +4,7 @@ import { supabase } from './supabaseClient';
 import { C, STAGES, SOURCES, fmtMoney, fmtDate, todayStr, stageOf, stageIdFromInput, matchesLeadCategory, LEAD_CATEGORY_LABELS } from './constants';
 import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight, X, Pencil, MessageSquarePlus } from 'lucide-react';
 import ClientModal from './ClientModal';
+import { SourceTag } from './BrandIcons';
 
 function Pill({ color, children }) {
   return (
@@ -389,7 +390,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                   <td className="py-2.5 px-3 whitespace-nowrap">{c.project || '—'}</td>
                   <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.developer || '—'}</td>
                   <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.location || '—'}</td>
-                  <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.source || '—'}</td>
+                  <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}><SourceTag source={c.source} size={15} /></td>
                   <td className="py-2.5 px-3">
                     {c.potential ? <Pill color={C.gold}>Potential</Pill> : <span style={{ color: C.muted }}>—</span>}
                   </td>
