@@ -10,9 +10,10 @@ import Reports from './Reports';
 import OrgChart from './OrgChart';
 import TeamPage from './TeamPage';
 import Activity from './Activity';
+import Settings from './Settings';
 import { C } from './constants';
 
-const VALID_TABS = ['dashboard', 'clients', 'orgchart', 'followups', 'targets', 'reports', 'activity', 'team'];
+const VALID_TABS = ['dashboard', 'clients', 'orgchart', 'followups', 'targets', 'reports', 'activity', 'team', 'settings'];
 
 const tabFromHash = () => {
   const h = window.location.hash.replace('#', '');
@@ -143,6 +144,7 @@ export default function App() {
       {tab === 'reports' && hasTeamAccess && <Reports />}
       {tab === 'team' && isAdmin && <TeamPage currentUserId={session.user.id} currentUserTitle={profile.title} />}
       {tab === 'activity' && hasTeamAccess && <Activity isAdmin={isAdmin} currentUserTitle={profile.title} />}
+      {tab === 'settings' && isAdmin && <Settings />}
     </Layout>
   );
 }

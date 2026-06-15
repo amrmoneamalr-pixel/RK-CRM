@@ -1,7 +1,7 @@
 import React from 'react';
 import { C } from './constants';
 import logo from './logo.png';
-import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, Activity as ActivityIcon } from 'lucide-react';
+import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, Activity as ActivityIcon, Settings as SettingsIcon } from 'lucide-react';
 import LeadPanels from './LeadPanels';
 
 export default function Layout({ profile, tab, setTab, onSelectCategory, onSignOut, children }) {
@@ -20,6 +20,7 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
   }
   if (isAdmin) {
     tabs.push({ id: 'team', label: 'Teams', icon: UserCog });
+    tabs.push({ id: 'settings', label: 'Settings', icon: SettingsIcon });
   }
 
   return (

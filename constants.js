@@ -41,7 +41,7 @@ export const DEVELOPERS = ['Mountain View', 'Tatweer Misr', 'City Edge', 'SODIC'
 
 export const LOCATIONS = ['New Cairo', 'New Administrative Capital', 'Mostakbal City', 'Sheikh Zayed', '6th of October', 'North Coast'];
 
-export const CALL_RESULTS = ['No Answer', 'No Answer - Multiple Times', 'Interested - Thinking', 'Call Again', 'Not Qualified', 'Very Interested', 'Wrong Number'];
+export const CALL_RESULTS = ['No Answer', 'No Answer - Multiple Times', 'Interested - Thinking', 'Call Again', 'Not Qualified', 'Not Interested', 'Very Interested', 'Wrong Number'];
 
 export const TITLES = [
   { id: 'sales', label: 'Sales' },
