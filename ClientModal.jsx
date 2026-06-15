@@ -344,8 +344,6 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
     onSaved();
   };
 
-  const saveNextFollowUp = async () => update({ next_follow_up: nextFollowUp || null });
-
   const saveCallResult = async (val) => {
     setCallResult(val);
     await update({ call_result: val || null });
@@ -358,12 +356,14 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
     }
   };
 
+  // Add a comment: saves the comment ONLY, then closes the modal and returns to the Clients page.
   const addComment = async () => {
     const text = commentText.trim();
     if (!text) return;
     await supabase.from('activities').insert({ client_id: client.id, owner_id: userId, type: 'call', date: todayStr(), notes: text });
     setCommentText('');
-    loadActivities();
+    onSaved();
+    onClose();
   };
 
   const st = stageOf(client.stage);
@@ -394,6 +394,13 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
       <span className="text-sm">{value || '—'}</span>
     </div>
   );
+
+  // Max selectable date for next follow-up = today + 10 days
+  const maxFollowUpDate = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 10);
+    return d.toISOString().slice(0, 10);
+  })();
 
   return (
     <Modal title={client.name} onClose={onClose}>
@@ -453,16 +460,21 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
           </p>
         )}
 
-        {/* Next follow-up (everyone) */}
+        {/* Next follow-up (everyone) - auto-saves on change, max 10 days from today */}
         <Field label="Next Follow-up Date">
-          <div className="flex gap-2">
-            <input type="date" value={nextFollowUp} onChange={(e) => setNextFollowUp(e.target.value)} className={inputClass} style={inputStyle} />
-            {nextFollowUp !== (client.next_follow_up || '') && (
-              <button onClick={saveNextFollowUp} className="px-3 py-2 rounded-lg text-sm font-bold shrink-0" style={{ backgroundColor: C.gold, color: '#14181F' }}>
-                Save
-              </button>
-            )}
-          </div>
+          <input
+            type="date"
+            value={nextFollowUp}
+            min={todayStr()}
+            max={maxFollowUpDate}
+            onChange={(e) => {
+              const val = e.target.value;
+              setNextFollowUp(val);
+              update({ next_follow_up: val || null });
+            }}
+            className={inputClass}
+            style={inputStyle}
+          />
         </Field>
 
         {/* Add a comment (everyone) */}
