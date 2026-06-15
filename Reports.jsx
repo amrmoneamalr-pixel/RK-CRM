@@ -154,7 +154,8 @@ function DailyReport({ profiles, clients, activities, sessions }) {
                 <th className="py-2 pr-3">Last Seen</th>
                 <th className="py-2 pr-3 text-center">Follow-ups</th>
                 <th className="py-2 pr-3 text-center">Active Calls</th>
-                <th className="py-2 pr-3 text-center">Meetings</th>
+                <th className="py-2 pr-3 text-center">Planned Mtg</th>
+                <th className="py-2 pr-3 text-center">Actual Mtg</th>
                 <th className="py-2 text-center">New Leads</th>
               </tr>
             </thead>
@@ -166,7 +167,8 @@ function DailyReport({ profiles, clients, activities, sessions }) {
 
                 const myActs      = todayActs.filter((a) => a.owner_id === p.id);
                 const followUps   = myActs.length;
-                const meetings    = myActs.filter((a) => a.type === 'meeting').length;
+                const plannedMtg  = myActs.filter((a) => a.type === 'planned_meeting').length;
+                const actualMtg   = myActs.filter((a) => a.type === 'meeting').length;
 
                 // Active calls = clients owned by this rep whose call_result is in ACTIVE_CALL_RESULTS
                 const myClients   = clients.filter((c) => c.owner_id === p.id);
@@ -174,7 +176,7 @@ function DailyReport({ profiles, clients, activities, sessions }) {
 
                 const newLeads    = clients.filter((c) => c.owner_id === p.id && c.created_at >= startOfDay()).length;
 
-                const meetingColor = meetings >= DAILY_MEETING_TARGET ? '#7FA887' : meetings >= 1 ? C.gold : '#C9714F';
+                const actualColor = actualMtg >= DAILY_MEETING_TARGET ? '#7FA887' : actualMtg >= 1 ? C.gold : '#C9714F';
 
                 return (
                   <tr key={p.id} style={{ borderTop: `1px solid ${C.border}` }}>
@@ -183,8 +185,9 @@ function DailyReport({ profiles, clients, activities, sessions }) {
                     <td className="py-2 pr-3 text-xs" style={{ color: C.muted }}>{lastSeen ? fmtTime(lastSeen) : '—'}</td>
                     <td className="py-2 pr-3 text-center" style={{ color: C.gold }}>{followUps}</td>
                     <td className="py-2 pr-3 text-center" style={{ color: C.text }}>{activeCalls}</td>
-                    <td className="py-2 pr-3 text-center font-bold" style={{ color: meetingColor }}>
-                      {meetings} / {DAILY_MEETING_TARGET}
+                    <td className="py-2 pr-3 text-center" style={{ color: '#D4A24E' }}>{plannedMtg}</td>
+                    <td className="py-2 pr-3 text-center font-bold" style={{ color: actualColor }}>
+                      {actualMtg} / {DAILY_MEETING_TARGET}
                     </td>
                     <td className="py-2 text-center" style={{ color: C.muted }}>{newLeads}</td>
                   </tr>
@@ -270,7 +273,8 @@ function WeeklyReport({ profiles, clients, activities }) {
               <tr className="text-left text-xs" style={{ color: C.muted }}>
                 <th className="py-2 pr-3">Name</th>
                 <th className="py-2 pr-3 text-center">Follow-ups</th>
-                <th className="py-2 pr-3 text-center">Meetings</th>
+                <th className="py-2 pr-3 text-center">Planned Mtg</th>
+                <th className="py-2 pr-3 text-center">Actual Mtg</th>
                 <th className="py-2 pr-3 text-center">Active Calls</th>
                 <th className="py-2 text-center">New Leads</th>
               </tr>
@@ -279,7 +283,8 @@ function WeeklyReport({ profiles, clients, activities }) {
               {profiles.map((p) => {
                 const myActs     = weekActs.filter((a) => a.owner_id === p.id);
                 const followUps  = myActs.length;
-                const meetings   = myActs.filter((a) => a.type === 'meeting').length;
+                const plannedMtg = myActs.filter((a) => a.type === 'planned_meeting').length;
+                const actualMtg  = myActs.filter((a) => a.type === 'meeting').length;
                 const myClients  = clients.filter((c) => c.owner_id === p.id);
                 const activeCalls = myClients.filter((c) => ACTIVE_CALL_RESULTS.includes(c.call_result)).length;
                 const newLeads   = weekClients.filter((c) => c.owner_id === p.id).length;
@@ -287,7 +292,8 @@ function WeeklyReport({ profiles, clients, activities }) {
                   <tr key={p.id} style={{ borderTop: `1px solid ${C.border}` }}>
                     <td className="py-2 pr-3 font-medium">{p.full_name || p.username || '—'}</td>
                     <td className="py-2 pr-3 text-center" style={{ color: C.gold }}>{followUps}</td>
-                    <td className="py-2 pr-3 text-center">{meetings}</td>
+                    <td className="py-2 pr-3 text-center" style={{ color: '#D4A24E' }}>{plannedMtg}</td>
+                    <td className="py-2 pr-3 text-center" style={{ color: '#7FA887' }}>{actualMtg}</td>
                     <td className="py-2 pr-3 text-center">{activeCalls}</td>
                     <td className="py-2 text-center" style={{ color: C.muted }}>{newLeads}</td>
                   </tr>
@@ -343,7 +349,8 @@ function MonthlyReport({ profiles, clients, activities }) {
               <tr className="text-left text-xs" style={{ color: C.muted }}>
                 <th className="py-2 pr-3">Name</th>
                 <th className="py-2 pr-3 text-center">Follow-ups</th>
-                <th className="py-2 pr-3 text-center">Meetings</th>
+                <th className="py-2 pr-3 text-center">Planned Mtg</th>
+                <th className="py-2 pr-3 text-center">Actual Mtg</th>
                 <th className="py-2 pr-3 text-center">Active Calls</th>
                 <th className="py-2 pr-3 text-center">New Leads</th>
                 <th className="py-2 text-center">Won</th>
@@ -353,7 +360,8 @@ function MonthlyReport({ profiles, clients, activities }) {
               {profiles.map((p) => {
                 const myActs      = monthActs.filter((a) => a.owner_id === p.id);
                 const followUps   = myActs.length;
-                const meetings    = myActs.filter((a) => a.type === 'meeting').length;
+                const plannedMtg  = myActs.filter((a) => a.type === 'planned_meeting').length;
+                const actualMtg   = myActs.filter((a) => a.type === 'meeting').length;
                 const myClients   = clients.filter((c) => c.owner_id === p.id);
                 const activeCalls = myClients.filter((c) => ACTIVE_CALL_RESULTS.includes(c.call_result)).length;
                 const newLeads    = clients.filter((c) => c.owner_id === p.id && c.created_at >= monthStart).length;
@@ -362,7 +370,8 @@ function MonthlyReport({ profiles, clients, activities }) {
                   <tr key={p.id} style={{ borderTop: `1px solid ${C.border}` }}>
                     <td className="py-2 pr-3 font-medium">{p.full_name || p.username || '—'}</td>
                     <td className="py-2 pr-3 text-center" style={{ color: C.gold }}>{followUps}</td>
-                    <td className="py-2 pr-3 text-center">{meetings}</td>
+                    <td className="py-2 pr-3 text-center" style={{ color: '#D4A24E' }}>{plannedMtg}</td>
+                    <td className="py-2 pr-3 text-center" style={{ color: '#7FA887' }}>{actualMtg}</td>
                     <td className="py-2 pr-3 text-center">{activeCalls}</td>
                     <td className="py-2 pr-3 text-center" style={{ color: C.muted }}>{newLeads}</td>
                     <td className="py-2 text-center font-bold" style={{ color: '#7FA887' }}>{won}</td>
