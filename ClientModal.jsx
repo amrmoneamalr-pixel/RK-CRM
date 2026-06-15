@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from './supabaseClient';
-import { C, STAGES, SOURCES, LEAD_ORIGINS, TOP_MANAGEMENT_NAMES, ACTIONS, DEVELOPERS, LOCATIONS, fmtMoney, fmtDate, fmtTime, todayStr, stageOf, waLink } from './constants';
+import { C, STAGES, SOURCES, LEAD_ORIGINS, TOP_MANAGEMENT_NAMES, ACTIONS, LOCATIONS, fmtMoney, fmtDate, fmtTime, todayStr, stageOf, waLink } from './constants';
 import { WhatsAppIcon, SourceTag } from './BrandIcons';
 import { X, Phone, Trash2, AlertCircle } from 'lucide-react';
 
@@ -58,6 +58,83 @@ function useMarketerNames(profilesList) {
   return names;
 }
 
+// Developers + their projects, loaded from the developers / developer_projects tables.
+// Managed under the "Developers" tab (Admin / Operation only).
+function useDevelopersList() {
+  const [list, setList] = useState([]);
+  useEffect(() => {
+    (async () => {
+      const { data: devs } = await supabase.from('developers').select('*').order('name');
+      const { data: projects } = await supabase.from('developer_projects').select('*').order('name');
+      setList((devs || []).map((d) => ({
+        ...d,
+        projects: (projects || []).filter((p) => p.developer_id === d.id),
+      })));
+    })();
+  }, []);
+  return list;
+}
+
+// Developer dropdown shared by Add + Edit. Picking a developer auto-selects
+// its first project (if it has one) for the Project field below.
+function DeveloperField({ form, setForm, developersList, fieldId }) {
+  const currentDev = form.developer;
+  const knownNames = developersList.map((d) => d.name);
+  return (
+    <Field label="Developer">
+      <select
+        value={currentDev}
+        onChange={(e) => {
+          const devName = e.target.value;
+          const dev = developersList.find((d) => d.name === devName);
+          const firstProject = dev && dev.projects.length > 0 ? dev.projects[0].name : '';
+          setForm((f) => ({ ...f, developer: devName, project: firstProject }));
+        }}
+        className={inputClass}
+        style={inputStyle}
+        id={fieldId}
+      >
+        <option value="">—</option>
+        {currentDev && !knownNames.includes(currentDev) && (
+          <option value={currentDev}>{currentDev}</option>
+        )}
+        {developersList.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
+      </select>
+    </Field>
+  );
+}
+
+// Project field shared by Add + Edit. If the selected developer has projects
+// set up under the Developers tab, this becomes a dropdown limited to those
+// projects. Otherwise (no developer chosen yet, or that developer has no
+// projects set up), it falls back to a free-text field.
+function ProjectField({ form, setForm, developersList }) {
+  const dev = developersList.find((d) => d.name === form.developer);
+  const projects = dev ? dev.projects : [];
+  const set = (e) => setForm((f) => ({ ...f, project: e.target.value }));
+
+  if (projects.length > 0) {
+    const currentKnown = projects.some((p) => p.name === form.project);
+    return (
+      <Field label="Project">
+        <select value={form.project} onChange={set} className={inputClass} style={inputStyle}>
+          <option value="">—</option>
+          {form.project && !currentKnown && (
+            <option value={form.project}>{form.project}</option>
+          )}
+          {projects.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
+        </select>
+      </Field>
+    );
+  }
+
+  return (
+    <Field label="Project">
+      <input value={form.project} onChange={set} className={inputClass} style={inputStyle} placeholder="Project name" />
+    </Field>
+  );
+}
+
 export default function ClientModal({ mode, userId, client, isAdmin, profilesList, autoFocusActivity, onClose, onSaved }) {
   if (mode === 'add') return <AddForm userId={userId} isAdmin={isAdmin} profilesList={profilesList} onClose={onClose} onSaved={onSaved} />;
   if (mode === 'edit') return <EditForm userId={userId} client={client} profilesList={profilesList} onClose={onClose} onSaved={onSaved} />;
@@ -97,8 +174,9 @@ function OriginFields({ form, setForm, marketerNames }) {
 
 function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
   const marketerNames = useMarketerNames(profilesList);
+  const developersList = useDevelopersList();
   const [form, setForm] = useState({
-    name: '', project: 'Mountain View Creek View', developer: '', phone: '', secondary_phone: '',
+    name: '', project: '', developer: '', phone: '', secondary_phone: '',
     source: SOURCES[0], location: '', notes: '', owner_id: userId, lead_origin: '', origin_name: '',
   });
   const [saving, setSaving] = useState(false);
@@ -109,7 +187,7 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
     await supabase.from('clients').insert({
       owner_id: form.owner_id || userId,
       name: form.name,
-      project: form.project,
+      project: form.project || null,
       developer: form.developer || null,
       phone: form.phone || null,
       secondary_phone: form.secondary_phone || null,
@@ -131,15 +209,8 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
         <Field label="Full Name *">
           <input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} placeholder="Client name" />
         </Field>
-        <Field label="Project Name">
-          <input value={form.project} onChange={set('project')} className={inputClass} style={inputStyle} />
-        </Field>
-        <Field label="Developer">
-          <input value={form.developer} onChange={set('developer')} className={inputClass} style={inputStyle} list="developers-list" placeholder="e.g. Mountain View" />
-          <datalist id="developers-list">
-            {DEVELOPERS.map((d) => <option key={d} value={d} />)}
-          </datalist>
-        </Field>
+        <DeveloperField form={form} setForm={setForm} developersList={developersList} fieldId="developer-add" />
+        <ProjectField form={form} setForm={setForm} developersList={developersList} />
         <Field label="Mobile Number">
           <input value={form.phone} onChange={set('phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
         </Field>
@@ -186,6 +257,7 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
 // ---- Admin-only full EDIT form (the pencil button) ----
 function EditForm({ userId, client, profilesList, onClose, onSaved }) {
   const marketerNames = useMarketerNames(profilesList);
+  const developersList = useDevelopersList();
   const [form, setForm] = useState({
     name: client.name || '',
     project: client.project || '',
@@ -242,15 +314,8 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
         <Field label="Full Name *">
           <input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} />
         </Field>
-        <Field label="Project Name">
-          <input value={form.project} onChange={set('project')} className={inputClass} style={inputStyle} />
-        </Field>
-        <Field label="Developer">
-          <input value={form.developer} onChange={set('developer')} className={inputClass} style={inputStyle} list="developers-list-e" />
-          <datalist id="developers-list-e">
-            {DEVELOPERS.map((d) => <option key={d} value={d} />)}
-          </datalist>
-        </Field>
+        <DeveloperField form={form} setForm={setForm} developersList={developersList} fieldId="developer-edit" />
+        <ProjectField form={form} setForm={setForm} developersList={developersList} />
         <Field label="Mobile Number">
           <input value={form.phone} onChange={set('phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
         </Field>

@@ -5,14 +5,20 @@ import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, A
 import LeadPanels from './LeadPanels';
 
 export default function Layout({ profile, tab, setTab, onSelectCategory, onSignOut, children }) {
+  const isAdmin = profile.role === 'admin';
+  const hasDeveloperAccess = isAdmin || profile.title === 'operation';
+
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'clients', label: 'Clients', icon: Users },
-    { id: 'orgchart', label: 'Org Chart', icon: Network },
-    { id: 'followups', label: 'Follow-ups', icon: Clock },
-    { id: 'targets', label: 'Monthly Targets', icon: Target },
   ];
-  const isAdmin = profile.role === 'admin';
+  if (hasDeveloperAccess) {
+    tabs.push({ id: 'developers', label: 'Developers', icon: Briefcase });
+  }
+  tabs.push({ id: 'orgchart', label: 'Org Chart', icon: Network });
+  tabs.push({ id: 'followups', label: 'Follow-ups', icon: Clock });
+  tabs.push({ id: 'targets', label: 'Monthly Targets', icon: Target });
+
   const hasTeamAccess = isAdmin || ['sales_manager', 'team_leader'].includes(profile.title);
   if (hasTeamAccess) {
     tabs.push({ id: 'reports', label: 'Team Reports', icon: Briefcase });
