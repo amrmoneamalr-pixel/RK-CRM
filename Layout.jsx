@@ -12,9 +12,13 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
     { id: 'followups', label: 'Follow-ups', icon: Clock },
     { id: 'targets', label: 'Monthly Targets', icon: Target },
   ];
-  if (profile.role === 'admin') {
+  const isAdmin = profile.role === 'admin';
+  const hasTeamAccess = isAdmin || ['sales_manager', 'team_leader'].includes(profile.title);
+  if (hasTeamAccess) {
     tabs.push({ id: 'reports', label: 'Team Reports', icon: Briefcase });
     tabs.push({ id: 'activity', label: 'Activity', icon: ActivityIcon });
+  }
+  if (isAdmin) {
     tabs.push({ id: 'team', label: 'Teams', icon: UserCog });
   }
 

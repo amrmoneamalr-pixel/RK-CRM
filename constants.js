@@ -43,6 +43,17 @@ export const LOCATIONS = ['New Cairo', 'New Administrative Capital', 'Mostakbal 
 
 export const CALL_RESULTS = ['No Answer', 'No Answer - Multiple Times', 'Interested - Thinking', 'Call Again', 'Not Qualified', 'Very Interested', 'Wrong Number'];
 
+export const TITLES = [
+  { id: 'sales', label: 'Sales' },
+  { id: 'team_leader', label: 'Team Leader' },
+  { id: 'sales_manager', label: 'Sales Manager' },
+  { id: 'marketing', label: 'Marketing' },
+  { id: 'operation', label: 'Operation' },
+  { id: 'top_management', label: 'Top Management' },
+];
+
+export const titleLabel = (t) => TITLES.find((x) => x.id === t)?.label || t;
+
 export const monthKey = (d = new Date()) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 
@@ -70,6 +81,11 @@ export const fmtDate = (d) => {
 export const fmtTime = (d) => {
   if (!d) return '';
   return new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+};
+
+export const fmtDateTime = (d) => {
+  if (!d) return '';
+  return new Date(d).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 };
 
 // Builds a wa.me link from an Egyptian-style number (e.g. 01012345678 -> 201012345678)

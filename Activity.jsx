@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
-import { C, fmtTime } from './constants';
+import { C, fmtTime, fmtDateTime } from './constants';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 const REP_COLORS = [C.gold, '#6E8CAE', '#7FA887', '#9B7EBD', '#C9714F', '#E8C66B', '#5BA3D0'];
@@ -29,7 +29,7 @@ function mergeSessions(rows) {
   return merged;
 }
 
-export default function Activity() {
+export default function Activity({ isAdmin, currentUserTitle }) {
   const [loading, setLoading] = useState(true);
   const [chartData, setChartData] = useState([]);
   const [reps, setReps] = useState([]);
@@ -39,6 +39,7 @@ export default function Activity() {
   const [logDate, setLogDate] = useState(new Date().toISOString().slice(0, 10));
   const [logSessions, setLogSessions] = useState([]);
   const [logLoading, setLogLoading] = useState(false);
+  const [exports, setExports] = useState([]);
 
   useEffect(() => {
     load();
@@ -60,7 +61,10 @@ export default function Activity() {
 
     const profileMap = {};
     (profiles || []).forEach((p) => { profileMap[p.id] = p.full_name || p.username || 'Unknown'; });
-    const repList = (profiles || []).map((p) => ({ id: p.id, name: profileMap[p.id] }));
+    const visibleProfiles = (profiles || []).filter((p) =>
+      currentUserTitle === 'top_management' || !['operation', 'marketing'].includes(p.title)
+    );
+    const repList = visibleProfiles.map((p) => ({ id: p.id, name: profileMap[p.id] }));
     setReps(repList);
     if (!logUserId && repList.length > 0) setLogUserId(repList[0].id);
 
@@ -110,6 +114,15 @@ export default function Activity() {
       const online = latest && latest.isOpen && (now - latest.end) < ONLINE_THRESHOLD_MS;
       return { ...r, lastSeen: latest ? latest.end : null, online };
     }));
+
+    if (isAdmin) {
+      const { data: exportRows } = await supabase
+        .from('export_log')
+        .select('id, exported_at, description, profiles(full_name, username)')
+        .order('exported_at', { ascending: false })
+        .limit(20);
+      setExports(exportRows || []);
+    }
 
     setLoading(false);
   };
@@ -191,6 +204,30 @@ export default function Activity() {
           ))}
         </div>
       </div>
+
+      {isAdmin && (
+        <div>
+          <h3 className="font-display font-bold text-sm mb-2">Recent Exports</h3>
+          <p className="text-xs mb-2" style={{ color: C.muted }}>
+            Every CSV export by Top Management or Operation is logged here.
+          </p>
+          <div className="rounded-xl p-3 space-y-1.5" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
+            {exports.length === 0 ? (
+              <p className="text-xs" style={{ color: C.muted }}>No exports yet.</p>
+            ) : (
+              exports.map((e) => (
+                <div key={e.id} className="flex items-center justify-between text-sm">
+                  <span>
+                    <span className="font-medium">{e.profiles?.full_name || e.profiles?.username || 'Unknown'}</span>
+                    <span style={{ color: C.muted }}> — {e.description}</span>
+                  </span>
+                  <span className="text-xs shrink-0" style={{ color: C.muted }}>{fmtDateTime(e.exported_at)}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       <div>
         <h3 className="font-display font-bold text-sm mb-2">Daily Session Log</h3>

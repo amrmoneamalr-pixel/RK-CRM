@@ -1,12 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
-import { C } from './constants';
+import { C, TITLES, titleLabel } from './constants';
 import { Plus, Pencil, Trash2, Check, X, KeyRound, Eye, EyeOff } from 'lucide-react';
 
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
 const inputClass = 'rounded-lg px-3 py-2 text-sm outline-none w-full';
 
-export default function TeamPage({ currentUserId }) {
+const TITLE_COLORS = {
+  top_management: C.gold,
+  operation: '#C9714F',
+  sales_manager: '#6E8CAE',
+  team_leader: '#7FA887',
+  marketing: '#9B7EBD',
+  sales: '#8B93A3',
+};
+
+export default function TeamPage({ currentUserId, currentUserTitle }) {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -25,6 +34,12 @@ export default function TeamPage({ currentUserId }) {
 
   if (loading) return <p style={{ color: C.muted }} className="text-sm">Loading...</p>;
 
+  // Operation and Marketing accounts are only visible to Top Management
+  const visibleProfiles = profiles.filter((p) =>
+    currentUserTitle === 'top_management' || p.id === currentUserId || !['operation', 'marketing'].includes(p.title)
+  );
+  const teamLeaders = profiles.filter((p) => p.title === 'team_leader');
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -41,29 +56,30 @@ export default function TeamPage({ currentUserId }) {
       {error && <p className="text-xs" style={{ color: '#C9714F' }}>{error}</p>}
 
       <div className="space-y-2">
-        {profiles.map((p) => (
-          <UserRow key={p.id} profile={p} currentUserId={currentUserId} onChanged={load} setError={setError} />
+        {visibleProfiles.map((p) => (
+          <UserRow key={p.id} profile={p} currentUserId={currentUserId} teamLeaders={teamLeaders} onChanged={load} setError={setError} />
         ))}
       </div>
 
-      {showAdd && <AddUserModal onClose={() => setShowAdd(false)} onSaved={load} setError={setError} />}
+      {showAdd && <AddUserModal teamLeaders={teamLeaders} onClose={() => setShowAdd(false)} onSaved={load} setError={setError} />}
     </div>
   );
 }
 
-function RoleBadge({ role, isPool }) {
+function TitleBadge({ title, isPool }) {
   if (isPool) return <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${C.muted}22`, color: C.muted }}>Pool</span>;
-  const color = role === 'admin' ? C.gold : '#6E8CAE';
-  return <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${color}22`, color }}>{role === 'admin' ? 'Admin' : 'Sales'}</span>;
+  const color = TITLE_COLORS[title] || C.muted;
+  return <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${color}22`, color }}>{titleLabel(title)}</span>;
 }
 
-function UserRow({ profile, currentUserId, onChanged, setError }) {
+function UserRow({ profile, currentUserId, teamLeaders, onChanged, setError }) {
   const [editing, setEditing] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [fullName, setFullName] = useState(profile.full_name || '');
   const [username, setUsername] = useState(profile.username || '');
-  const [role, setRole] = useState(profile.role);
+  const [title, setTitle] = useState(profile.title || 'sales');
+  const [teamLeaderId, setTeamLeaderId] = useState(profile.team_leader_id || '');
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -73,9 +89,16 @@ function UserRow({ profile, currentUserId, onChanged, setError }) {
   const saveEdit = async () => {
     setSaving(true);
     setError('');
+    const role = ['top_management', 'operation'].includes(title) ? 'admin' : 'sales';
     const { error } = await supabase
       .from('profiles')
-      .update({ full_name: fullName.trim() || null, username: username.trim() || null, role })
+      .update({
+        full_name: fullName.trim() || null,
+        username: username.trim() || null,
+        title,
+        role,
+        team_leader_id: title === 'sales' ? (teamLeaderId || null) : null,
+      })
       .eq('id', profile.id);
     setSaving(false);
     if (error) {
@@ -121,10 +144,17 @@ function UserRow({ profile, currentUserId, onChanged, setError }) {
         <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" className={inputClass} style={inputStyle} />
         <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" className={inputClass} style={inputStyle} autoCapitalize="none" autoCorrect="off" />
         {!profile.is_pool && (
-          <select value={role} onChange={(e) => setRole(e.target.value)} className={inputClass} style={inputStyle}>
-            <option value="sales">Sales</option>
-            <option value="admin">Admin</option>
-          </select>
+          <>
+            <select value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} style={inputStyle}>
+              {TITLES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+            </select>
+            {title === 'sales' && teamLeaders.length > 0 && (
+              <select value={teamLeaderId} onChange={(e) => setTeamLeaderId(e.target.value)} className={inputClass} style={inputStyle}>
+                <option value="">No team leader</option>
+                {teamLeaders.map((tl) => <option key={tl.id} value={tl.id}>{tl.full_name || tl.username}</option>)}
+              </select>
+            )}
+          </>
         )}
         <div className="flex gap-2">
           <button onClick={saveEdit} disabled={saving} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-bold disabled:opacity-50" style={{ backgroundColor: C.gold, color: '#14181F' }}>
@@ -138,16 +168,20 @@ function UserRow({ profile, currentUserId, onChanged, setError }) {
     );
   }
 
+  const leaderName = profile.team_leader_id ? (teamLeaders.find((tl) => tl.id === profile.team_leader_id)?.full_name || teamLeaders.find((tl) => tl.id === profile.team_leader_id)?.username) : null;
+
   return (
     <div className="rounded-lg p-3" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-bold text-sm">{profile.full_name || '—'}</span>
-            <RoleBadge role={profile.role} isPool={profile.is_pool} />
+            <TitleBadge title={profile.title} isPool={profile.is_pool} />
             {isSelf && <span className="text-xs" style={{ color: C.muted }}>(You)</span>}
           </div>
-          <p className="text-xs mt-0.5" style={{ color: C.muted }}>@{profile.username || '—'}</p>
+          <p className="text-xs mt-0.5" style={{ color: C.muted }}>
+            @{profile.username || '—'}{leaderName ? ` · Team: ${leaderName}` : ''}
+          </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button onClick={() => setEditing(true)} title="Edit">
@@ -197,12 +231,13 @@ function UserRow({ profile, currentUserId, onChanged, setError }) {
   );
 }
 
-function AddUserModal({ onClose, onSaved, setError }) {
+function AddUserModal({ teamLeaders, onClose, onSaved, setError }) {
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState('sales');
+  const [title, setTitle] = useState('sales');
+  const [teamLeaderId, setTeamLeaderId] = useState('');
   const [saving, setSaving] = useState(false);
   const [localError, setLocalError] = useState('');
 
@@ -217,7 +252,8 @@ function AddUserModal({ onClose, onSaved, setError }) {
       p_username: username.trim(),
       p_full_name: fullName.trim(),
       p_password: password,
-      p_role: role,
+      p_title: title,
+      p_team_leader_id: title === 'sales' && teamLeaderId ? teamLeaderId : null,
     });
     setSaving(false);
     if (error) {
@@ -252,10 +288,15 @@ function AddUserModal({ onClose, onSaved, setError }) {
               {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
             </button>
           </div>
-          <select value={role} onChange={(e) => setRole(e.target.value)} className={inputClass} style={inputStyle}>
-            <option value="sales">Sales</option>
-            <option value="admin">Admin</option>
+          <select value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} style={inputStyle}>
+            {TITLES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
           </select>
+          {title === 'sales' && teamLeaders.length > 0 && (
+            <select value={teamLeaderId} onChange={(e) => setTeamLeaderId(e.target.value)} className={inputClass} style={inputStyle}>
+              <option value="">No team leader</option>
+              {teamLeaders.map((tl) => <option key={tl.id} value={tl.id}>{tl.full_name || tl.username}</option>)}
+            </select>
+          )}
           {localError && <p className="text-xs" style={{ color: '#C9714F' }}>{localError}</p>}
           <button onClick={save} disabled={saving} className="w-full py-2.5 rounded-lg font-bold text-sm disabled:opacity-50" style={{ backgroundColor: C.gold, color: '#14181F' }}>
             {saving ? '...' : 'Create User'}

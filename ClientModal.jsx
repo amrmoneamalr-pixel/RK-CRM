@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import { C, STAGES, SOURCES, DEVELOPERS, LOCATIONS, CALL_RESULTS, ACTIVITY_TYPES, activityLabel, fmtMoney, fmtDate, fmtTime, todayStr, stageOf, waLink } from './constants';
 import { X, Phone, Trash2, AlertCircle } from 'lucide-react';
@@ -49,9 +49,9 @@ function Modal({ title, children, onClose }) {
   );
 }
 
-export default function ClientModal({ mode, userId, client, isAdmin, profilesList, onClose, onSaved }) {
+export default function ClientModal({ mode, userId, client, isAdmin, profilesList, autoFocusActivity, onClose, onSaved }) {
   if (mode === 'add') return <AddForm userId={userId} isAdmin={isAdmin} profilesList={profilesList} onClose={onClose} onSaved={onSaved} />;
-  return <DetailView userId={userId} client={client} isAdmin={isAdmin} profilesList={profilesList} onClose={onClose} onSaved={onSaved} />;
+  return <DetailView userId={userId} client={client} isAdmin={isAdmin} profilesList={profilesList} autoFocusActivity={autoFocusActivity} onClose={onClose} onSaved={onSaved} />;
 }
 
 function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
@@ -138,7 +138,7 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
   );
 }
 
-function DetailView({ userId, client, isAdmin, profilesList, onClose, onSaved }) {
+function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, onClose, onSaved }) {
   const [activities, setActivities] = useState([]);
   const [notes, setNotes] = useState(client.notes || '');
   const [ownerId, setOwnerId] = useState(client.owner_id);
@@ -154,10 +154,19 @@ function DetailView({ userId, client, isAdmin, profilesList, onClose, onSaved })
   const [rotated, setRotated] = useState(false);
   const [activityForm, setActivityForm] = useState({ type: 'call', date: todayStr(), notes: '' });
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const activityRef = useRef(null);
 
   useEffect(() => {
     loadActivities();
   }, []);
+
+  useEffect(() => {
+    if (autoFocusActivity && activityRef.current) {
+      activityRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const input = activityRef.current.querySelector('input[type="text"], input:not([type="date"])');
+      if (input) input.focus();
+    }
+  }, [autoFocusActivity]);
 
   const loadActivities = async () => {
     const { data } = await supabase.from('activities').select('*').eq('client_id', client.id).order('date', { ascending: false });
@@ -357,7 +366,7 @@ function DetailView({ userId, client, isAdmin, profilesList, onClose, onSaved })
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={saveNotes} className={inputClass} style={inputStyle} rows={2} />
         </Field>
 
-        <div>
+        <div ref={activityRef}>
           <h3 className="font-display font-bold text-sm mb-2">Activity Log</h3>
           <div className="rounded-lg p-3 mb-3 space-y-2" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
             <div className="flex gap-2">

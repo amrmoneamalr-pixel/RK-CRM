@@ -130,16 +130,19 @@ export default function App() {
     );
   }
 
+  const isAdmin = profile.role === 'admin';
+  const hasTeamAccess = isAdmin || ['sales_manager', 'team_leader'].includes(profile.title);
+
   return (
     <Layout profile={profile} tab={tab} setTab={handleSetTab} onSelectCategory={selectLeadCategory} onSignOut={handleSignOut}>
       {tab === 'dashboard' && <Dashboard userId={session.user.id} />}
-      {tab === 'clients' && <ClientsBoard userId={session.user.id} isAdmin={profile.role === 'admin'} leadFilter={leadFilter} onClearLeadFilter={() => setLeadFilter(null)} />}
-      {tab === 'orgchart' && <OrgChart isAdmin={profile.role === 'admin'} />}
+      {tab === 'clients' && <ClientsBoard userId={session.user.id} isAdmin={isAdmin} hasTeamAccess={hasTeamAccess} leadFilter={leadFilter} onClearLeadFilter={() => setLeadFilter(null)} />}
+      {tab === 'orgchart' && <OrgChart isAdmin={isAdmin} />}
       {tab === 'followups' && <FollowUps userId={session.user.id} />}
       {tab === 'targets' && <Targets userId={session.user.id} />}
-      {tab === 'reports' && profile.role === 'admin' && <Reports />}
-      {tab === 'team' && profile.role === 'admin' && <TeamPage currentUserId={session.user.id} />}
-      {tab === 'activity' && profile.role === 'admin' && <Activity />}
+      {tab === 'reports' && hasTeamAccess && <Reports />}
+      {tab === 'team' && isAdmin && <TeamPage currentUserId={session.user.id} currentUserTitle={profile.title} />}
+      {tab === 'activity' && hasTeamAccess && <Activity isAdmin={isAdmin} currentUserTitle={profile.title} />}
     </Layout>
   );
 }
