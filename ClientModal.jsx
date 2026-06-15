@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import { C, STAGES, SOURCES, LEAD_ORIGINS, TOP_MANAGEMENT_NAMES, ACTIONS, LOCATIONS, fmtMoney, fmtDate, fmtTime, todayStr, stageOf, waLink } from './constants';
 import { WhatsAppIcon, SourceTag } from './BrandIcons';
-import { X, Phone, Trash2, AlertCircle } from 'lucide-react';
+import { X, Phone, Trash2, AlertCircle, CalendarCheck, CalendarClock } from 'lucide-react';
 
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
 const inputClass = 'rounded-lg px-3 py-2 text-sm outline-none w-full';
@@ -41,7 +41,6 @@ function Modal({ title, children, onClose }) {
   );
 }
 
-// Marketer names = profiles whose title is 'marketing'
 function useMarketerNames(profilesList) {
   const fromList = (profilesList || [])
     .filter((p) => p.title === 'marketing' && !p.is_pool)
@@ -58,8 +57,6 @@ function useMarketerNames(profilesList) {
   return names;
 }
 
-// Developers + their projects, loaded from the developers / developer_projects tables.
-// Managed under the "Developers" tab (Admin / Operation only).
 function useDevelopersList() {
   const [list, setList] = useState([]);
   useEffect(() => {
@@ -75,8 +72,6 @@ function useDevelopersList() {
   return list;
 }
 
-// Developer dropdown shared by Add + Edit. Picking a developer auto-selects
-// its first project (if it has one) for the Project field below.
 function DeveloperField({ form, setForm, developersList, fieldId }) {
   const currentDev = form.developer;
   const knownNames = developersList.map((d) => d.name);
@@ -104,10 +99,6 @@ function DeveloperField({ form, setForm, developersList, fieldId }) {
   );
 }
 
-// Project field shared by Add + Edit. If the selected developer has projects
-// set up under the Developers tab, this becomes a dropdown limited to those
-// projects. Otherwise (no developer chosen yet, or that developer has no
-// projects set up), it falls back to a free-text field.
 function ProjectField({ form, setForm, developersList }) {
   const dev = developersList.find((d) => d.name === form.developer);
   const projects = dev ? dev.projects : [];
@@ -141,7 +132,6 @@ export default function ClientModal({ mode, userId, client, isAdmin, profilesLis
   return <DetailView userId={userId} client={client} isAdmin={isAdmin} profilesList={profilesList} autoFocusActivity={autoFocusActivity} onClose={onClose} onSaved={onSaved} />;
 }
 
-// ---- Origin sub-form shared by Add + Edit ----
 function OriginFields({ form, setForm, marketerNames }) {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   return (
@@ -254,7 +244,6 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
   );
 }
 
-// ---- Admin-only full EDIT form (the pencil button) ----
 function EditForm({ userId, client, profilesList, onClose, onSaved }) {
   const marketerNames = useMarketerNames(profilesList);
   const developersList = useDevelopersList();
@@ -377,21 +366,20 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
   );
 }
 
-// ---- Read-only detail + Action/Comment (everyone, the comment button) ----
 function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, onClose, onSaved }) {
   const [activities, setActivities] = useState([]);
-  const [notes, setNotes] = useState(client.notes || '');
   const [nextFollowUp, setNextFollowUp] = useState(client.next_follow_up || '');
   const [callResult, setCallResult] = useState(client.call_result || '');
   const [noAnswerCount, setNoAnswerCount] = useState(client.no_answer_count || 0);
   const [previousOwners, setPreviousOwners] = useState(client.previous_owners || []);
   const [rotated, setRotated] = useState(false);
   const [commentText, setCommentText] = useState('');
+  // Meeting checkboxes
+  const [isPlannedMeeting, setIsPlannedMeeting] = useState(false);
+  const [isActualMeeting, setIsActualMeeting] = useState(false);
   const activityRef = useRef(null);
 
-  useEffect(() => {
-    loadActivities();
-  }, []);
+  useEffect(() => { loadActivities(); }, []);
 
   useEffect(() => {
     if (autoFocusActivity && activityRef.current) {
@@ -421,12 +409,30 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
     }
   };
 
-  // Add a comment: saves the comment ONLY, then closes the modal and returns to the Clients page.
+  // Determine activity type based on checkboxes:
+  // actual meeting → 'meeting'
+  // planned only   → 'planned_meeting'
+  // neither        → 'call' (regular comment)
+  const resolveActivityType = () => {
+    if (isActualMeeting) return 'meeting';
+    if (isPlannedMeeting) return 'planned_meeting';
+    return 'call';
+  };
+
   const addComment = async () => {
     const text = commentText.trim();
     if (!text) return;
-    await supabase.from('activities').insert({ client_id: client.id, owner_id: userId, type: 'call', date: todayStr(), notes: text });
+    const type = resolveActivityType();
+    await supabase.from('activities').insert({
+      client_id: client.id,
+      owner_id: userId,
+      type,
+      date: todayStr(),
+      notes: text,
+    });
     setCommentText('');
+    setIsPlannedMeeting(false);
+    setIsActualMeeting(false);
     onSaved();
     onClose();
   };
@@ -441,11 +447,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
           <p className="text-sm mb-4" style={{ color: C.muted }}>
             This lead had 3 consecutive "No Answer" results and has been automatically reassigned to another sales rep.
           </p>
-          <button
-            onClick={() => { onSaved(); onClose(); }}
-            className="px-4 py-2 rounded-lg font-bold text-sm"
-            style={{ backgroundColor: C.gold, color: '#14181F' }}
-          >
+          <button onClick={() => { onSaved(); onClose(); }} className="px-4 py-2 rounded-lg font-bold text-sm" style={{ backgroundColor: C.gold, color: '#14181F' }}>
             OK
           </button>
         </div>
@@ -460,33 +462,36 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
     </div>
   );
 
-  // Max selectable date for next follow-up = today + 10 days
   const maxFollowUpDate = (() => {
     const d = new Date();
     d.setDate(d.getDate() + 10);
     return d.toISOString().slice(0, 10);
   })();
 
+  // Label + color for meeting type indicator shown on comment button
+  const meetingLabel = isActualMeeting ? 'Actual Meeting' : isPlannedMeeting ? 'Planned Meeting' : null;
+  const meetingColor = isActualMeeting ? '#7FA887' : '#D4A24E';
+
   return (
     <Modal title={client.name} onClose={onClose}>
       <div className="space-y-4">
+
+        {/* Pills */}
         <div className="flex flex-wrap gap-2">
           <Pill color={st.color}>{st.label}</Pill>
           {client.project && <Pill color={C.gold}>{client.project}</Pill>}
           {client.potential ? <Pill color={C.gold}>Potential</Pill> : null}
           {client.source && <Pill color={C.muted}><SourceTag source={client.source} size={14} /></Pill>}
-          {previousOwners.length > 0 && (
-            <Pill color="#9B7EBD">Rotated ({previousOwners.length})</Pill>
-          )}
+          {previousOwners.length > 0 && <Pill color="#9B7EBD">Rotated ({previousOwners.length})</Pill>}
         </div>
 
-        {/* Phone (read-only, with call + WhatsApp) */}
+        {/* Phones */}
         {client.phone && (
           <div className="flex items-center gap-2">
             <a href={`tel:${client.phone}`} className="flex items-center gap-2 text-sm flex-1" style={{ color: C.text }}>
               <Phone size={14} style={{ color: C.gold }} /> <span>{client.phone}</span>
             </a>
-            <a href={waLink(client.phone)} target="_blank" rel="noreferrer" className="shrink-0 flex items-center" title="Open WhatsApp chat">
+            <a href={waLink(client.phone)} target="_blank" rel="noreferrer" className="shrink-0 flex items-center">
               <WhatsAppIcon size={26} />
             </a>
           </div>
@@ -496,7 +501,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
             <a href={`tel:${client.secondary_phone}`} className="flex items-center gap-2 text-sm flex-1" style={{ color: C.text }}>
               <Phone size={14} style={{ color: C.gold }} /> <span>{client.secondary_phone}</span>
             </a>
-            <a href={waLink(client.secondary_phone)} target="_blank" rel="noreferrer" className="shrink-0 flex items-center" title="Open WhatsApp chat">
+            <a href={waLink(client.secondary_phone)} target="_blank" rel="noreferrer" className="shrink-0 flex items-center">
               <WhatsAppIcon size={26} />
             </a>
           </div>
@@ -511,7 +516,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
           {client.budget ? <RO label="Budget" value={`${fmtMoney(client.budget)} EGP`} /> : null}
         </div>
 
-        {/* Action dropdown (everyone) */}
+        {/* Action */}
         <Field label="Action">
           <select value={callResult} onChange={(e) => saveCallResult(e.target.value)} className={inputClass} style={inputStyle}>
             <option value="">—</option>
@@ -525,7 +530,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
           </p>
         )}
 
-        {/* Next follow-up (everyone) - auto-saves on change, max 10 days from today */}
+        {/* Next follow-up */}
         <Field label="Next Follow-up Date">
           <input
             type="date"
@@ -542,10 +547,10 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
           />
         </Field>
 
-        {/* Add a comment (everyone) */}
+        {/* Comments */}
         <div ref={activityRef}>
           <h3 className="font-display font-bold text-sm mb-2">Comments</h3>
-          <div className="rounded-lg p-3 mb-3 space-y-2" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
+          <div className="rounded-lg p-3 mb-3 space-y-3" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
             <textarea
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
@@ -554,28 +559,96 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
               style={{ ...inputStyle, backgroundColor: C.surface }}
               rows={2}
             />
-            <button onClick={addComment} disabled={!commentText.trim()} className="w-full py-2 rounded-lg text-sm font-bold disabled:opacity-40" style={{ backgroundColor: C.gold, color: '#14181F' }}>
-              + Add Comment
+
+            {/* ── Meeting checkboxes ── */}
+            <div className="flex flex-col gap-2">
+              <label
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 cursor-pointer select-none text-sm"
+                style={{
+                  backgroundColor: isPlannedMeeting ? '#D4A24E18' : C.surface,
+                  border: `1px solid ${isPlannedMeeting ? '#D4A24E' : C.border}`,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isPlannedMeeting}
+                  onChange={(e) => {
+                    setIsPlannedMeeting(e.target.checked);
+                    if (e.target.checked) setIsActualMeeting(false);
+                  }}
+                  className="w-4 h-4 shrink-0"
+                />
+                <CalendarClock size={14} style={{ color: '#D4A24E', flexShrink: 0 }} />
+                <span style={{ color: isPlannedMeeting ? '#D4A24E' : C.muted }}>
+                  Planned Meeting — scheduled with client
+                </span>
+              </label>
+
+              <label
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 cursor-pointer select-none text-sm"
+                style={{
+                  backgroundColor: isActualMeeting ? '#7FA88718' : C.surface,
+                  border: `1px solid ${isActualMeeting ? '#7FA887' : C.border}`,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isActualMeeting}
+                  onChange={(e) => {
+                    setIsActualMeeting(e.target.checked);
+                    if (e.target.checked) setIsPlannedMeeting(false);
+                  }}
+                  className="w-4 h-4 shrink-0"
+                />
+                <CalendarCheck size={14} style={{ color: '#7FA887', flexShrink: 0 }} />
+                <span style={{ color: isActualMeeting ? '#7FA887' : C.muted }}>
+                  Actual Meeting — meeting happened today
+                </span>
+              </label>
+            </div>
+
+            {/* Add Comment button */}
+            <button
+              onClick={addComment}
+              disabled={!commentText.trim()}
+              className="w-full py-2 rounded-lg text-sm font-bold disabled:opacity-40 flex items-center justify-center gap-2"
+              style={{ backgroundColor: meetingLabel ? meetingColor : C.gold, color: '#14181F' }}
+            >
+              {meetingLabel
+                ? <><CalendarCheck size={14} /> Save as {meetingLabel}</>
+                : '+ Add Comment'
+              }
             </button>
           </div>
 
+          {/* Activity list */}
           {activities.length === 0 ? (
             <p className="text-sm text-center py-3" style={{ color: C.muted }}>No comments yet</p>
           ) : (
             <div className="space-y-1.5">
               {activities.map((a) => {
-                const isSystem = a.type === 'system';
+                const isSystem  = a.type === 'system';
+                const isMeeting = a.type === 'meeting';
+                const isPlanned = a.type === 'planned_meeting';
+                const rowBg     = isSystem ? 'transparent' : C.bg;
+                const labelColor = isMeeting ? '#7FA887' : isPlanned ? '#D4A24E' : isSystem ? C.muted : C.text;
                 return (
-                  <div key={a.id} className="flex items-start gap-2 p-2 rounded-lg" style={{ backgroundColor: isSystem ? 'transparent' : C.bg }}>
+                  <div key={a.id} className="flex items-start gap-2 p-2 rounded-lg" style={{ backgroundColor: rowBg }}>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs" style={isSystem ? { color: C.muted, fontStyle: 'italic' } : { color: C.text }}>
-                          {isSystem ? a.notes : a.notes}
-                        </span>
-                        <span className="text-[11px] shrink-0 ml-2" style={{ color: C.muted }}>
+                      <div className="flex items-center justify-between gap-2 mb-0.5">
+                        {(isMeeting || isPlanned) && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
+                            style={{ backgroundColor: `${labelColor}22`, color: labelColor }}>
+                            {isMeeting ? '✓ Actual Meeting' : '⏰ Planned Meeting'}
+                          </span>
+                        )}
+                        <span className="text-[11px] shrink-0 ml-auto" style={{ color: C.muted }}>
                           {fmtDate(a.date)}{a.created_at ? ` · ${fmtTime(a.created_at)}` : ''}
                         </span>
                       </div>
+                      <span className="text-xs" style={{ color: isSystem ? C.muted : C.text, fontStyle: isSystem ? 'italic' : 'normal' }}>
+                        {a.notes}
+                      </span>
                     </div>
                   </div>
                 );
