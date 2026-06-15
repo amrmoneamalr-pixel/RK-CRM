@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Papa from 'papaparse';
 import { supabase } from './supabaseClient';
-import { C, STAGES, SOURCES, fmtMoney, fmtDate, todayStr, stageOf, stageIdFromInput, matchesLeadCategory, LEAD_CATEGORY_LABELS } from './constants';
-import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight, X, Pencil, MessageSquarePlus } from 'lucide-react';
+import { C, STAGES, SOURCES, COLD_RESULTS, fmtMoney, fmtDate, todayStr, stageOf, stageIdFromInput, LEAD_CATEGORY_LABELS } from './constants';
+import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight, X, Pencil, MessageSquarePlus, Loader2 } from 'lucide-react';
 import ClientModal from './ClientModal';
 import { SourceTag } from './BrandIcons';
 
@@ -16,13 +16,17 @@ function Pill({ color, children }) {
 
 const selectStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
 const selectClass = 'rounded-lg px-2.5 py-2 text-xs outline-none';
+const PAGE_SIZE = 30;
+const EXPORT_BATCH = 1000;
 
 export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilter, onClearLeadFilter }) {
   const [clients, setClients] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [activities, setActivities] = useState([]);
   const [owners, setOwners] = useState({});
   const [profilesList, setProfilesList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
@@ -31,42 +35,104 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   const [selected, setSelected] = useState(null);
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState('');
+  const [exporting, setExporting] = useState(false);
   const [page, setPage] = useState(1);
-  const PAGE_SIZE = 30;
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkReassignTo, setBulkReassignTo] = useState('');
   const [bulkBusy, setBulkBusy] = useState(false);
   const [actionTarget, setActionTarget] = useState(null);
   const fileInputRef = useRef(null);
 
+  // debounce free-text search
   useEffect(() => {
-    load();
-  }, [userId]);
+    const t = setTimeout(() => setSearch(searchInput.trim()), 350);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
+  // reset to page 1 whenever search/filters change
   useEffect(() => {
     setPage(1);
   }, [search, stageFilter, sourceFilter, potentialFilter, leadFilter]);
 
-  const load = async () => {
-    setLoading(true);
-    let clientsQuery = supabase.from('clients').select('*').order('created_at', { ascending: false });
-    let activitiesQuery = supabase.from('activities').select('*').order('date', { ascending: false });
-    if (!hasTeamAccess) {
-      clientsQuery = clientsQuery.eq('owner_id', userId);
-      activitiesQuery = activitiesQuery.eq('owner_id', userId);
-    }
-    const [{ data: c }, { data: a }] = await Promise.all([clientsQuery, activitiesQuery]);
-    setClients(c || []);
-    setActivities(a || []);
-    if (hasTeamAccess) {
+  // load the list of owners (admin/team-access only) — once
+  useEffect(() => {
+    if (!hasTeamAccess) return;
+    (async () => {
       const { data: p } = await supabase.from('profiles').select('id, full_name, username, is_pool').order('full_name');
       const map = {};
       (p || []).forEach((row) => { map[row.id] = row.is_pool ? 'Unassigned Pool' : (row.full_name || row.username || '—'); });
       setOwners(map);
       setProfilesList(p || []);
+    })();
+  }, [hasTeamAccess, userId]);
+
+  // build the filtered query (shared by page-load and export)
+  const buildQuery = () => {
+    let q = supabase.from('clients').select('*', { count: 'exact' });
+
+    if (search) {
+      const esc = search.replace(/[%,]/g, '');
+      q = q.or(`name.ilike.%${esc}%,phone.ilike.%${esc}%,project.ilike.%${esc}%,developer.ilike.%${esc}%,location.ilike.%${esc}%`);
+    }
+
+    if (leadFilter) {
+      const today = todayStr();
+      const sevenDaysAgoIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      switch (leadFilter) {
+        case 'fresh':
+          q = q.eq('stage', 'new').eq('ever_contacted', false).gte('created_at', sevenDaysAgoIso);
+          break;
+        case 'oldFresh':
+          q = q.eq('stage', 'new').eq('ever_contacted', false).lt('created_at', sevenDaysAgoIso);
+          break;
+        case 'callbackToday':
+          q = q.eq('next_follow_up', today);
+          break;
+        case 'late':
+          q = q.not('next_follow_up', 'is', null).lt('next_follow_up', today);
+          break;
+        case 'cold':
+          q = q.in('call_result', COLD_RESULTS);
+          break;
+        default:
+          break;
+      }
+    } else {
+      if (stageFilter !== 'all') q = q.eq('stage', stageFilter);
+      if (sourceFilter !== 'all') q = q.eq('source', sourceFilter);
+      if (potentialFilter === 'yes') q = q.eq('potential', true);
+      if (potentialFilter === 'no') q = q.eq('potential', false);
+    }
+
+    return q;
+  };
+
+  const load = async () => {
+    setLoading(true);
+    const from = (page - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+    const { data: c, count } = await buildQuery().order('created_at', { ascending: false }).range(from, to);
+    setClients(c || []);
+    setTotalCount(count || 0);
+
+    if (c && c.length > 0) {
+      const { data: a } = await supabase.from('activities').select('*').in('client_id', c.map((x) => x.id)).order('date', { ascending: false });
+      setActivities(a || []);
+    } else {
+      setActivities([]);
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    load();
+  }, [userId, page, search, stageFilter, sourceFilter, potentialFilter, leadFilter]);
+
+  // if filters shrink the result set below the current page, snap back
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+    if (page > totalPages) setPage(totalPages);
+  }, [totalCount]);
 
   const toggleSelect = (id) => {
     setSelectedIds((prev) => {
@@ -103,9 +169,19 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     load();
   };
 
+  const exportCsv = async () => {
+    setExporting(true);
+    let allRows = [];
+    let from = 0;
+    while (true) {
+      const { data, error } = await buildQuery().order('created_at', { ascending: false }).range(from, from + EXPORT_BATCH - 1);
+      if (error || !data || data.length === 0) break;
+      allRows = allRows.concat(data);
+      if (data.length < EXPORT_BATCH) break;
+      from += EXPORT_BATCH;
+    }
 
-  const exportCsv = () => {
-    const rows = clients.map((c) => ({
+    const rows = allRows.map((c) => ({
       Name: c.name,
       Phone: c.phone || '',
       'Secondary Phone': c.secondary_phone || '',
@@ -130,6 +206,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     a.click();
     URL.revokeObjectURL(url);
     supabase.from('export_log').insert({ user_id: userId, description: `Exported ${rows.length} client${rows.length === 1 ? '' : 's'} (CSV)` });
+    setExporting(false);
   };
 
   const handleImportFile = (e) => {
@@ -186,7 +263,9 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     e.target.value = '';
   };
 
-  if (clients.length === 0 && !showAdd) {
+  const noFiltersActive = !search && !leadFilter && stageFilter === 'all' && sourceFilter === 'all' && potentialFilter === 'all';
+
+  if (totalCount === 0 && !loading && noFiltersActive && !showAdd) {
     return (
       <div className="text-center py-16">
         <Users size={32} className="mx-auto mb-3" style={{ color: C.muted }} />
@@ -211,42 +290,24 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     );
   }
 
-  // latest activity per client
+  // latest activity per client (current page only)
   const lastActivity = {};
   activities.forEach((a) => {
     const current = lastActivity[a.client_id];
     if (!current || a.date > current.date) lastActivity[a.client_id] = a;
   });
 
-  const filtered = clients.filter((c) => {
-    const q = search.trim().toLowerCase();
-    if (q) {
-      const haystack = [c.name, c.phone, c.project, c.developer, c.location].filter(Boolean).join(' ').toLowerCase();
-      if (!haystack.includes(q)) return false;
-    }
-    if (leadFilter) {
-      return matchesLeadCategory(c, leadFilter);
-    }
-    if (stageFilter !== 'all' && c.stage !== stageFilter) return false;
-    if (sourceFilter !== 'all' && c.source !== sourceFilter) return false;
-    if (potentialFilter === 'yes' && !c.potential) return false;
-    if (potentialFilter === 'no' && c.potential) return false;
-    return true;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
-  const startIdx = (currentPage - 1) * PAGE_SIZE;
-  const paged = filtered.slice(startIdx, startIdx + PAGE_SIZE);
-  const rangeStart = filtered.length === 0 ? 0 : startIdx + 1;
-  const rangeEnd = Math.min(startIdx + PAGE_SIZE, filtered.length);
+  const rangeStart = totalCount === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(currentPage * PAGE_SIZE, totalCount);
 
   return (
     <div className="space-y-4">
       {leadFilter && (
         <div className="flex items-center justify-between gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: C.surface, border: `1px solid ${C.gold}` }}>
           <span className="text-sm font-medium">
-            Showing: <span style={{ color: C.gold }}>{LEAD_CATEGORY_LABELS[leadFilter]}</span> ({filtered.length})
+            Showing: <span style={{ color: C.gold }}>{LEAD_CATEGORY_LABELS[leadFilter]}</span> ({totalCount})
           </span>
           <button onClick={onClearLeadFilter} className="flex items-center gap-1 text-xs font-medium" style={{ color: C.muted }}>
             <X size={14} /> Clear
@@ -259,8 +320,8 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
         <div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: C.muted }} />
           <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search by name, phone, project, developer, location..."
             className="rounded-lg pl-9 pr-3 py-2 text-sm outline-none w-full"
             style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text }}
@@ -287,8 +348,8 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
           <span className="flex-1" />
           {isAdmin && (
             <>
-              <button onClick={exportCsv} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
-                <Download size={14} /> Export
+              <button onClick={exportCsv} disabled={exporting} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0 disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
+                {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} {exporting ? 'Exporting...' : 'Export'}
               </button>
               <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0 disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
                 <Upload size={14} /> {importing ? 'Importing...' : 'Import'}
@@ -328,117 +389,117 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
         </div>
       )}
 
-      {/* Table */}
-      <div className="rounded-xl overflow-x-auto" style={{ border: `1px solid ${C.border}` }}>
-        <table className="text-sm" style={{ minWidth: hasTeamAccess ? '1450px' : '1300px', width: '100%' }}>
-          <thead>
-            <tr style={{ backgroundColor: C.surface, color: C.muted }} className="text-left text-xs">
-              <th className="py-2.5 px-3 font-medium w-8">
-                <input
-                  type="checkbox"
-                  checked={paged.length > 0 && paged.every((c) => selectedIds.has(c.id))}
-                  onChange={() => toggleSelectAllOnPage(paged.map((c) => c.id), paged.length > 0 && paged.every((c) => selectedIds.has(c.id)))}
-                />
-              </th>
-              <th className="py-2.5 px-3 font-medium w-8"></th>
-              <th className="py-2.5 px-3 font-medium">Name</th>
-              {hasTeamAccess && <th className="py-2.5 px-3 font-medium">Owner</th>}
-              <th className="py-2.5 px-3 font-medium">Phone</th>
-              <th className="py-2.5 px-3 font-medium">Stage</th>
-              <th className="py-2.5 px-3 font-medium">Project</th>
-              <th className="py-2.5 px-3 font-medium">Developer</th>
-              <th className="py-2.5 px-3 font-medium">Location</th>
-              <th className="py-2.5 px-3 font-medium">Source</th>
-              <th className="py-2.5 px-3 font-medium">Potential</th>
-              <th className="py-2.5 px-3 font-medium">Action</th>
-              <th className="py-2.5 px-3 font-medium">Last Comment</th>
-              <th className="py-2.5 px-3 font-medium">Last Comment Date</th>
-              <th className="py-2.5 px-3 font-medium">Next Follow-up</th>
-              <th className="py-2.5 px-3 font-medium">Created</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paged.map((c) => {
-              const stage = stageOf(c.stage);
-              const last = lastActivity[c.id];
-              return (
-                <tr
-                  key={c.id}
-                  onClick={() => setSelected(c)}
-                  className="cursor-pointer transition-colors"
-                  style={{ borderTop: `1px solid ${C.border}` }}
-                >
-                  <td className="py-2.5 px-3" onClick={(e) => e.stopPropagation()}>
-                    <input type="checkbox" checked={selectedIds.has(c.id)} onChange={() => toggleSelect(c.id)} />
-                  </td>
-                  <td className="py-2.5 px-3" onClick={(e) => { e.stopPropagation(); setActionTarget(c); }}>
-                    {isAdmin ? (
-                      <Pencil size={14} style={{ color: C.muted }} />
-                    ) : (
-                      <MessageSquarePlus size={14} style={{ color: C.gold }} />
-                    )}
-                  </td>
-                  <td className="py-2.5 px-3 font-medium whitespace-nowrap">
-                    {c.name}
-                    {c.previous_owners && c.previous_owners.length > 0 && (
-                      <span className="ml-1.5 text-xs" style={{ color: '#9B7EBD' }} title="Rotated lead">🔄</span>
-                    )}
-                  </td>
-                  {hasTeamAccess && <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{owners[c.owner_id] || '—'}</td>}
-                  <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.phone || '—'}</td>
-                  <td className="py-2.5 px-3"><Pill color={stage.color}>{stage.label}</Pill></td>
-                  <td className="py-2.5 px-3 whitespace-nowrap">{c.project || '—'}</td>
-                  <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.developer || '—'}</td>
-                  <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.location || '—'}</td>
-                  <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}><SourceTag source={c.source} size={15} /></td>
-                  <td className="py-2.5 px-3">
-                    {c.potential ? <Pill color={C.gold}>Potential</Pill> : <span style={{ color: C.muted }}>—</span>}
-                  </td>
-                  <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.call_result || '—'}</td>
-                  <td className="py-2.5 px-3 max-w-[200px] truncate" style={{ color: C.muted }}>{last?.notes || '—'}</td>
-                  <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{last ? fmtDate(last.date) : '—'}</td>
-                  <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: c.next_follow_up && c.next_follow_up < todayStr() ? '#C9714F' : C.muted }}>
-                    {c.next_follow_up ? fmtDate(c.next_follow_up) : '—'}
-                  </td>
-                  <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{fmtDate(c.created_at)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {filtered.length === 0 && (
+      {totalCount === 0 ? (
         <p className="text-sm text-center py-6" style={{ color: C.muted }}>No clients match these filters.</p>
-      )}
-
-      {filtered.length > 0 && (
-        <div className="flex items-center justify-between gap-3 pt-1">
-          <span className="text-xs" style={{ color: C.muted }}>
-            {rangeStart}–{rangeEnd} of {filtered.length}
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage <= 1}
-              className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40"
-              style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <span className="text-xs font-medium" style={{ color: C.muted }}>
-              Page {currentPage} / {totalPages}
-            </span>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage >= totalPages}
-              className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40"
-              style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}
-            >
-              <ChevronRight size={16} />
-            </button>
+      ) : (
+        <>
+          {/* Table */}
+          <div className="rounded-xl overflow-x-auto" style={{ border: `1px solid ${C.border}` }}>
+            <table className="text-sm" style={{ minWidth: hasTeamAccess ? '1450px' : '1300px', width: '100%' }}>
+              <thead>
+                <tr style={{ backgroundColor: C.surface, color: C.muted }} className="text-left text-xs">
+                  <th className="py-2.5 px-3 font-medium w-8">
+                    <input
+                      type="checkbox"
+                      checked={clients.length > 0 && clients.every((c) => selectedIds.has(c.id))}
+                      onChange={() => toggleSelectAllOnPage(clients.map((c) => c.id), clients.length > 0 && clients.every((c) => selectedIds.has(c.id)))}
+                    />
+                  </th>
+                  <th className="py-2.5 px-3 font-medium w-8"></th>
+                  <th className="py-2.5 px-3 font-medium">Name</th>
+                  {hasTeamAccess && <th className="py-2.5 px-3 font-medium">Owner</th>}
+                  <th className="py-2.5 px-3 font-medium">Phone</th>
+                  <th className="py-2.5 px-3 font-medium">Stage</th>
+                  <th className="py-2.5 px-3 font-medium">Project</th>
+                  <th className="py-2.5 px-3 font-medium">Developer</th>
+                  <th className="py-2.5 px-3 font-medium">Location</th>
+                  <th className="py-2.5 px-3 font-medium">Source</th>
+                  <th className="py-2.5 px-3 font-medium">Potential</th>
+                  <th className="py-2.5 px-3 font-medium">Action</th>
+                  <th className="py-2.5 px-3 font-medium">Last Comment</th>
+                  <th className="py-2.5 px-3 font-medium">Last Comment Date</th>
+                  <th className="py-2.5 px-3 font-medium">Next Follow-up</th>
+                  <th className="py-2.5 px-3 font-medium">Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clients.map((c) => {
+                  const stage = stageOf(c.stage);
+                  const last = lastActivity[c.id];
+                  return (
+                    <tr
+                      key={c.id}
+                      onClick={() => setSelected(c)}
+                      className="cursor-pointer transition-colors"
+                      style={{ borderTop: `1px solid ${C.border}` }}
+                    >
+                      <td className="py-2.5 px-3" onClick={(e) => e.stopPropagation()}>
+                        <input type="checkbox" checked={selectedIds.has(c.id)} onChange={() => toggleSelect(c.id)} />
+                      </td>
+                      <td className="py-2.5 px-3" onClick={(e) => { e.stopPropagation(); setActionTarget(c); }}>
+                        {isAdmin ? (
+                          <Pencil size={14} style={{ color: C.muted }} />
+                        ) : (
+                          <MessageSquarePlus size={14} style={{ color: C.gold }} />
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3 font-medium whitespace-nowrap">
+                        {c.name}
+                        {c.previous_owners && c.previous_owners.length > 0 && (
+                          <span className="ml-1.5 text-xs" style={{ color: '#9B7EBD' }} title="Rotated lead">🔄</span>
+                        )}
+                      </td>
+                      {hasTeamAccess && <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{owners[c.owner_id] || '—'}</td>}
+                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.phone || '—'}</td>
+                      <td className="py-2.5 px-3"><Pill color={stage.color}>{stage.label}</Pill></td>
+                      <td className="py-2.5 px-3 whitespace-nowrap">{c.project || '—'}</td>
+                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.developer || '—'}</td>
+                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.location || '—'}</td>
+                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}><SourceTag source={c.source} size={15} /></td>
+                      <td className="py-2.5 px-3">
+                        {c.potential ? <Pill color={C.gold}>Potential</Pill> : <span style={{ color: C.muted }}>—</span>}
+                      </td>
+                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.call_result || '—'}</td>
+                      <td className="py-2.5 px-3 max-w-[200px] truncate" style={{ color: C.muted }}>{last?.notes || '—'}</td>
+                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{last ? fmtDate(last.date) : '—'}</td>
+                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: c.next_follow_up && c.next_follow_up < todayStr() ? '#C9714F' : C.muted }}>
+                        {c.next_follow_up ? fmtDate(c.next_follow_up) : '—'}
+                      </td>
+                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{fmtDate(c.created_at)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        </div>
+
+          <div className="flex items-center justify-between gap-3 pt-1">
+            <span className="text-xs" style={{ color: C.muted }}>
+              {loading ? 'Loading...' : `${rangeStart}–${rangeEnd} of ${totalCount}`}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+                className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40"
+                style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span className="text-xs font-medium" style={{ color: C.muted }}>
+                Page {currentPage} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+                className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40"
+                style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        </>
       )}
 
       <button
