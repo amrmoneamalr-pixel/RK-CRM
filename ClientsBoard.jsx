@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import Papa from 'papaparse';
 import { supabase } from './supabaseClient';
 import { C, STAGES, SOURCES, fmtMoney, fmtDate, todayStr, stageOf, stageIdFromInput, matchesLeadCategory, LEAD_CATEGORY_LABELS } from './constants';
-import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight, X, Pencil, MessageSquarePlus } from 'lucide-react';
 import ClientModal from './ClientModal';
 
 function Pill({ color, children }) {
@@ -16,7 +16,7 @@ function Pill({ color, children }) {
 const selectStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
 const selectClass = 'rounded-lg px-2.5 py-2 text-xs outline-none';
 
-export default function ClientsBoard({ userId, isAdmin, leadFilter, onClearLeadFilter }) {
+export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilter, onClearLeadFilter }) {
   const [clients, setClients] = useState([]);
   const [activities, setActivities] = useState([]);
   const [owners, setOwners] = useState({});
@@ -32,6 +32,10 @@ export default function ClientsBoard({ userId, isAdmin, leadFilter, onClearLeadF
   const [importMsg, setImportMsg] = useState('');
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 30;
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkReassignTo, setBulkReassignTo] = useState('');
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [actionTarget, setActionTarget] = useState(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -46,14 +50,14 @@ export default function ClientsBoard({ userId, isAdmin, leadFilter, onClearLeadF
     setLoading(true);
     let clientsQuery = supabase.from('clients').select('*').order('created_at', { ascending: false });
     let activitiesQuery = supabase.from('activities').select('*').order('date', { ascending: false });
-    if (!isAdmin) {
+    if (!hasTeamAccess) {
       clientsQuery = clientsQuery.eq('owner_id', userId);
       activitiesQuery = activitiesQuery.eq('owner_id', userId);
     }
     const [{ data: c }, { data: a }] = await Promise.all([clientsQuery, activitiesQuery]);
     setClients(c || []);
     setActivities(a || []);
-    if (isAdmin) {
+    if (hasTeamAccess) {
       const { data: p } = await supabase.from('profiles').select('id, full_name, username, is_pool').order('full_name');
       const map = {};
       (p || []).forEach((row) => { map[row.id] = row.is_pool ? 'Unassigned Pool' : (row.full_name || row.username || '—'); });
@@ -63,7 +67,41 @@ export default function ClientsBoard({ userId, isAdmin, leadFilter, onClearLeadF
     setLoading(false);
   };
 
-  if (loading) return <p style={{ color: C.muted }} className="text-sm">Loading...</p>;
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllOnPage = (ids, allSelected) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => { if (allSelected) next.delete(id); else next.add(id); });
+      return next;
+    });
+  };
+
+  const bulkReassign = async () => {
+    if (!bulkReassignTo || selectedIds.size === 0) return;
+    setBulkBusy(true);
+    await supabase.from('clients').update({ owner_id: bulkReassignTo, call_result: null, no_answer_count: 0 }).in('id', Array.from(selectedIds));
+    setBulkBusy(false);
+    setSelectedIds(new Set());
+    setBulkReassignTo('');
+    load();
+  };
+
+  const bulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setBulkBusy(true);
+    await supabase.from('clients').delete().in('id', Array.from(selectedIds));
+    setBulkBusy(false);
+    setSelectedIds(new Set());
+    load();
+  };
+
 
   const exportCsv = () => {
     const rows = clients.map((c) => ({
@@ -90,6 +128,7 @@ export default function ClientsBoard({ userId, isAdmin, leadFilter, onClearLeadF
     a.download = `rk-crm-clients-${todayStr()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    supabase.from('export_log').insert({ user_id: userId, description: `Exported ${rows.length} client${rows.length === 1 ? '' : 's'} (CSV)` });
   };
 
   const handleImportFile = (e) => {
@@ -166,7 +205,7 @@ export default function ClientsBoard({ userId, isAdmin, leadFilter, onClearLeadF
         </div>
         {isAdmin && importMsg && <p className="text-xs mt-3" style={{ color: importMsg.startsWith('Error') ? '#C9714F' : '#7FA887' }}>{importMsg}</p>}
         {isAdmin && <input ref={fileInputRef} type="file" accept=".csv" onChange={handleImportFile} className="hidden" />}
-        {showAdd && <ClientModal mode="add" userId={userId} isAdmin={isAdmin} profilesList={profilesList} onClose={() => setShowAdd(false)} onSaved={load} />}
+        {showAdd && <ClientModal mode="add" userId={userId} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setShowAdd(false)} onSaved={load} />}
       </div>
     );
   }
@@ -260,13 +299,49 @@ export default function ClientsBoard({ userId, isAdmin, leadFilter, onClearLeadF
         {isAdmin && importMsg && <p className="text-xs" style={{ color: importMsg.startsWith('Error') ? '#C9714F' : '#7FA887' }}>{importMsg}</p>}
       </div>
 
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: C.surface, border: `1px solid ${C.gold}` }}>
+          <span className="text-sm font-medium">{selectedIds.size} selected</span>
+          <span className="flex-1" />
+          {hasTeamAccess && profilesList.length > 0 && (
+            <>
+              <select value={bulkReassignTo} onChange={(e) => setBulkReassignTo(e.target.value)} className={selectClass} style={selectStyle}>
+                <option value="">Reassign to...</option>
+                {profilesList.map((p) => (
+                  <option key={p.id} value={p.id}>{p.is_pool ? 'Unassigned Pool' : (p.full_name || p.username || p.id)}</option>
+                ))}
+              </select>
+              <button onClick={bulkReassign} disabled={!bulkReassignTo || bulkBusy} className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-40" style={{ backgroundColor: C.gold, color: '#14181F' }}>
+                Reassign
+              </button>
+            </>
+          )}
+          {isAdmin && (
+            <button onClick={bulkDelete} disabled={bulkBusy} className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-40" style={{ backgroundColor: '#C9714F22', color: '#C9714F' }}>
+              Delete
+            </button>
+          )}
+          <button onClick={() => setSelectedIds(new Set())} className="flex items-center gap-1 text-xs" style={{ color: C.muted }}>
+            <X size={14} /> Clear
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="rounded-xl overflow-x-auto" style={{ border: `1px solid ${C.border}` }}>
-        <table className="text-sm" style={{ minWidth: isAdmin ? '1450px' : '1300px', width: '100%' }}>
+        <table className="text-sm" style={{ minWidth: hasTeamAccess ? '1450px' : '1300px', width: '100%' }}>
           <thead>
             <tr style={{ backgroundColor: C.surface, color: C.muted }} className="text-left text-xs">
+              <th className="py-2.5 px-3 font-medium w-8">
+                <input
+                  type="checkbox"
+                  checked={paged.length > 0 && paged.every((c) => selectedIds.has(c.id))}
+                  onChange={() => toggleSelectAllOnPage(paged.map((c) => c.id), paged.length > 0 && paged.every((c) => selectedIds.has(c.id)))}
+                />
+              </th>
+              <th className="py-2.5 px-3 font-medium w-8"></th>
               <th className="py-2.5 px-3 font-medium">Name</th>
-              {isAdmin && <th className="py-2.5 px-3 font-medium">Owner</th>}
+              {hasTeamAccess && <th className="py-2.5 px-3 font-medium">Owner</th>}
               <th className="py-2.5 px-3 font-medium">Phone</th>
               <th className="py-2.5 px-3 font-medium">Stage</th>
               <th className="py-2.5 px-3 font-medium">Project</th>
@@ -292,13 +367,23 @@ export default function ClientsBoard({ userId, isAdmin, leadFilter, onClearLeadF
                   className="cursor-pointer transition-colors"
                   style={{ borderTop: `1px solid ${C.border}` }}
                 >
+                  <td className="py-2.5 px-3" onClick={(e) => e.stopPropagation()}>
+                    <input type="checkbox" checked={selectedIds.has(c.id)} onChange={() => toggleSelect(c.id)} />
+                  </td>
+                  <td className="py-2.5 px-3" onClick={(e) => { e.stopPropagation(); setActionTarget(c); }}>
+                    {isAdmin ? (
+                      <Pencil size={14} style={{ color: C.muted }} />
+                    ) : (
+                      <MessageSquarePlus size={14} style={{ color: C.gold }} />
+                    )}
+                  </td>
                   <td className="py-2.5 px-3 font-medium whitespace-nowrap">
                     {c.name}
                     {c.previous_owners && c.previous_owners.length > 0 && (
                       <span className="ml-1.5 text-xs" style={{ color: '#9B7EBD' }} title="Rotated lead">🔄</span>
                     )}
                   </td>
-                  {isAdmin && <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{owners[c.owner_id] || '—'}</td>}
+                  {hasTeamAccess && <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{owners[c.owner_id] || '—'}</td>}
                   <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.phone || '—'}</td>
                   <td className="py-2.5 px-3"><Pill color={stage.color}>{stage.label}</Pill></td>
                   <td className="py-2.5 px-3 whitespace-nowrap">{c.project || '—'}</td>
@@ -363,8 +448,9 @@ export default function ClientsBoard({ userId, isAdmin, leadFilter, onClearLeadF
         <Plus size={18} /> New Client
       </button>
 
-      {showAdd && <ClientModal mode="add" userId={userId} isAdmin={isAdmin} profilesList={profilesList} onClose={() => setShowAdd(false)} onSaved={load} />}
-      {selected && <ClientModal mode="detail" userId={userId} client={selected} isAdmin={isAdmin} profilesList={profilesList} onClose={() => setSelected(null)} onSaved={load} />}
+      {showAdd && <ClientModal mode="add" userId={userId} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setShowAdd(false)} onSaved={load} />}
+      {selected && <ClientModal mode="detail" userId={userId} client={selected} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setSelected(null)} onSaved={load} />}
+      {actionTarget && <ClientModal mode="detail" userId={userId} client={actionTarget} isAdmin={hasTeamAccess} profilesList={profilesList} autoFocusActivity={!isAdmin} onClose={() => setActionTarget(null)} onSaved={load} />}
     </div>
   );
 }
