@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
-import { C, fmtDateTime } from './constants';
+import { C, fmtDateTime, LOCATIONS } from './constants';
 import { Settings as SettingsIcon, RefreshCw, Check } from 'lucide-react';
 
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
@@ -19,6 +19,8 @@ export default function Settings() {
   const [enabled, setEnabled] = useState(false);
   const [time, setTime] = useState('09:00');
   const [count, setCount] = useState(10);
+  const [noAnswerEnabled, setNoAnswerEnabled] = useState(true);
+  const [locations, setLocations] = useState([]);
 
   useEffect(() => {
     load();
@@ -32,6 +34,8 @@ export default function Settings() {
       setEnabled(data.rotation_enabled);
       setTime((data.rotation_time || '09:00').slice(0, 5));
       setCount(data.rotation_count || 10);
+      setNoAnswerEnabled(data.no_answer_rotation_enabled ?? true);
+      setLocations(data.rotation_locations || []);
     }
     setLoading(false);
   };
@@ -42,7 +46,7 @@ export default function Settings() {
     setSaved(false);
     const { error } = await supabase
       .from('app_settings')
-      .update({ rotation_enabled: enabled, rotation_time: time, rotation_count: count, updated_at: new Date().toISOString() })
+      .update({ rotation_enabled: enabled, rotation_time: time, rotation_count: count, no_answer_rotation_enabled: noAnswerEnabled, rotation_locations: locations, updated_at: new Date().toISOString() })
       .eq('id', 1);
     setSaving(false);
     if (error) {
@@ -69,6 +73,10 @@ export default function Settings() {
   };
 
   if (loading) return <p style={{ color: C.muted }} className="text-sm">Loading...</p>;
+
+  const toggleLocation = (loc) => {
+    setLocations((prev) => prev.includes(loc) ? prev.filter((l) => l !== loc) : [...prev, loc]);
+  };
 
   return (
     <div className="space-y-6">
@@ -103,6 +111,30 @@ export default function Settings() {
           </label>
         </div>
 
+        <div>
+          <p className="text-sm mb-1.5">Limit to locations</p>
+          <p className="text-xs mb-2" style={{ color: C.muted }}>Pick one or more areas to rotate from. Leave all off to include every location.</p>
+          <div className="flex flex-wrap gap-2">
+            {LOCATIONS.map((loc) => {
+              const on = locations.includes(loc);
+              return (
+                <button
+                  key={loc}
+                  onClick={() => toggleLocation(loc)}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
+                  style={{
+                    backgroundColor: on ? C.gold : C.bg,
+                    color: on ? '#14181F' : C.muted,
+                    border: `1px solid ${on ? C.gold : C.border}`,
+                  }}
+                >
+                  {loc}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {error && <p className="text-xs" style={{ color: '#C9714F' }}>{error}</p>}
 
         <div className="flex flex-wrap gap-2">
@@ -124,6 +156,19 @@ export default function Settings() {
             )}
           </div>
         )}
+      </div>
+
+      <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
+        <h3 className="font-display font-bold text-sm">"No Answer" auto-rotation</h3>
+        <p className="text-xs" style={{ color: C.muted }}>
+          When a sales rep logs "No Answer" 3 times on the same client, the client is automatically moved to a random
+          sales rep who hasn't had it before. Turn this off to keep such clients with the same rep.
+        </p>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={noAnswerEnabled} onChange={(e) => setNoAnswerEnabled(e.target.checked)} />
+          <span>Move client to another rep after 3 "No Answer" results</span>
+        </label>
+        <p className="text-xs" style={{ color: C.muted }}>Don't forget to press Save above to apply this.</p>
       </div>
     </div>
   );
