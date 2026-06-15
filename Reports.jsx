@@ -13,7 +13,7 @@ const DAILY_MEETING_TARGET = 3;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const startOfDay  = (d = new Date()) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString();
+const startOfDay  = () => new Date().toISOString().slice(0, 10) + 'T00:00:00.000Z';
 const startOfWeek = () => {
   const d = new Date();
   d.setDate(d.getDate() - 6);
@@ -88,11 +88,12 @@ export default function Reports() {
 
   const load = async () => {
     setLoading(true);
+    const todayISO = new Date().toISOString().slice(0, 10) + 'T00:00:00.000Z';
     const [{ data: p }, { data: c }, { data: a }, { data: s }] = await Promise.all([
       supabase.from('profiles').select('*'),
       supabase.from('clients').select('*'),
       supabase.from('activities').select('*'),
-      supabase.from('user_sessions').select('*').gte('started_at', startOfMonth()),
+      supabase.from('user_sessions').select('*').gte('last_seen_at', todayISO),
     ]);
     setProfiles(p || []);
     setClients(c || []);
@@ -132,13 +133,9 @@ export default function Reports() {
 
 function DailyReport({ profiles, clients, activities, sessions }) {
   const today = todayStr();
-  const todayStart = startOfDay();
 
   // Activities logged today
   const todayActs = activities.filter((a) => a.date === today);
-
-  // Sessions today per user
-  const todaySessions = sessions.filter((s) => s.started_at >= todayStart);
 
   return (
     <div className="space-y-5">
@@ -151,44 +148,48 @@ function DailyReport({ profiles, clients, activities, sessions }) {
               <tr className="text-left text-xs" style={{ color: C.muted }}>
                 <th className="py-2 pr-3">Name</th>
                 <th className="py-2 pr-3">First Login</th>
-                <th className="py-2 pr-3">Last Seen</th>
                 <th className="py-2 pr-3 text-center">Follow-ups</th>
                 <th className="py-2 pr-3 text-center">Active Calls</th>
-                <th className="py-2 pr-3 text-center">Planned Mtg</th>
-                <th className="py-2 pr-3 text-center">Actual Mtg</th>
+                <th className="py-2 pr-3 text-center">Planned Meeting</th>
+                <th className="py-2 pr-3 text-center">Actual Meeting</th>
                 <th className="py-2 text-center">New Leads</th>
               </tr>
             </thead>
             <tbody>
               {profiles.map((p) => {
-                const mySessions  = todaySessions.filter((s) => s.user_id === p.id).sort((a, b) => a.started_at > b.started_at ? 1 : -1);
-                const firstLogin  = mySessions[0]?.started_at;
-                const lastSeen    = [...mySessions].sort((a, b) => a.last_seen_at > b.last_seen_at ? -1 : 1)[0]?.last_seen_at;
+                // Sessions already filtered to today (last_seen_at >= today midnight UTC)
+                const mySessions = sessions.filter((s) => s.user_id === p.id);
+                // First login = earliest created_at (fallback to last_seen_at) among today's sessions
+                const firstLoginTs = mySessions.length > 0
+                  ? mySessions
+                      .map((s) => s.created_at || s.last_seen_at)
+                      .filter(Boolean)
+                      .sort()[0]
+                  : null;
 
                 const myActs      = todayActs.filter((a) => a.owner_id === p.id);
                 const followUps   = myActs.length;
                 const plannedMtg  = myActs.filter((a) => a.type === 'planned_meeting').length;
                 const actualMtg   = myActs.filter((a) => a.type === 'meeting').length;
 
-                // Active calls = clients owned by this rep whose call_result is in ACTIVE_CALL_RESULTS
                 const myClients   = clients.filter((c) => c.owner_id === p.id);
                 const activeCalls = myClients.filter((c) => ACTIVE_CALL_RESULTS.includes(c.call_result)).length;
-
                 const newLeads    = clients.filter((c) => c.owner_id === p.id && c.created_at >= startOfDay()).length;
 
-                const actualColor = actualMtg >= DAILY_MEETING_TARGET ? '#7FA887' : actualMtg >= 1 ? C.gold : '#C9714F';
+                const plannedColor = plannedMtg >= DAILY_MEETING_TARGET ? '#7FA887' : plannedMtg >= 1 ? C.gold : '#C9714F';
 
                 return (
                   <tr key={p.id} style={{ borderTop: `1px solid ${C.border}` }}>
                     <td className="py-2 pr-3 font-medium">{p.full_name || p.username || '—'}</td>
-                    <td className="py-2 pr-3 text-xs" style={{ color: C.muted }}>{firstLogin ? fmtTime(firstLogin) : '—'}</td>
-                    <td className="py-2 pr-3 text-xs" style={{ color: C.muted }}>{lastSeen ? fmtTime(lastSeen) : '—'}</td>
+                    <td className="py-2 pr-3 text-xs" style={{ color: C.muted }}>
+                      {firstLoginTs ? fmtTime(firstLoginTs) : '—'}
+                    </td>
                     <td className="py-2 pr-3 text-center" style={{ color: C.gold }}>{followUps}</td>
                     <td className="py-2 pr-3 text-center" style={{ color: C.text }}>{activeCalls}</td>
-                    <td className="py-2 pr-3 text-center" style={{ color: '#D4A24E' }}>{plannedMtg}</td>
-                    <td className="py-2 pr-3 text-center font-bold" style={{ color: actualColor }}>
-                      {actualMtg} / {DAILY_MEETING_TARGET}
+                    <td className="py-2 pr-3 text-center font-bold" style={{ color: plannedColor }}>
+                      {plannedMtg} / {DAILY_MEETING_TARGET}
                     </td>
+                    <td className="py-2 pr-3 text-center" style={{ color: '#7FA887' }}>{actualMtg}</td>
                     <td className="py-2 text-center" style={{ color: C.muted }}>{newLeads}</td>
                   </tr>
                 );
@@ -273,8 +274,8 @@ function WeeklyReport({ profiles, clients, activities }) {
               <tr className="text-left text-xs" style={{ color: C.muted }}>
                 <th className="py-2 pr-3">Name</th>
                 <th className="py-2 pr-3 text-center">Follow-ups</th>
-                <th className="py-2 pr-3 text-center">Planned Mtg</th>
-                <th className="py-2 pr-3 text-center">Actual Mtg</th>
+                <th className="py-2 pr-3 text-center">Planned Meeting</th>
+                <th className="py-2 pr-3 text-center">Actual Meeting</th>
                 <th className="py-2 pr-3 text-center">Active Calls</th>
                 <th className="py-2 text-center">New Leads</th>
               </tr>
@@ -349,8 +350,8 @@ function MonthlyReport({ profiles, clients, activities }) {
               <tr className="text-left text-xs" style={{ color: C.muted }}>
                 <th className="py-2 pr-3">Name</th>
                 <th className="py-2 pr-3 text-center">Follow-ups</th>
-                <th className="py-2 pr-3 text-center">Planned Mtg</th>
-                <th className="py-2 pr-3 text-center">Actual Mtg</th>
+                <th className="py-2 pr-3 text-center">Planned Meeting</th>
+                <th className="py-2 pr-3 text-center">Actual Meeting</th>
                 <th className="py-2 pr-3 text-center">Active Calls</th>
                 <th className="py-2 pr-3 text-center">New Leads</th>
                 <th className="py-2 text-center">Won</th>

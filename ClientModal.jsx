@@ -430,12 +430,11 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
       date: todayStr(),
       notes: text,
     });
-    // Stay on the modal - just clear the input, reset checkboxes, reload list
     setCommentText('');
     setIsPlannedMeeting(false);
     setIsActualMeeting(false);
     onSaved();
-    loadActivities();
+    onClose();
   };
 
   const st = stageOf(client.stage);
