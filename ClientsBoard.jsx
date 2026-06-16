@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Papa from 'papaparse';
 import { supabase } from './supabaseClient';
-import { C, STAGES, SOURCES, COLD_RESULTS, fmtMoney, fmtDate, todayStr, stageOf, stageIdFromInput, LEAD_CATEGORY_LABELS } from './constants';
+import { C, STAGES, SOURCES, COLD_RESULTS, fmtMoney, fmtDate, todayStr, stageOf, stageIdFromInput, LEAD_CATEGORY_LABELS, leadCategory, clientStatus } from './constants';
 import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight, X, Pencil, MessageSquarePlus, Loader2 } from 'lucide-react';
 import ClientModal from './ClientModal';
 import { SourceTag } from './BrandIcons';
@@ -396,7 +396,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
         <>
           {/* Table */}
           <div className="rounded-xl overflow-x-auto" style={{ border: `1px solid ${C.border}` }}>
-            <table className="text-sm" style={{ minWidth: hasTeamAccess ? '1450px' : '1300px', width: '100%' }}>
+            <table className="text-sm" style={{ minWidth: hasTeamAccess ? '1800px' : '1500px', width: '100%' }}>
               <thead>
                 <tr style={{ backgroundColor: C.surface, color: C.muted }} className="text-left text-xs">
                   <th className="py-2.5 px-3 font-medium w-8">
@@ -407,26 +407,32 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                     />
                   </th>
                   <th className="py-2.5 px-3 font-medium w-8"></th>
-                  <th className="py-2.5 px-3 font-medium">Name</th>
-                  {hasTeamAccess && <th className="py-2.5 px-3 font-medium">Owner</th>}
-                  <th className="py-2.5 px-3 font-medium">Phone</th>
+                  <th className="py-2.5 px-3 font-medium">Full Name</th>
+                  <th className="py-2.5 px-3 font-medium">Mobile Phone</th>
                   <th className="py-2.5 px-3 font-medium">Stage</th>
-                  <th className="py-2.5 px-3 font-medium">Project</th>
+                  <th className="py-2.5 px-3 font-medium">Status</th>
+                  {hasTeamAccess && <th className="py-2.5 px-3 font-medium">Assigned To</th>}
+                  {hasTeamAccess && <th className="py-2.5 px-3 font-medium">Lead Origin</th>}
+                  <th className="py-2.5 px-3 font-medium">Lead Source</th>
+                  <th className="py-2.5 px-3 font-medium">Created Time</th>
                   <th className="py-2.5 px-3 font-medium">Developer</th>
+                  <th className="py-2.5 px-3 font-medium">Project</th>
                   <th className="py-2.5 px-3 font-medium">Location</th>
-                  <th className="py-2.5 px-3 font-medium">Source</th>
-                  <th className="py-2.5 px-3 font-medium">Potential</th>
                   <th className="py-2.5 px-3 font-medium">Action</th>
                   <th className="py-2.5 px-3 font-medium">Last Comment</th>
                   <th className="py-2.5 px-3 font-medium">Last Comment Date</th>
-                  <th className="py-2.5 px-3 font-medium">Next Follow-up</th>
-                  <th className="py-2.5 px-3 font-medium">Created</th>
+                  <th className="py-2.5 px-3 font-medium">Next Follow-up Date</th>
+                  <th className="py-2.5 px-3 font-medium">Potential</th>
                 </tr>
               </thead>
               <tbody>
                 {clients.map((c) => {
-                  const stage = stageOf(c.stage);
+                  const cat = leadCategory(c);
+                  const stat = clientStatus(c);
                   const last = lastActivity[c.id];
+                  const assignedFrom = c.previous_owners && c.previous_owners.length > 0
+                    ? (owners[c.previous_owners[c.previous_owners.length - 1]] || '—')
+                    : '—';
                   return (
                     <tr
                       key={c.id}
@@ -444,29 +450,28 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                           <MessageSquarePlus size={14} style={{ color: C.gold }} />
                         )}
                       </td>
-                      <td className="py-2.5 px-3 font-medium whitespace-nowrap">
-                        {c.name}
-                        {c.previous_owners && c.previous_owners.length > 0 && (
-                          <span className="ml-1.5 text-xs" style={{ color: '#9B7EBD' }} title="Rotated lead">🔄</span>
-                        )}
+                      <td className="py-2.5 px-3 font-medium whitespace-nowrap">{c.name}</td>
+                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.phone || '—'}</td>
+                      <td className="py-2.5 px-3"><Pill color={cat.color}>{cat.label}</Pill></td>
+                      <td className="py-2.5 px-3">
+                        <Pill color={stat.color === '#FFFFFF' ? C.text : stat.color}>{stat.label}</Pill>
                       </td>
                       {hasTeamAccess && <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{owners[c.owner_id] || '—'}</td>}
-                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.phone || '—'}</td>
-                      <td className="py-2.5 px-3"><Pill color={stage.color}>{stage.label}</Pill></td>
-                      <td className="py-2.5 px-3 whitespace-nowrap">{c.project || '—'}</td>
-                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.developer || '—'}</td>
-                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.location || '—'}</td>
+                      {hasTeamAccess && <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{[c.lead_origin, c.origin_name].filter(Boolean).join(" · ") || "—"}</td>}
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}><SourceTag source={c.source} size={15} /></td>
-                      <td className="py-2.5 px-3">
-                        {c.potential ? <Pill color={C.gold}>Potential</Pill> : <span style={{ color: C.muted }}>—</span>}
-                      </td>
+                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{fmtDate(c.created_at)}</td>
+                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.developer || '—'}</td>
+                      <td className="py-2.5 px-3 whitespace-nowrap">{c.project || '—'}</td>
+                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.location || '—'}</td>
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.call_result || '—'}</td>
-                      <td className="py-2.5 px-3 max-w-[200px] truncate" style={{ color: C.muted }}>{last?.notes || '—'}</td>
+                      <td className="py-2.5 px-3 max-w-[200px] truncate" style={{ color: C.muted }}>{last?.notes ? last.notes.split('\n')[0] : '—'}</td>
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{last ? fmtDate(last.date) : '—'}</td>
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: c.next_follow_up && c.next_follow_up < todayStr() ? '#C9714F' : C.muted }}>
                         {c.next_follow_up ? fmtDate(c.next_follow_up) : '—'}
                       </td>
-                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{fmtDate(c.created_at)}</td>
+                      <td className="py-2.5 px-3">
+                        {c.potential ? <Pill color={C.gold}>Potential</Pill> : <span style={{ color: C.muted }}>—</span>}
+                      </td>
                     </tr>
                   );
                 })}
