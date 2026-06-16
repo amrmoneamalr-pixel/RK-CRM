@@ -321,6 +321,8 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
   const [previousOwners, setPreviousOwners] = useState(client.previous_owners || []);
   const [rotated, setRotated] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const [plannedMeeting, setPlannedMeeting] = useState(false);
+  const [actualMeeting, setActualMeeting] = useState(false);
   const [saving, setSaving] = useState(false);
   const activityRef = useRef(null);
 
@@ -354,6 +356,8 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
     const parts = [];
     if (callResult) parts.push(`Action: ${callResult}`);
     if (commentText.trim()) parts.push(commentText.trim());
+    if (plannedMeeting) parts.push('📅 Planned Meeting – scheduled with client');
+    if (actualMeeting) parts.push('✅ Actual Meeting – meeting happened today');
     const logText = parts.join(' — ');
 
     if (logText) {
@@ -381,11 +385,13 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
 
     setSaving(false);
     setCommentText('');
+    setPlannedMeeting(false);
+    setActualMeeting(false);
     loadActivities();
     onSaved();
   };
 
-  const isDirty = callResult !== (client.call_result || '') || nextFollowUp !== (client.next_follow_up || '') || commentText.trim().length > 0;
+  const isDirty = callResult !== (client.call_result || '') || nextFollowUp !== (client.next_follow_up || '') || commentText.trim().length > 0 || plannedMeeting || actualMeeting;
 
   const st = stageOf(client.stage);
 
@@ -461,19 +467,28 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
             </select>
           </Field>
 
+          <textarea
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            placeholder="Write a comment about this lead..."
+            className={inputClass}
+            style={{ ...inputStyle, backgroundColor: C.surface }}
+            rows={2}
+          />
+
+          <div className="space-y-2">
+            <label className="flex items-center gap-2.5 text-sm cursor-pointer">
+              <input type="checkbox" checked={plannedMeeting} onChange={(e) => setPlannedMeeting(e.target.checked)} className="w-4 h-4" />
+              <span style={{ color: C.muted }}>📅 Planned Meeting – scheduled with client</span>
+            </label>
+            <label className="flex items-center gap-2.5 text-sm cursor-pointer">
+              <input type="checkbox" checked={actualMeeting} onChange={(e) => setActualMeeting(e.target.checked)} className="w-4 h-4" />
+              <span style={{ color: C.muted }}>✅ Actual Meeting – meeting happened today</span>
+            </label>
+          </div>
+
           <Field label="Next Follow-up Date">
             <input type="date" value={nextFollowUp} onChange={(e) => setNextFollowUp(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }} />
-          </Field>
-
-          <Field label="Comment">
-            <textarea
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Write a comment about this lead..."
-              className={inputClass}
-              style={{ ...inputStyle, backgroundColor: C.surface }}
-              rows={2}
-            />
           </Field>
 
           <button
