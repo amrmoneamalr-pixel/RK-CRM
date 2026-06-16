@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from './supabaseClient';
-import { C, STAGES, SOURCES, LEAD_ORIGINS, TOP_MANAGEMENT_NAMES, ACTIONS, LOCATIONS, fmtMoney, fmtDate, fmtTime, todayStr, stageOf, waLink } from './constants';
+import { C, STAGES, SOURCES, LEAD_ORIGINS, TOP_MANAGEMENT_NAMES, ACTIONS, DEVELOPERS, LOCATIONS, fmtMoney, fmtDate, fmtTime, todayStr, stageOf, waLink } from './constants';
 import { WhatsAppIcon, SourceTag } from './BrandIcons';
-import { X, Phone, Trash2, AlertCircle, CalendarCheck, CalendarClock } from 'lucide-react';
+import { X, Phone, Trash2, AlertCircle } from 'lucide-react';
 
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
 const inputClass = 'rounded-lg px-3 py-2 text-sm outline-none w-full';
@@ -41,6 +41,7 @@ function Modal({ title, children, onClose }) {
   );
 }
 
+// Marketer names = profiles whose title is 'marketing'
 function useMarketerNames(profilesList) {
   const fromList = (profilesList || [])
     .filter((p) => p.title === 'marketing' && !p.is_pool)
@@ -57,81 +58,13 @@ function useMarketerNames(profilesList) {
   return names;
 }
 
-function useDevelopersList() {
-  const [list, setList] = useState([]);
-  useEffect(() => {
-    (async () => {
-      const { data: devs } = await supabase.from('developers').select('*').order('name');
-      const { data: projects } = await supabase.from('developer_projects').select('*').order('name');
-      setList((devs || []).map((d) => ({
-        ...d,
-        projects: (projects || []).filter((p) => p.developer_id === d.id),
-      })));
-    })();
-  }, []);
-  return list;
-}
-
-function DeveloperField({ form, setForm, developersList, fieldId }) {
-  const currentDev = form.developer;
-  const knownNames = developersList.map((d) => d.name);
-  return (
-    <Field label="Developer">
-      <select
-        value={currentDev}
-        onChange={(e) => {
-          const devName = e.target.value;
-          const dev = developersList.find((d) => d.name === devName);
-          const firstProject = dev && dev.projects.length > 0 ? dev.projects[0].name : '';
-          setForm((f) => ({ ...f, developer: devName, project: firstProject }));
-        }}
-        className={inputClass}
-        style={inputStyle}
-        id={fieldId}
-      >
-        <option value="">—</option>
-        {currentDev && !knownNames.includes(currentDev) && (
-          <option value={currentDev}>{currentDev}</option>
-        )}
-        {developersList.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
-      </select>
-    </Field>
-  );
-}
-
-function ProjectField({ form, setForm, developersList }) {
-  const dev = developersList.find((d) => d.name === form.developer);
-  const projects = dev ? dev.projects : [];
-  const set = (e) => setForm((f) => ({ ...f, project: e.target.value }));
-
-  if (projects.length > 0) {
-    const currentKnown = projects.some((p) => p.name === form.project);
-    return (
-      <Field label="Project">
-        <select value={form.project} onChange={set} className={inputClass} style={inputStyle}>
-          <option value="">—</option>
-          {form.project && !currentKnown && (
-            <option value={form.project}>{form.project}</option>
-          )}
-          {projects.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
-        </select>
-      </Field>
-    );
-  }
-
-  return (
-    <Field label="Project">
-      <input value={form.project} onChange={set} className={inputClass} style={inputStyle} placeholder="Project name" />
-    </Field>
-  );
-}
-
 export default function ClientModal({ mode, userId, client, isAdmin, profilesList, autoFocusActivity, onClose, onSaved }) {
   if (mode === 'add') return <AddForm userId={userId} isAdmin={isAdmin} profilesList={profilesList} onClose={onClose} onSaved={onSaved} />;
   if (mode === 'edit') return <EditForm userId={userId} client={client} profilesList={profilesList} onClose={onClose} onSaved={onSaved} />;
   return <DetailView userId={userId} client={client} isAdmin={isAdmin} profilesList={profilesList} autoFocusActivity={autoFocusActivity} onClose={onClose} onSaved={onSaved} />;
 }
 
+// ---- Origin sub-form shared by Add + Edit ----
 function OriginFields({ form, setForm, marketerNames }) {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   return (
@@ -164,9 +97,8 @@ function OriginFields({ form, setForm, marketerNames }) {
 
 function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
   const marketerNames = useMarketerNames(profilesList);
-  const developersList = useDevelopersList();
   const [form, setForm] = useState({
-    name: '', project: '', developer: '', phone: '', secondary_phone: '',
+    name: '', project: 'Mountain View Creek View', developer: '', phone: '', secondary_phone: '',
     source: SOURCES[0], location: '', notes: '', owner_id: userId, lead_origin: '', origin_name: '',
   });
   const [saving, setSaving] = useState(false);
@@ -177,7 +109,7 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
     await supabase.from('clients').insert({
       owner_id: form.owner_id || userId,
       name: form.name,
-      project: form.project || null,
+      project: form.project,
       developer: form.developer || null,
       phone: form.phone || null,
       secondary_phone: form.secondary_phone || null,
@@ -199,8 +131,15 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
         <Field label="Full Name *">
           <input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} placeholder="Client name" />
         </Field>
-        <DeveloperField form={form} setForm={setForm} developersList={developersList} fieldId="developer-add" />
-        <ProjectField form={form} setForm={setForm} developersList={developersList} />
+        <Field label="Project Name">
+          <input value={form.project} onChange={set('project')} className={inputClass} style={inputStyle} />
+        </Field>
+        <Field label="Developer">
+          <input value={form.developer} onChange={set('developer')} className={inputClass} style={inputStyle} list="developers-list" placeholder="e.g. Mountain View" />
+          <datalist id="developers-list">
+            {DEVELOPERS.map((d) => <option key={d} value={d} />)}
+          </datalist>
+        </Field>
         <Field label="Mobile Number">
           <input value={form.phone} onChange={set('phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
         </Field>
@@ -244,9 +183,9 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
   );
 }
 
+// ---- Admin-only full EDIT form (the pencil button) ----
 function EditForm({ userId, client, profilesList, onClose, onSaved }) {
   const marketerNames = useMarketerNames(profilesList);
-  const developersList = useDevelopersList();
   const [form, setForm] = useState({
     name: client.name || '',
     project: client.project || '',
@@ -303,8 +242,15 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
         <Field label="Full Name *">
           <input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} />
         </Field>
-        <DeveloperField form={form} setForm={setForm} developersList={developersList} fieldId="developer-edit" />
-        <ProjectField form={form} setForm={setForm} developersList={developersList} />
+        <Field label="Project Name">
+          <input value={form.project} onChange={set('project')} className={inputClass} style={inputStyle} />
+        </Field>
+        <Field label="Developer">
+          <input value={form.developer} onChange={set('developer')} className={inputClass} style={inputStyle} list="developers-list-e" />
+          <datalist id="developers-list-e">
+            {DEVELOPERS.map((d) => <option key={d} value={d} />)}
+          </datalist>
+        </Field>
         <Field label="Mobile Number">
           <input value={form.phone} onChange={set('phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
         </Field>
@@ -366,6 +312,7 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
   );
 }
 
+// ---- Read-only detail + Action/Comment (everyone, the comment button) ----
 function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, onClose, onSaved }) {
   const [activities, setActivities] = useState([]);
   const [nextFollowUp, setNextFollowUp] = useState(client.next_follow_up || '');
@@ -374,9 +321,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
   const [previousOwners, setPreviousOwners] = useState(client.previous_owners || []);
   const [rotated, setRotated] = useState(false);
   const [commentText, setCommentText] = useState('');
-  // Meeting checkboxes
-  const [isPlannedMeeting, setIsPlannedMeeting] = useState(false);
-  const [isActualMeeting, setIsActualMeeting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const activityRef = useRef(null);
 
   useEffect(() => { loadActivities(); }, []);
@@ -388,54 +333,59 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
   }, [autoFocusActivity]);
 
   const loadActivities = async () => {
-    const { data } = await supabase.from('activities').select('*').eq('client_id', client.id).order('date', { ascending: false });
-    setActivities(data || []);
+    const { data } = await supabase.from('activities').select('*').eq('client_id', client.id).order('created_at', { ascending: false });
+    setActivities((data || []).filter((a) => a.type !== 'system'));
   };
 
-  const update = async (patch) => {
-    await supabase.from('clients').update(patch).eq('id', client.id);
-    onSaved();
-  };
+  // Single save: persists action + follow-up date + comment together
+  const handleSave = async () => {
+    if (!callResult && !nextFollowUp && !commentText.trim()) return;
+    setSaving(true);
 
-  const saveCallResult = async (val) => {
-    setCallResult(val);
-    await update({ call_result: val || null });
-    const { data } = await supabase.from('clients').select('*').eq('id', client.id).maybeSingle();
-    if (!data) {
-      setRotated(true);
-    } else {
+    // Update client fields that changed
+    const patch = {};
+    if (callResult !== (client.call_result || '')) patch.call_result = callResult || null;
+    if (nextFollowUp !== (client.next_follow_up || '')) patch.next_follow_up = nextFollowUp || null;
+    if (Object.keys(patch).length > 0) {
+      await supabase.from('clients').update(patch).eq('id', client.id);
+    }
+
+    // Log one activity entry combining action + comment
+    const parts = [];
+    if (callResult) parts.push(`Action: ${callResult}`);
+    if (commentText.trim()) parts.push(commentText.trim());
+    const logText = parts.join(' — ');
+
+    if (logText) {
+      await supabase.from('activities').insert({
+        client_id: client.id,
+        owner_id: userId,
+        type: 'call',
+        date: todayStr(),
+        notes: logText,
+      });
+    }
+
+    // Check if lead was auto-rotated away (3x No Answer)
+    if (patch.call_result === 'No Answer') {
+      const { data } = await supabase.from('clients').select('owner_id, no_answer_count, previous_owners').eq('id', client.id).maybeSingle();
+      if (!data || data.owner_id !== client.owner_id) {
+        setSaving(false);
+        setRotated(true);
+        onSaved();
+        return;
+      }
       setNoAnswerCount(data.no_answer_count || 0);
       setPreviousOwners(data.previous_owners || []);
     }
-  };
 
-  // Determine activity type based on checkboxes:
-  // actual meeting → 'meeting'
-  // planned only   → 'planned_meeting'
-  // neither        → 'call' (regular comment)
-  const resolveActivityType = () => {
-    if (isActualMeeting) return 'meeting';
-    if (isPlannedMeeting) return 'planned_meeting';
-    return 'call';
-  };
-
-  const addComment = async () => {
-    const text = commentText.trim();
-    if (!text) return;
-    const type = resolveActivityType();
-    await supabase.from('activities').insert({
-      client_id: client.id,
-      owner_id: userId,
-      type,
-      date: todayStr(),
-      notes: text,
-    });
+    setSaving(false);
     setCommentText('');
-    setIsPlannedMeeting(false);
-    setIsActualMeeting(false);
+    loadActivities();
     onSaved();
-    onClose();
   };
+
+  const isDirty = callResult !== (client.call_result || '') || nextFollowUp !== (client.next_follow_up || '') || commentText.trim().length > 0;
 
   const st = stageOf(client.stage);
 
@@ -462,21 +412,9 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
     </div>
   );
 
-  const maxFollowUpDate = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 10);
-    return d.toISOString().slice(0, 10);
-  })();
-
-  // Label + color for meeting type indicator shown on comment button
-  const meetingLabel = isActualMeeting ? 'Actual Meeting' : isPlannedMeeting ? 'Planned Meeting' : null;
-  const meetingColor = isActualMeeting ? '#7FA887' : '#D4A24E';
-
   return (
     <Modal title={client.name} onClose={onClose}>
       <div className="space-y-4">
-
-        {/* Pills */}
         <div className="flex flex-wrap gap-2">
           <Pill color={st.color}>{st.label}</Pill>
           {client.project && <Pill color={C.gold}>{client.project}</Pill>}
@@ -485,7 +423,6 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
           {previousOwners.length > 0 && <Pill color="#9B7EBD">Rotated ({previousOwners.length})</Pill>}
         </div>
 
-        {/* Phones */}
         {client.phone && (
           <div className="flex items-center gap-2">
             <a href={`tel:${client.phone}`} className="flex items-center gap-2 text-sm flex-1" style={{ color: C.text }}>
@@ -507,7 +444,6 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
           </div>
         )}
 
-        {/* Read-only details */}
         <div className="grid grid-cols-2 gap-3 rounded-lg p-3" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
           <RO label="Developer" value={client.developer} />
           <RO label="Location" value={client.location} />
@@ -516,41 +452,20 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
           {client.budget ? <RO label="Budget" value={`${fmtMoney(client.budget)} EGP`} /> : null}
         </div>
 
-        {/* Action */}
-        <Field label="Action">
-          <select value={callResult} onChange={(e) => saveCallResult(e.target.value)} className={inputClass} style={inputStyle}>
-            <option value="">—</option>
-            {ACTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
-          </select>
-        </Field>
+        {/* ---- The save block ---- */}
+        <div ref={activityRef} className="rounded-lg p-3 space-y-3" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
+          <Field label="Action">
+            <select value={callResult} onChange={(e) => setCallResult(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }}>
+              <option value="">—</option>
+              {ACTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </Field>
 
-        {noAnswerCount > 0 && (
-          <p className="text-xs" style={{ color: noAnswerCount >= 3 ? '#C9714F' : C.muted }}>
-            No-answer streak: {noAnswerCount}/3 — after 3 in a row this lead auto-rotates to another sales rep.
-          </p>
-        )}
+          <Field label="Next Follow-up Date">
+            <input type="date" value={nextFollowUp} onChange={(e) => setNextFollowUp(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }} />
+          </Field>
 
-        {/* Next follow-up */}
-        <Field label="Next Follow-up Date">
-          <input
-            type="date"
-            value={nextFollowUp}
-            min={todayStr()}
-            max={maxFollowUpDate}
-            onChange={(e) => {
-              const val = e.target.value;
-              setNextFollowUp(val);
-              update({ next_follow_up: val || null });
-            }}
-            className={inputClass}
-            style={inputStyle}
-          />
-        </Field>
-
-        {/* Comments */}
-        <div ref={activityRef}>
-          <h3 className="font-display font-bold text-sm mb-2">Comments</h3>
-          <div className="rounded-lg p-3 mb-3 space-y-3" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
+          <Field label="Comment">
             <textarea
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
@@ -559,103 +474,37 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
               style={{ ...inputStyle, backgroundColor: C.surface }}
               rows={2}
             />
+          </Field>
 
-            {/* ── Meeting checkboxes ── */}
-            <div className="flex flex-col gap-2">
-              <label
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2 cursor-pointer select-none text-sm"
-                style={{
-                  backgroundColor: isPlannedMeeting ? '#D4A24E18' : C.surface,
-                  border: `1px solid ${isPlannedMeeting ? '#D4A24E' : C.border}`,
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={isPlannedMeeting}
-                  onChange={(e) => {
-                    setIsPlannedMeeting(e.target.checked);
-                    if (e.target.checked) setIsActualMeeting(false);
-                  }}
-                  className="w-4 h-4 shrink-0"
-                />
-                <CalendarClock size={14} style={{ color: '#D4A24E', flexShrink: 0 }} />
-                <span style={{ color: isPlannedMeeting ? '#D4A24E' : C.muted }}>
-                  Planned Meeting — scheduled with client
-                </span>
-              </label>
-
-              <label
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2 cursor-pointer select-none text-sm"
-                style={{
-                  backgroundColor: isActualMeeting ? '#7FA88718' : C.surface,
-                  border: `1px solid ${isActualMeeting ? '#7FA887' : C.border}`,
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={isActualMeeting}
-                  onChange={(e) => {
-                    setIsActualMeeting(e.target.checked);
-                    if (e.target.checked) setIsPlannedMeeting(false);
-                  }}
-                  className="w-4 h-4 shrink-0"
-                />
-                <CalendarCheck size={14} style={{ color: '#7FA887', flexShrink: 0 }} />
-                <span style={{ color: isActualMeeting ? '#7FA887' : C.muted }}>
-                  Actual Meeting — meeting happened today
-                </span>
-              </label>
-            </div>
-
-            {/* Add Comment button */}
-            <button
-              onClick={addComment}
-              disabled={!commentText.trim()}
-              className="w-full py-2 rounded-lg text-sm font-bold disabled:opacity-40 flex items-center justify-center gap-2"
-              style={{ backgroundColor: meetingLabel ? meetingColor : C.gold, color: '#14181F' }}
-            >
-              {meetingLabel
-                ? <><CalendarCheck size={14} /> Save as {meetingLabel}</>
-                : '+ Add Comment'
-              }
-            </button>
-          </div>
-
-          {/* Activity list */}
-          {activities.length === 0 ? (
-            <p className="text-sm text-center py-3" style={{ color: C.muted }}>No comments yet</p>
-          ) : (
-            <div className="space-y-1.5">
-              {activities.map((a) => {
-                const isSystem  = a.type === 'system';
-                const isMeeting = a.type === 'meeting';
-                const isPlanned = a.type === 'planned_meeting';
-                const rowBg     = isSystem ? 'transparent' : C.bg;
-                const labelColor = isMeeting ? '#7FA887' : isPlanned ? '#D4A24E' : isSystem ? C.muted : C.text;
-                return (
-                  <div key={a.id} className="flex items-start gap-2 p-2 rounded-lg" style={{ backgroundColor: rowBg }}>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-0.5">
-                        {(isMeeting || isPlanned) && (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
-                            style={{ backgroundColor: `${labelColor}22`, color: labelColor }}>
-                            {isMeeting ? '✓ Actual Meeting' : '⏰ Planned Meeting'}
-                          </span>
-                        )}
-                        <span className="text-[11px] shrink-0 ml-auto" style={{ color: C.muted }}>
-                          {fmtDate(a.date)}{a.created_at ? ` · ${fmtTime(a.created_at)}` : ''}
-                        </span>
-                      </div>
-                      <span className="text-xs" style={{ color: isSystem ? C.muted : C.text, fontStyle: isSystem ? 'italic' : 'normal' }}>
-                        {a.notes}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <button
+            onClick={handleSave}
+            disabled={!isDirty || saving}
+            className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-40 transition-colors"
+            style={{ backgroundColor: isDirty ? C.gold : C.surface, color: isDirty ? '#14181F' : C.muted, border: isDirty ? 'none' : `1px solid ${C.border}` }}
+          >
+            {saving ? 'Saving...' : '+ Add Comment'}
+          </button>
         </div>
+
+        {noAnswerCount > 0 && (
+          <p className="text-xs" style={{ color: noAnswerCount >= 3 ? '#C9714F' : C.muted }}>
+            No-answer streak: {noAnswerCount}/3
+          </p>
+        )}
+
+        {/* History */}
+        {activities.length > 0 && (
+          <div className="space-y-1.5">
+            {activities.map((a) => (
+              <div key={a.id} className="flex items-start justify-between gap-2 p-2 rounded-lg" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
+                <span className="text-xs" style={{ color: C.text }}>{a.notes}</span>
+                <span className="text-[11px] shrink-0 ml-2" style={{ color: C.muted }}>
+                  {fmtDate(a.date)}{a.created_at ? ` · ${fmtTime(a.created_at)}` : ''}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </Modal>
   );

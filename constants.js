@@ -63,7 +63,15 @@ export const titleLabel = (t) => TITLES.find((x) => x.id === t)?.label || t;
 export const monthKey = (d = new Date()) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 
-export const todayStr = () => new Date().toISOString().slice(0, 10);
+export const todayStr = () => {
+  const d = new Date();
+  // Use Cairo timezone (Africa/Cairo = UTC+2 or UTC+3 in summer)
+  const cairo = new Date(d.toLocaleString('en-US', { timeZone: 'Africa/Cairo' }));
+  const y = cairo.getFullYear();
+  const m = String(cairo.getMonth() + 1).padStart(2, '0');
+  const day = String(cairo.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
 
 export const fmtMoney = (n) => (n ? Number(n).toLocaleString('en-US') : '');
 
