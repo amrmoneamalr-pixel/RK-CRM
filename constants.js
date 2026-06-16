@@ -45,7 +45,7 @@ export const ACTIONS = ['Contacted', 'No Answer', 'Switched Off', 'Send WhatsApp
 
 export const DEVELOPERS = ['Mountain View', 'Tatweer Misr', 'City Edge', 'SODIC', 'Palm Hills', 'Emaar Misr', 'Madinet Nasr Housing', 'Modon Developments', 'Hassan Allam', 'Ora Developers'];
 
-export const LOCATIONS = ['New Cairo', 'New Administrative Capital', 'Mostakbal City', 'Sheikh Zayed', '6th of October', 'North Coast'];
+export const LOCATIONS = ['New Cairo', 'New Administrative Capital', 'Mostakbal City', 'Sheikh Zayed', 'New Zayed', '6th of October', '6th Settlement', 'North Coast', 'Ain Sokhna'];
 
 export const CALL_RESULTS = ['No Answer', 'No Answer - Multiple Times', 'Interested - Thinking', 'Call Again', 'Not Qualified', 'Not Interested', 'Very Interested', 'Wrong Number'];
 
@@ -113,6 +113,25 @@ export const waLink = (phone) => {
 };
 
 export const COLD_RESULTS = ['No Answer', 'No Answer - Multiple Times', 'Call Again'];
+
+// Stage/category column: what kind of lead is this?
+export const leadCategory = (c) => {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  if (c.stage === 'new' && !c.ever_contacted && c.created_at >= sevenDaysAgo) return { label: 'New Fresh Lead',  color: '#D6453E' };
+  if (c.stage === 'new' && !c.ever_contacted && c.created_at <  sevenDaysAgo) return { label: 'Old Fresh Lead',  color: '#C9714F' };
+  if (COLD_RESULTS.includes(c.call_result))                                   return { label: 'Cold Calls',      color: '#6E8CAE' };
+  if (c.rotation_cycle > 0 || (c.previous_owners && c.previous_owners.length > 0)) return { label: 'Old Campaign', color: '#9B7EBD' };
+  return { label: 'Active', color: '#7FA887' };
+};
+
+// Status column: current touchpoint status
+export const clientStatus = (c) => {
+  if (c.stage === 'won')                           return { label: 'Deal',          color: '#7FA887' };
+  if (c.call_result === 'Not Interested')          return { label: 'Not Interested', color: '#C9714F' };
+  if (c.previous_owners && c.previous_owners.length > 0 && c.stage !== 'won') return { label: 'Re-rotation', color: '#D4A24E' };
+  if (c.ever_contacted)                            return { label: 'Contacted',     color: '#FFFFFF' };
+  return { label: 'New', color: '#D6453E' };
+};
 
 export const LEAD_CATEGORY_LABELS = {
   fresh: 'Fresh Leads',
