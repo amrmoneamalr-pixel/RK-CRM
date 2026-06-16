@@ -317,6 +317,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
   const [activities, setActivities] = useState([]);
   const [nextFollowUp, setNextFollowUp] = useState(client.next_follow_up || '');
   const [callResult, setCallResult] = useState(client.call_result || '');
+  const [savedCallResult, setSavedCallResult] = useState(client.call_result || '');
   const [noAnswerCount, setNoAnswerCount] = useState(client.no_answer_count || 0);
   const [previousOwners, setPreviousOwners] = useState(client.previous_owners || []);
   const [rotated, setRotated] = useState(false);
@@ -325,6 +326,12 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
   const [actualMeeting, setActualMeeting] = useState(false);
   const [saving, setSaving] = useState(false);
   const activityRef = useRef(null);
+
+  const maxDate = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 10);
+    return d.toISOString().slice(0, 10);
+  })();
 
   useEffect(() => { loadActivities(); }, []);
 
@@ -339,38 +346,45 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
     setActivities((data || []).filter((a) => a.type !== 'system'));
   };
 
-  // Single save: persists action + follow-up date + comment together
+  const meetingNeedsComment = (plannedMeeting || actualMeeting) && !commentText.trim();
+  const isDirty = (
+    callResult !== savedCallResult ||
+    nextFollowUp !== (client.next_follow_up || '') ||
+    commentText.trim().length > 0 ||
+    plannedMeeting ||
+    actualMeeting
+  ) && !meetingNeedsComment;
+
   const handleSave = async () => {
-    if (!callResult && !nextFollowUp && !commentText.trim()) return;
+    if (!isDirty || saving) return;
     setSaving(true);
 
-    // Update client fields that changed
     const patch = {};
-    if (callResult !== (client.call_result || '')) patch.call_result = callResult || null;
+    if (callResult !== savedCallResult) patch.call_result = callResult || null;
     if (nextFollowUp !== (client.next_follow_up || '')) patch.next_follow_up = nextFollowUp || null;
     if (Object.keys(patch).length > 0) {
       await supabase.from('clients').update(patch).eq('id', client.id);
     }
 
-    // Log one activity entry combining action + comment
-    const parts = [];
-    if (callResult) parts.push(`Action: ${callResult}`);
-    if (commentText.trim()) parts.push(commentText.trim());
-    if (plannedMeeting) parts.push('📅 Planned Meeting – scheduled with client');
-    if (actualMeeting) parts.push('✅ Actual Meeting – meeting happened today');
-    const logText = parts.join(' — ');
+    const hasMeeting = plannedMeeting || actualMeeting;
+    const activityType = hasMeeting ? 'meeting' : 'call';
+    const lines = [];
+    if (callResult) lines.push('Action: ' + callResult);
+    if (commentText.trim()) lines.push(commentText.trim());
+    if (plannedMeeting) lines.push('📅 Planned Meeting – scheduled with client');
+    if (actualMeeting) lines.push('✅ Actual Meeting – meeting happened today');
+    const logText = lines.join('\n');
 
     if (logText) {
       await supabase.from('activities').insert({
         client_id: client.id,
         owner_id: userId,
-        type: 'call',
+        type: activityType,
         date: todayStr(),
         notes: logText,
       });
     }
 
-    // Check if lead was auto-rotated away (3x No Answer)
     if (patch.call_result === 'No Answer') {
       const { data } = await supabase.from('clients').select('owner_id, no_answer_count, previous_owners').eq('id', client.id).maybeSingle();
       if (!data || data.owner_id !== client.owner_id) {
@@ -383,6 +397,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
       setPreviousOwners(data.previous_owners || []);
     }
 
+    setSavedCallResult(callResult);
     setSaving(false);
     setCommentText('');
     setPlannedMeeting(false);
@@ -390,8 +405,6 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
     loadActivities();
     onSaved();
   };
-
-  const isDirty = callResult !== (client.call_result || '') || nextFollowUp !== (client.next_follow_up || '') || commentText.trim().length > 0 || plannedMeeting || actualMeeting;
 
   const st = stageOf(client.stage);
 
@@ -485,10 +498,13 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
               <input type="checkbox" checked={actualMeeting} onChange={(e) => setActualMeeting(e.target.checked)} className="w-4 h-4" />
               <span style={{ color: C.muted }}>✅ Actual Meeting – meeting happened today</span>
             </label>
+            {meetingNeedsComment && (
+              <p className="text-xs" style={{ color: '#C9714F' }}>لازم تكتب comment عشان تسجل المeeting</p>
+            )}
           </div>
 
           <Field label="Next Follow-up Date">
-            <input type="date" value={nextFollowUp} onChange={(e) => setNextFollowUp(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }} />
+            <input type="date" value={nextFollowUp} min={todayStr()} max={maxDate} onChange={(e) => setNextFollowUp(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }} />
           </Field>
 
           <button
@@ -512,7 +528,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
           <div className="space-y-1.5">
             {activities.map((a) => (
               <div key={a.id} className="flex items-start justify-between gap-2 p-2 rounded-lg" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
-                <span className="text-xs" style={{ color: C.text }}>{a.notes}</span>
+                <span className="text-xs whitespace-pre-wrap" style={{ color: C.text }}>{a.notes}</span>
                 <span className="text-[11px] shrink-0 ml-2" style={{ color: C.muted }}>
                   {fmtDate(a.date)}{a.created_at ? ` · ${fmtTime(a.created_at)}` : ''}
                 </span>
