@@ -1,6 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import { C, STAGES, SOURCES, LEAD_ORIGINS, TOP_MANAGEMENT_NAMES, ACTIONS, DEVELOPERS, LOCATIONS, fmtMoney, fmtDate, fmtTime, todayStr, stageOf, waLink } from './constants';
+
+const extractComment = (notes) => {
+  if (!notes) return '';
+  // Remove leading 'Action: X\n' line if present, return the rest
+  const lines = notes.split('\n').filter(l => !l.startsWith('Action: ') && !l.startsWith('\u{1F4C5}') && !l.startsWith('\u2705'));
+  return lines.join('\n').trim();
+};
 import { WhatsAppIcon, SourceTag } from './BrandIcons';
 import { X, Phone, Trash2, AlertCircle } from 'lucide-react';
 
@@ -197,6 +204,7 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
     owner_id: client.owner_id,
     lead_origin: client.lead_origin || '',
     origin_name: client.origin_name || '',
+    stage_category: client.stage_category || '',
     potential: client.potential || false,
   });
   const [saving, setSaving] = useState(false);
@@ -216,6 +224,7 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
       location: form.location || null,
       lead_origin: form.lead_origin || null,
       origin_name: form.lead_origin === 'Marketing' || form.lead_origin === 'Top Management' ? (form.origin_name || null) : null,
+      stage_category: form.stage_category || null,
       potential: form.potential,
       owner_id: form.owner_id,
     };
@@ -261,6 +270,15 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
           <select value={form.source} onChange={set('source')} className={inputClass} style={inputStyle}>
             <option value="">—</option>
             {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </Field>
+        <Field label="Stage Category">
+          <select value={form.stage_category || ''} onChange={set('stage_category')} className={inputClass} style={inputStyle}>
+            <option value="">— Select category —</option>
+            <option value="New Fresh Lead">New Fresh Lead</option>
+            <option value="Old Fresh Lead">Old Fresh Lead</option>
+            <option value="Cold Calls">Cold Calls</option>
+            <option value="Old Campaign">Old Campaign</option>
           </select>
         </Field>
         <OriginFields form={form} setForm={setForm} marketerNames={marketerNames} />
@@ -399,6 +417,8 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
 
     setSavedCallResult(callResult);
     setSaving(false);
+    setCallResult('');
+    setSavedCallResult('');
     setCommentText('');
     setPlannedMeeting(false);
     setActualMeeting(false);
