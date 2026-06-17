@@ -179,7 +179,7 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
     <Modal title="New Lead" onClose={onClose}>
       <div className="space-y-3">
         <Field label="Full Name *">
-          <input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} placeholder="مطلوب" />
+          <input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} placeholder="Required" />
         </Field>
         <Field label="Mobile Number *">
           <input value={form.phone} onChange={set('phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
@@ -189,13 +189,13 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
         </Field>
         <Field label="Developer *">
           <select value={form.developer} onChange={(e) => setForm((f) => ({ ...f, developer: e.target.value, project: '' }))} className={inputClass} style={inputStyle}>
-            <option value="">— اختر Developer —</option>
+            <option value="">— Select Developer —</option>
             {developers.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
           </select>
         </Field>
         <Field label="Project Name *">
           <select value={form.project} onChange={set('project')} className={inputClass} style={inputStyle} disabled={!form.developer}>
-            <option value="">— اختر Project —</option>
+            <option value="">— Select Project —</option>
             {projectOptions.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
           </select>
         </Field>
@@ -207,7 +207,7 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
         </Field>
         <Field label="Stage Category *">
           <select value={form.stage_category || ''} onChange={set('stage_category')} className={inputClass} style={inputStyle}>
-            <option value="">— اختر —</option>
+            <option value="">— Select —</option>
             <option value="New Fresh Lead">New Fresh Lead</option>
             <option value="Old Fresh Lead">Old Fresh Lead</option>
             <option value="Cold Calls">Cold Calls</option>
@@ -352,7 +352,7 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
     <Modal title="Edit Lead" onClose={onClose}>
       <div className="space-y-3">
         <Field label="Full Name *">
-          <input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} placeholder="مطلوب" />
+          <input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} placeholder="Required" />
         </Field>
         <Field label="Mobile Number *">
           <input value={form.phone} onChange={set('phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
@@ -362,13 +362,13 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
         </Field>
         <Field label="Developer *">
           <select value={form.developer} onChange={(e) => { set('developer')(e); setForm((f) => ({ ...f, developer: e.target.value, project: '' })); }} className={inputClass} style={inputStyle}>
-            <option value="">— اختر Developer —</option>
+            <option value="">— Select Developer —</option>
             {developers.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
           </select>
         </Field>
         <Field label="Project Name *">
           <select value={form.project} onChange={set('project')} className={inputClass} style={inputStyle} disabled={!form.developer}>
-            <option value="">— اختر Project —</option>
+            <option value="">— Select Project —</option>
             {projectOptions.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
           </select>
         </Field>
@@ -380,7 +380,7 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
         </Field>
         <Field label="Stage Category *">
           <select value={form.stage_category || ''} onChange={set('stage_category')} className={inputClass} style={inputStyle}>
-            <option value="">— اختر —</option>
+            <option value="">— Select —</option>
             <option value="New Fresh Lead">New Fresh Lead</option>
             <option value="Old Fresh Lead">Old Fresh Lead</option>
             <option value="Cold Calls">Cold Calls</option>
@@ -627,7 +627,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
               className={inputClass}
               style={{ ...inputStyle, backgroundColor: C.surface }}
             >
-              <option value="">— اختر —</option>
+              <option value="">— Select —</option>
               {ACTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </Field>
@@ -651,7 +651,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
               <span style={{ color: C.muted }}>✅ Actual Meeting – meeting happened today</span>
             </label>
             {meetingNeedsComment && (
-              <p className="text-xs" style={{ color: '#C9714F' }}>لازم تكتب comment عشان تسجل المeeting</p>
+              <p className="text-xs" style={{ color: '#C9714F' }}>A comment is required to log a meeting</p>
             )}
           </div>
 

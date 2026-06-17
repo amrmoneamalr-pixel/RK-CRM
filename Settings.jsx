@@ -20,10 +20,10 @@ function RepSelector({ label, desc, allReps, selected, onChange }) {
       <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
         <label className="flex items-center gap-2 text-xs cursor-pointer pb-2" style={{ borderBottom: `1px solid ${C.border}` }}>
           <input type="checkbox" checked={allSelected} onChange={toggleAll} className="w-3.5 h-3.5" />
-          <span style={{ color: C.muted }}>الكل</span>
+          <span style={{ color: C.muted }}>All</span>
         </label>
         {allReps.length === 0 ? (
-          <p className="text-xs" style={{ color: C.muted }}>مفيش sales reps.</p>
+          <p className="text-xs" style={{ color: C.muted }}>No sales reps found.</p>
         ) : (
           allReps.map((rep) => {
             const on = selected.includes(rep.id);
@@ -37,7 +37,7 @@ function RepSelector({ label, desc, allReps, selected, onChange }) {
         )}
       </div>
       <p className="text-xs" style={{ color: C.muted }}>
-        {selected.length === 0 ? 'كل السيلز داخلين' : `${selected.length} من ${allReps.length} مختارين`}
+        {selected.length === 0 ? 'All reps included' : `${selected.length} of ${allReps.length} selected`}
       </p>
     </div>
   );
@@ -173,8 +173,8 @@ export default function Settings() {
         </div>
 
         <RepSelector
-          label="السيلز في الـ Daily Rotation"
-          desc="اتركهم كلهم فاضيين = كل السيلز يدخلوا. اختار ناس معينة = بس دول."
+          label="Sales Reps — Daily Rotation"
+          desc="Leave empty = all reps included. Select specific reps to limit rotation to them only."
           allReps={salesReps}
           selected={dailyReps}
           onChange={setDailyReps}
@@ -221,8 +221,8 @@ export default function Settings() {
           <span>Move client after 3 "No Answer" results</span>
         </label>
         <RepSelector
-          label="السيلز في الـ No Answer Rotation"
-          desc="اتركهم كلهم فاضيين = كل السيلز. اختار ناس معينة = بس دول يستقبلوا الـ leads دي."
+          label="Sales Reps — No Answer Rotation"
+          desc="Leave empty = all reps. Select specific reps to receive no-answer leads."
           allReps={salesReps}
           selected={noAnswerReps}
           onChange={setNoAnswerReps}
