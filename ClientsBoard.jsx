@@ -112,7 +112,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     setLoading(true);
     const from = (page - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
-    const { data: c, count } = await buildQuery().order('created_at', { ascending: false }).range(from, to);
+    const { data: c, count } = await buildQuery().order('last_contacted_at', { ascending: true, nullsFirst: true }).range(from, to);
     setClients(c || []);
     setTotalCount(count || 0);
 
@@ -175,7 +175,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     let allRows = [];
     let from = 0;
     while (true) {
-      const { data, error } = await buildQuery().order('created_at', { ascending: false }).range(from, from + EXPORT_BATCH - 1);
+      const { data, error } = await buildQuery().order('last_contacted_at', { ascending: true, nullsFirst: true }).range(from, from + EXPORT_BATCH - 1);
       if (error || !data || data.length === 0) break;
       allRows = allRows.concat(data);
       if (data.length < EXPORT_BATCH) break;

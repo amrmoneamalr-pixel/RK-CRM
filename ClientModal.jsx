@@ -505,6 +505,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
     const patch = {};
     if (callResult !== savedCallResult) patch.call_result = callResult || null;
     if (nextFollowUp !== (client.next_follow_up || '')) patch.next_follow_up = nextFollowUp || null;
+    patch.last_contacted_at = new Date().toISOString(); // push to bottom of list
     if (Object.keys(patch).length > 0) {
       await supabase.from('clients').update(patch).eq('id', client.id);
     }
@@ -549,7 +550,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
     setPlannedMeeting(false);
     setActualMeeting(false);
     onSaved();
-    if (onNext) onNext(); else onClose();
+    onClose();
   };
 
   const st = stageOf(client.stage);
