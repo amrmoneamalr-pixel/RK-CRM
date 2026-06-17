@@ -193,38 +193,59 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
 // ---- Admin-only full EDIT form (the pencil button) ----
 function EditForm({ userId, client, profilesList, onClose, onSaved }) {
   const marketerNames = useMarketerNames(profilesList);
+  const [developers, setDevelopers] = useState([]);
+  const [projectOptions, setProjectOptions] = useState([]);
   const [form, setForm] = useState({
     name: client.name || '',
-    project: client.project || '',
-    developer: client.developer || '',
     phone: client.phone || '',
-    secondary_phone: client.secondary_phone || '',
+    developer: client.developer || '',
+    project: client.project || '',
     source: client.source || '',
-    location: client.location || '',
-    owner_id: client.owner_id,
+    stage_category: client.stage_category || '',
     lead_origin: client.lead_origin || '',
     origin_name: client.origin_name || '',
-    stage_category: client.stage_category || '',
+    location: client.location || '',
+    owner_id: client.owner_id,
     potential: client.potential || false,
+    secondary_phone: client.secondary_phone || '',
   });
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  // Load developers list
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from('developers').select('id, name').order('name');
+      setDevelopers(data || []);
+    })();
+  }, []);
+
+  // Load projects when developer changes
+  useEffect(() => {
+    if (!form.developer) { setProjectOptions([]); return; }
+    (async () => {
+      const dev = developers.find((d) => d.name === form.developer);
+      if (!dev) { setProjectOptions([]); return; }
+      const { data } = await supabase.from('projects').select('id, name').eq('developer_id', dev.id).order('name');
+      setProjectOptions(data || []);
+    })();
+  }, [form.developer, developers]);
 
   const save = async () => {
     setSaving(true);
     const ownerChanged = form.owner_id !== client.owner_id;
     const patch = {
       name: form.name,
-      project: form.project || null,
-      developer: form.developer || null,
       phone: form.phone || null,
       secondary_phone: form.secondary_phone || null,
+      developer: form.developer || null,
+      project: form.project || null,
       source: form.source || null,
-      location: form.location || null,
+      stage_category: form.stage_category || null,
       lead_origin: form.lead_origin || null,
       origin_name: form.lead_origin === 'Marketing' || form.lead_origin === 'Top Management' ? (form.origin_name || null) : null,
-      stage_category: form.stage_category || null,
+      location: form.location || null,
       potential: form.potential,
       owner_id: form.owner_id,
     };
@@ -245,54 +266,80 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
     onClose();
   };
 
+  const required = form.name.trim() && form.phone.trim() && form.developer && form.project && form.source;
+
   return (
     <Modal title="Edit Lead" onClose={onClose}>
       <div className="space-y-3">
         <Field label="Full Name *">
-          <input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} />
+          <input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} placeholder="مطلوب" />
         </Field>
-        <Field label="Project Name">
-          <input value={form.project} onChange={set('project')} className={inputClass} style={inputStyle} />
-        </Field>
-        <Field label="Developer">
-          <input value={form.developer} onChange={set('developer')} className={inputClass} style={inputStyle} list="developers-list-e" />
-          <datalist id="developers-list-e">
-            {DEVELOPERS.map((d) => <option key={d} value={d} />)}
-          </datalist>
-        </Field>
-        <Field label="Mobile Number">
+        <Field label="Mobile Number *">
           <input value={form.phone} onChange={set('phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
         </Field>
         <Field label="Secondary Number">
           <input value={form.secondary_phone} onChange={set('secondary_phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
         </Field>
-        <Field label="Lead Source">
+        <Field label="Developer *">
+          <select value={form.developer} onChange={(e) => { set('developer')(e); setForm((f) => ({ ...f, developer: e.target.value, project: '' })); }} className={inputClass} style={inputStyle}>
+            <option value="">— اختر Developer —</option>
+            {developers.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
+          </select>
+        </Field>
+        <Field label="Project Name *">
+          <select value={form.project} onChange={set('project')} className={inputClass} style={inputStyle} disabled={!form.developer}>
+            <option value="">— اختر Project —</option>
+            {projectOptions.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
+          </select>
+        </Field>
+        <Field label="Lead Source *">
           <select value={form.source} onChange={set('source')} className={inputClass} style={inputStyle}>
             <option value="">—</option>
             {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </Field>
-        <Field label="Stage Category">
+        <Field label="Stage Category *">
           <select value={form.stage_category || ''} onChange={set('stage_category')} className={inputClass} style={inputStyle}>
-            <option value="">— Select category —</option>
+            <option value="">— اختر —</option>
             <option value="New Fresh Lead">New Fresh Lead</option>
             <option value="Old Fresh Lead">Old Fresh Lead</option>
             <option value="Cold Calls">Cold Calls</option>
             <option value="Old Campaign">Old Campaign</option>
           </select>
         </Field>
-        <OriginFields form={form} setForm={setForm} marketerNames={marketerNames} />
+        <Field label="Lead Origin">
+          <select value={form.lead_origin || ''} onChange={(e) => { set('lead_origin')(e); setForm((f) => ({ ...f, lead_origin: e.target.value, origin_name: '' })); }} className={inputClass} style={inputStyle}>
+            <option value="">—</option>
+            {LEAD_ORIGINS.map((o) => <option key={o} value={o}>{o}</option>)}
+          </select>
+        </Field>
+        {form.lead_origin === 'Marketing' && (
+          <Field label="Marketer Name">
+            <select value={form.origin_name || ''} onChange={set('origin_name')} className={inputClass} style={inputStyle}>
+              <option value="">—</option>
+              {marketerNames.map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </Field>
+        )}
+        {form.lead_origin === 'Top Management' && (
+          <Field label="Top Management Member">
+            <select value={form.origin_name || ''} onChange={set('origin_name')} className={inputClass} style={inputStyle}>
+              <option value="">—</option>
+              {TOP_MANAGEMENT_NAMES.map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </Field>
+        )}
         <Field label="Location">
-          <input value={form.location} onChange={set('location')} className={inputClass} style={inputStyle} list="locations-list-e" />
-          <datalist id="locations-list-e">
-            {LOCATIONS.map((l) => <option key={l} value={l} />)}
-          </datalist>
+          <select value={form.location || ''} onChange={set('location')} className={inputClass} style={inputStyle}>
+            <option value="">—</option>
+            {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
+          </select>
         </Field>
         {profilesList && profilesList.length > 0 && (
-          <Field label="Transfer to (Owner)">
+          <Field label="Assigned To">
             <select value={form.owner_id} onChange={set('owner_id')} className={inputClass} style={inputStyle}>
-              {profilesList.map((p) => (
-                <option key={p.id} value={p.id}>{p.is_pool ? 'Unassigned Pool' : (p.full_name || p.username || p.id)}</option>
+              {profilesList.filter((p) => !p.is_pool).map((p) => (
+                <option key={p.id} value={p.id}>{p.full_name || p.username}</option>
               ))}
             </select>
           </Field>
@@ -304,7 +351,7 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
       </div>
 
       <button
-        disabled={!form.name.trim() || saving}
+        disabled={!required || saving}
         onClick={save}
         className="w-full mt-5 py-2.5 rounded-lg font-bold text-sm disabled:opacity-40"
         style={{ backgroundColor: C.gold, color: '#14181F' }}
@@ -329,6 +376,7 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
     </Modal>
   );
 }
+
 
 // ---- Read-only detail + Action/Comment (everyone, the comment button) ----
 function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, onClose, onSaved }) {
