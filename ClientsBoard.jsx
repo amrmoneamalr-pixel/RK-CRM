@@ -524,7 +524,23 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
       {showAdd && <ClientModal mode="add" userId={userId} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setShowAdd(false)} onSaved={load} />}
       {selected && <ClientModal mode="detail" userId={userId} client={selected} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setSelected(null)} onSaved={load} />}
       {editTarget && <ClientModal mode="edit" userId={userId} client={editTarget} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setEditTarget(null)} onSaved={load} />}
-      {actionTarget && <ClientModal mode="detail" userId={userId} client={actionTarget} isAdmin={hasTeamAccess} profilesList={profilesList} autoFocusActivity={!isAdmin} onClose={() => setActionTarget(null)} onSaved={load} />}
+      {actionTarget && (() => {
+        const idx = clients.findIndex((c) => c.id === actionTarget.id);
+        const nextClient = clients[idx + 1] || null;
+        return (
+          <ClientModal
+            mode="detail"
+            userId={userId}
+            client={actionTarget}
+            isAdmin={hasTeamAccess}
+            profilesList={profilesList}
+            autoFocusActivity={!isAdmin}
+            onClose={() => setActionTarget(null)}
+            onSaved={load}
+            onNext={nextClient ? () => setActionTarget(nextClient) : null}
+          />
+        );
+      })()}
     </div>
   );
 }
