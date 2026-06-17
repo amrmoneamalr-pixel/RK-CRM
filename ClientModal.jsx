@@ -459,10 +459,12 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
 
 // ---- Read-only detail + Action/Comment (everyone, the comment button) ----
 function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, onClose, onSaved, onNext }) {
+  const isOwner = client.owner_id === userId;
+  const canComment = isOwner || isAdmin; // assigned rep or admin can add comments
   const [activities, setActivities] = useState([]);
-  const [nextFollowUp, setNextFollowUp] = useState(client.next_follow_up || '');
-  const [callResult, setCallResult] = useState(client.call_result || '');
-  const [savedCallResult, setSavedCallResult] = useState(client.call_result || '');
+  const [nextFollowUp, setNextFollowUp] = useState('');
+  const [callResult, setCallResult] = useState('');
+  const [savedCallResult, setSavedCallResult] = useState('');
   const [noAnswerCount, setNoAnswerCount] = useState(client.no_answer_count || 0);
   const [previousOwners, setPreviousOwners] = useState(client.previous_owners || []);
   const [rotated, setRotated] = useState(false);
@@ -617,7 +619,8 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
           {client.budget ? <RO label="Budget" value={`${fmtMoney(client.budget)} EGP`} /> : null}
         </div>
 
-        {/* ---- The save block ---- */}
+        {/* ---- The save block — only for the assigned rep ---- */}
+        {canComment ? (
         <div ref={activityRef} className="rounded-lg p-3 space-y-3" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
           <Field label="Action *">
             <select
@@ -672,6 +675,11 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
           <p className="text-xs" style={{ color: noAnswerCount >= 3 ? '#C9714F' : C.muted }}>
             No-answer streak: {noAnswerCount}/3
           </p>
+        )}
+        ) : (
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
+            <p className="text-xs" style={{ color: C.muted }}>This lead is assigned to another rep. You can view comments but cannot add new ones.</p>
+          </div>
         )}
 
         {/* History */}

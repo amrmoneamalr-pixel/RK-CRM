@@ -8,9 +8,7 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'clients', label: 'Clients', icon: Users },
-    { id: 'orgchart', label: 'Org Chart', icon: Network },
-    { id: 'followups', label: 'Follow-ups', icon: Clock },
-    { id: 'targets', label: 'Monthly Targets', icon: Target },
+    { id: 'orgchart', label: 'Company Structure', icon: Network },
   ];
   const isAdmin = profile.role === 'admin';
   const hasTeamAccess = isAdmin || ['sales_manager', 'team_leader', 'top_management'].includes(profile.title);

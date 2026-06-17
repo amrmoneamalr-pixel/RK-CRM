@@ -5,16 +5,19 @@ import { Plus, Pencil, Trash2, Check, X } from 'lucide-react';
 
 export default function OrgChart({ isAdmin }) {
   const [nodes, setNodes] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from('org_chart_nodes').select('*').order('tier').order('sort_order');
-    setNodes(data || []);
+    const [{ data: n }, { data: u }] = await Promise.all([
+      supabase.from('org_chart_nodes').select('*').order('tier').order('sort_order'),
+      supabase.from('profiles').select('id, full_name, username, title').eq('is_pool', false).order('full_name'),
+    ]);
+    setNodes(n || []);
+    setUsers(u || []);
     setLoading(false);
   };
 
@@ -47,7 +50,7 @@ export default function OrgChart({ isAdmin }) {
         <h2 className="font-display font-bold text-sm mb-3" style={{ color: C.gold }}>Top Management</h2>
         <div className="flex flex-wrap gap-3">
           {topManagement.map((n) => (
-            <NodeCard key={n.id} node={n} isAdmin={isAdmin} onUpdate={updateNode} onDelete={deleteNode} accent />
+            <NodeCard key={n.id} node={n} isAdmin={isAdmin} users={users} onUpdate={updateNode} onDelete={deleteNode} accent />
           ))}
           {isAdmin && <AddCard onAdd={() => addNode(null, 0)} label="Add person" />}
         </div>
@@ -55,7 +58,7 @@ export default function OrgChart({ isAdmin }) {
 
       <section className="grid sm:grid-cols-2 gap-6">
         {branches.map((branch) => (
-          <BranchColumn key={branch.id} node={branch} childrenOf={childrenOf} isAdmin={isAdmin} onUpdate={updateNode} onDelete={deleteNode} onAdd={addNode} />
+          <BranchColumn key={branch.id} node={branch} childrenOf={childrenOf} isAdmin={isAdmin} users={users} onUpdate={updateNode} onDelete={deleteNode} onAdd={addNode} />
         ))}
       </section>
 
@@ -72,20 +75,20 @@ export default function OrgChart({ isAdmin }) {
   );
 }
 
-function BranchColumn({ node, childrenOf, isAdmin, onUpdate, onDelete, onAdd }) {
+function BranchColumn({ node, childrenOf, isAdmin, users, onUpdate, onDelete, onAdd }) {
   const children = childrenOf(node.id);
   return (
     <div className="rounded-xl p-4" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
-      <NodeCard node={node} isAdmin={isAdmin} onUpdate={onUpdate} onDelete={onDelete} accent />
+      <NodeCard node={node} isAdmin={isAdmin} users={users} onUpdate={onUpdate} onDelete={onDelete} accent />
       <div className="mt-3 pl-4 space-y-3 border-l" style={{ borderColor: C.border }}>
         {children.map((child) => {
           const grandchildren = childrenOf(child.id);
           return (
             <div key={child.id}>
-              <NodeCard node={child} isAdmin={isAdmin} onUpdate={onUpdate} onDelete={onDelete} />
+              <NodeCard node={child} isAdmin={isAdmin} users={users} onUpdate={onUpdate} onDelete={onDelete} />
               <div className="mt-2 pl-4 space-y-2 border-l" style={{ borderColor: C.border }}>
                 {grandchildren.map((gc) => (
-                  <NodeCard key={gc.id} node={gc} isAdmin={isAdmin} onUpdate={onUpdate} onDelete={onDelete} small />
+                  <NodeCard key={gc.id} node={gc} isAdmin={isAdmin} users={users} onUpdate={onUpdate} onDelete={onDelete} small />
                 ))}
                 {isAdmin && <AddCard small onAdd={() => onAdd(child.id, 3)} label="Add" />}
               </div>
@@ -98,7 +101,7 @@ function BranchColumn({ node, childrenOf, isAdmin, onUpdate, onDelete, onAdd }) 
   );
 }
 
-function NodeCard({ node, isAdmin, onUpdate, onDelete, accent, small }) {
+function NodeCard({ node, isAdmin, users, onUpdate, onDelete, accent, small }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(node.name);
   const [title, setTitle] = useState(node.title || '');
@@ -107,16 +110,26 @@ function NodeCard({ node, isAdmin, onUpdate, onDelete, accent, small }) {
   const width = small ? '140px' : '160px';
   const inputStyle = { backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text };
 
+  const selectUser = (userName) => {
+    const u = (users || []).find((u) => (u.full_name || u.username) === userName);
+    setName(userName);
+    if (u) setTitle(u.title ? u.title.replace(/_/g, ' ').replace(/\w/g, (c) => c.toUpperCase()) : '');
+  };
+
   const save = async () => {
     await onUpdate(node.id, { name: name.trim() || 'New', title });
     setEditing(false);
   };
 
   if (editing) {
+    const userNames = (users || []).map((u) => u.full_name || u.username).filter(Boolean);
     return (
       <div className="rounded-lg p-2.5 space-y-1.5" style={{ backgroundColor: C.bg, border: `1px solid ${C.gold}`, minWidth: width }}>
-        <input value={name} onChange={(e) => setName(e.target.value)} className="w-full text-sm rounded px-2 py-1 outline-none" style={inputStyle} placeholder="Name" />
-        <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full text-xs rounded px-2 py-1 outline-none" style={{ ...inputStyle, color: C.muted }} placeholder="Title" />
+        <select value={name} onChange={(e) => selectUser(e.target.value)} className="w-full text-sm rounded px-2 py-1 outline-none" style={inputStyle}>
+          <option value="">— Select user —</option>
+          {userNames.map((n) => <option key={n} value={n}>{n}</option>)}
+        </select>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full text-xs rounded px-2 py-1 outline-none" style={{ ...inputStyle, color: C.muted }} placeholder="Title / Role" />
         <div className="flex gap-1">
           <button onClick={save} className="flex-1 flex items-center justify-center gap-1 py-1 rounded text-xs font-bold" style={{ backgroundColor: C.gold, color: '#14181F' }}>
             <Check size={12} /> Save
