@@ -425,10 +425,15 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                 {clients.map((c) => {
                   const cat = leadCategory(c);
                   const stat = clientStatus(c);
-                  const stageLabel = c.stage_category || cat.label;
-                  const stageColor = c.stage_category
-                    ? { 'New Fresh Lead': '#D6453E', 'Old Fresh Lead': '#C9714F', 'Cold Calls': '#6E8CAE', 'Old Campaign': '#9B7EBD' }[c.stage_category] || cat.color
-                    : cat.color;
+                  // Stage category: use manual value but auto-upgrade New Fresh → Old Fresh after 7 days
+                  let rawCat = c.stage_category || cat.label;
+                  if (rawCat === 'New Fresh Lead') {
+                    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+                    if (c.created_at < ninetyDaysAgo) rawCat = 'Old Fresh Lead';
+                  }
+                  const stageCatColors = { 'New Fresh Lead': '#D6453E', 'Old Fresh Lead': '#C9714F', 'Cold Calls': '#6E8CAE', 'Old Campaign': '#9B7EBD' };
+                  const stageLabel = rawCat;
+                  const stageColor = stageCatColors[rawCat] || cat.color;
                   const last = lastActivity[c.id];
                   const assignedFrom = c.previous_owners && c.previous_owners.length > 0
                     ? (owners[c.previous_owners[c.previous_owners.length - 1]] || '—')
