@@ -87,6 +87,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     if (colFilters.source)     q = q.ilike('source', `%${colFilters.source}%`);
     if (colFilters.stage_category) q = q.ilike('stage_category', `%${colFilters.stage_category}%`);
     if (colFilters.call_result) q = q.ilike('call_result', `%${colFilters.call_result}%`);
+    if (colFilters.lead_origin) q = q.ilike('lead_origin', `%${colFilters.lead_origin}%`);
     if (colFilters.created_from) q = q.gte('created_at', colFilters.created_from);
     if (colFilters.created_to)   q = q.lte('created_at', colFilters.created_to + 'T23:59:59');
     if (colFilters.followup_from) q = q.gte('next_follow_up', colFilters.followup_from);
@@ -442,46 +443,44 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                   <th className="py-2.5 px-3 font-medium">Potential</th>
                 </tr>
               </thead>
-              {/* Column filter row */}
-              <thead>
-                <tr style={{ backgroundColor: C.bg }}>
-                  <th className="py-1.5 px-2 w-8"></th>
-                  <th className="py-1.5 px-2 w-8"></th>
-                  <th className="py-1.5 px-2"><input value={pendingCols.name||''} onChange={setCol('name')} placeholder="Name..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></th>
-                  <th className="py-1.5 px-2"><input value={pendingCols.phone||''} onChange={setCol('phone')} placeholder="Phone..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></th>
-                  <th className="py-1.5 px-2"><input value={pendingCols.stage_category||''} onChange={setCol('stage_category')} placeholder="Stage..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></th>
-                  <th className="py-1.5 px-2"></th>
-                  {hasTeamAccess && <th className="py-1.5 px-2"></th>}
-                  {hasTeamAccess && <th className="py-1.5 px-2"></th>}
-                  <th className="py-1.5 px-2"><input value={pendingCols.source||''} onChange={setCol('source')} placeholder="Source..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></th>
-                  <th className="py-1.5 px-2">
-                    <div className="flex gap-1">
-                      <input type="date" value={pendingCols.created_from||''} onChange={setCol('created_from')} className="w-full rounded px-1 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} />
-                      <input type="date" value={pendingCols.created_to||''} onChange={setCol('created_to')} className="w-full rounded px-1 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} />
-                    </div>
-                  </th>
-                  <th className="py-1.5 px-2"><input value={pendingCols.developer||''} onChange={setCol('developer')} placeholder="Developer..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></th>
-                  <th className="py-1.5 px-2"><input value={pendingCols.project||''} onChange={setCol('project')} placeholder="Project..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></th>
-                  <th className="py-1.5 px-2"><input value={pendingCols.location||''} onChange={setCol('location')} placeholder="Location..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></th>
-                  <th className="py-1.5 px-2"><input value={pendingCols.call_result||''} onChange={setCol('call_result')} placeholder="Action..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></th>
-                  <th className="py-1.5 px-2"></th>
-                  <th className="py-1.5 px-2"></th>
-                  <th className="py-1.5 px-2">
-                    <div className="flex gap-1">
-                      <input type="date" value={pendingCols.followup_from||''} onChange={setCol('followup_from')} className="w-full rounded px-1 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} />
-                      <input type="date" value={pendingCols.followup_to||''} onChange={setCol('followup_to')} className="w-full rounded px-1 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} />
-                    </div>
-                  </th>
-                  <th className="py-1.5 px-2"></th>
-                  <th className="py-1.5 px-2 text-right">
-                    <div className="flex gap-1 justify-end">
-                      <button onClick={applyColFilters} className="px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: C.gold, color: '#14181F' }}>Search</button>
-                      {hasColFilters && <button onClick={clearColFilters} className="px-2 py-1 rounded text-xs" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.muted }}>Clear</button>}
-                    </div>
-                  </th>
-                </tr>
-              </thead>
               <tbody>
+                {/* Column filter row */}
+              <tr style={{ backgroundColor: C.bg }}>
+                <td className="py-1.5 px-2 w-8"></td>
+                <td className="py-1.5 px-2 w-8"></td>
+                <td className="py-1.5 px-2"><input value={pendingCols.name||''} onChange={setCol('name')} placeholder="Name..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
+                <td className="py-1.5 px-2"><input value={pendingCols.phone||''} onChange={setCol('phone')} placeholder="Phone..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
+                <td className="py-1.5 px-2"><input value={pendingCols.stage_category||''} onChange={setCol('stage_category')} placeholder="Stage..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
+                <td className="py-1.5 px-2"><input value={pendingCols.status||''} onChange={setCol('status')} placeholder="Status..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
+                {hasTeamAccess && <td className="py-1.5 px-2"><input value={pendingCols.assigned_to||''} onChange={setCol('assigned_to')} placeholder="Assigned to..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>}
+                {hasTeamAccess && <td className="py-1.5 px-2"><input value={pendingCols.lead_origin||''} onChange={setCol('lead_origin')} placeholder="Origin..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>}
+                <td className="py-1.5 px-2"><input value={pendingCols.source||''} onChange={setCol('source')} placeholder="Source..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
+                <td className="py-1.5 px-2">
+                  <div className="flex gap-1">
+                    <input type="date" value={pendingCols.created_from||''} onChange={setCol('created_from')} className="rounded px-1 py-1 text-xs outline-none w-28" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} />
+                    <input type="date" value={pendingCols.created_to||''} onChange={setCol('created_to')} className="rounded px-1 py-1 text-xs outline-none w-28" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} />
+                  </div>
+                </td>
+                <td className="py-1.5 px-2"><input value={pendingCols.developer||''} onChange={setCol('developer')} placeholder="Developer..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
+                <td className="py-1.5 px-2"><input value={pendingCols.project||''} onChange={setCol('project')} placeholder="Project..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
+                <td className="py-1.5 px-2"><input value={pendingCols.location||''} onChange={setCol('location')} placeholder="Location..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
+                <td className="py-1.5 px-2"><input value={pendingCols.call_result||''} onChange={setCol('call_result')} placeholder="Action..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
+                <td className="py-1.5 px-2"></td>
+                <td className="py-1.5 px-2"></td>
+                <td className="py-1.5 px-2">
+                  <div className="flex gap-1">
+                    <input type="date" value={pendingCols.followup_from||''} onChange={setCol('followup_from')} className="rounded px-1 py-1 text-xs outline-none w-28" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} />
+                    <input type="date" value={pendingCols.followup_to||''} onChange={setCol('followup_to')} className="rounded px-1 py-1 text-xs outline-none w-28" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} />
+                  </div>
+                </td>
+                <td className="py-1.5 px-2"></td>
+                <td className="py-1.5 px-2">
+                  <div className="flex gap-1">
+                    <button onClick={applyColFilters} className="px-2 py-1 rounded text-xs font-bold whitespace-nowrap" style={{ backgroundColor: C.gold, color: '#14181F' }}>Search</button>
+                    {hasColFilters && <button onClick={clearColFilters} className="px-2 py-1 rounded text-xs whitespace-nowrap" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.muted }}>Clear</button>}
+                  </div>
+                </td>
+              </tr>
                 {clients.map((c) => {
                   const cat = leadCategory(c);
                   const stat = clientStatus(c);
