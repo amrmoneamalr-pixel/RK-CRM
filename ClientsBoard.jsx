@@ -546,19 +546,19 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                   return (
                     <tr
                       key={c.id}
-                      onClick={() => setSelected(c)}
+                      onClick={() => { if (isAdmin || hasTeamAccess || c.owner_id === userId) setSelected(c); }}
                       className="cursor-pointer transition-colors"
                       style={{ borderTop: `1px solid ${C.border}` }}
                     >
                       <td className="py-2.5 px-3" onClick={(e) => e.stopPropagation()}>
                         <input type="checkbox" checked={selectedIds.has(c.id)} onChange={() => toggleSelect(c.id)} />
                       </td>
-                      <td className="py-2.5 px-3" onClick={(e) => { e.stopPropagation(); if (isAdmin) setEditTarget(c); else setActionTarget(c); }}>
+                      <td className="py-2.5 px-3" onClick={(e) => { e.stopPropagation(); if (isAdmin) setEditTarget(c); else if (c.owner_id === userId) setActionTarget(c); }}>
                         {isAdmin ? (
                           <Pencil size={14} style={{ color: C.muted }} />
-                        ) : (
+                        ) : c.owner_id === userId ? (
                           <MessageSquarePlus size={14} style={{ color: C.gold }} />
-                        )}
+                        ) : null}
                       </td>
                       <td className="py-2.5 px-3 font-medium whitespace-nowrap">{c.name}</td>
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.phone || '—'}</td>

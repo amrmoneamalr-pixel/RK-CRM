@@ -15,7 +15,7 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
   const isAdmin = profile.role === 'admin';
   const hasTeamAccess = isAdmin || ['sales_manager', 'team_leader', 'top_management'].includes(profile.title);
   if (hasTeamAccess) {
-    tabs.push({ id: 'reports', label: 'Team Reports', icon: Briefcase });
+    tabs.push({ id: 'reports', label: 'Reports', icon: Briefcase });
     tabs.push({ id: 'activity', label: 'Activity', icon: ActivityIcon });
   }
   if (isAdmin) {
