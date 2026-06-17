@@ -5,6 +5,7 @@ import { C, STAGES, SOURCES, COLD_RESULTS, fmtMoney, fmtDate, todayStr, stageOf,
 import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight, X, Pencil, MessageSquarePlus, Loader2 } from 'lucide-react';
 import ClientModal from './ClientModal';
 import { SourceTag } from './BrandIcons';
+import DateRangePicker from './DateRangePicker';
 
 function Pill({ color, children }) {
   return (
@@ -456,10 +457,12 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                 {hasTeamAccess && <td className="py-1.5 px-2"><input value={pendingCols.lead_origin||''} onChange={setCol('lead_origin')} placeholder="Origin..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>}
                 <td className="py-1.5 px-2"><input value={pendingCols.source||''} onChange={setCol('source')} placeholder="Source..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
                 <td className="py-1.5 px-2">
-                  <div className="flex gap-1">
-                    <input type="date" value={pendingCols.created_from||''} onChange={setCol('created_from')} className="rounded px-1 py-1 text-xs outline-none w-28" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} />
-                    <input type="date" value={pendingCols.created_to||''} onChange={setCol('created_to')} className="rounded px-1 py-1 text-xs outline-none w-28" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} />
-                  </div>
+                  <DateRangePicker
+                    from={pendingCols.created_from || null}
+                    to={pendingCols.created_to || null}
+                    onChange={(f, t) => setPendingCols((p) => ({ ...p, created_from: f || '', created_to: t || '' }))}
+                    placeholder="Created range..."
+                  />
                 </td>
                 <td className="py-1.5 px-2"><input value={pendingCols.developer||''} onChange={setCol('developer')} placeholder="Developer..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
                 <td className="py-1.5 px-2"><input value={pendingCols.project||''} onChange={setCol('project')} placeholder="Project..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
@@ -468,10 +471,12 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                 <td className="py-1.5 px-2"></td>
                 <td className="py-1.5 px-2"></td>
                 <td className="py-1.5 px-2">
-                  <div className="flex gap-1">
-                    <input type="date" value={pendingCols.followup_from||''} onChange={setCol('followup_from')} className="rounded px-1 py-1 text-xs outline-none w-28" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} />
-                    <input type="date" value={pendingCols.followup_to||''} onChange={setCol('followup_to')} className="rounded px-1 py-1 text-xs outline-none w-28" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} />
-                  </div>
+                  <DateRangePicker
+                    from={pendingCols.followup_from || null}
+                    to={pendingCols.followup_to || null}
+                    onChange={(f, t) => setPendingCols((p) => ({ ...p, followup_from: f || '', followup_to: t || '' }))}
+                    placeholder="Follow-up range..."
+                  />
                 </td>
                 <td className="py-1.5 px-2"></td>
                 <td className="py-1.5 px-2">
@@ -523,7 +528,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                       {hasTeamAccess && <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{owners[c.owner_id] || '—'}</td>}
                       {hasTeamAccess && <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{[c.lead_origin, c.origin_name].filter(Boolean).join(" · ") || "—"}</td>}
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}><SourceTag source={c.source} size={15} /></td>
-                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{fmtDate(c.created_at)}</td>
+                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.created_at ? new Date(c.created_at).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.developer || '—'}</td>
                       <td className="py-2.5 px-3 whitespace-nowrap">{c.project || '—'}</td>
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.location || '—'}</td>
