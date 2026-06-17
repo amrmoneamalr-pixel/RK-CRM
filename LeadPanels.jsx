@@ -1,97 +1,76 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
-import { C, fmtDate, todayStr, waLink, matchesLeadCategory, LEAD_CATEGORY_LABELS } from './constants';
-import { WhatsAppIcon } from './BrandIcons';
-import { Sparkles, Archive, PhoneCall, AlertTriangle, Snowflake, Phone, ChevronRight } from 'lucide-react';
+import { C, fmtDate, todayStr, COLD_RESULTS, LEAD_CATEGORY_LABELS } from './constants';
+import { Sparkles, Archive, PhoneCall, AlertTriangle, Snowflake, ChevronRight } from 'lucide-react';
 
 export default function LeadPanels({ userId, isAdmin, onSelectCategory }) {
-  const [groups, setGroups] = useState({ fresh: [], oldFresh: [], callbackToday: [], late: [], cold: [] });
+  const [counts, setCounts] = useState({ fresh: 0, oldFresh: 0, callbackToday: 0, late: 0, cold: 0 });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    load();
-  }, [userId, isAdmin]);
+  useEffect(() => { load(); }, [userId, isAdmin]);
 
   const load = async () => {
     setLoading(true);
     let q = supabase
       .from('clients')
-      .select('id, name, phone, stage, ever_contacted, created_at, next_follow_up, call_result')
+      .select('id, stage, ever_contacted, created_at, next_follow_up, call_result, last_contacted_at')
       .order('created_at', { ascending: false });
     if (!isAdmin) q = q.eq('owner_id', userId);
     const { data } = await q;
     const clients = data || [];
 
-    const next = { fresh: [], oldFresh: [], callbackToday: [], late: [], cold: [] };
-    clients.forEach((c) => {
-      Object.keys(next).forEach((cat) => {
-        if (matchesLeadCategory(c, cat)) next[cat].push(c);
-      });
-    });
-    next.callbackToday.sort((a, b) => (a.next_follow_up < b.next_follow_up ? -1 : 1));
-    next.late.sort((a, b) => (a.next_follow_up < b.next_follow_up ? -1 : 1));
+    const today = todayStr();
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    setGroups(next);
+    const next = { fresh: 0, oldFresh: 0, callbackToday: 0, late: 0, cold: 0 };
+    clients.forEach((c) => {
+      if (c.stage === 'new' && !c.ever_contacted && c.created_at >= sevenDaysAgo) next.fresh++;
+      if (c.stage === 'new' && !c.ever_contacted && c.created_at < sevenDaysAgo) next.oldFresh++;
+      if (c.next_follow_up === today) next.callbackToday++;
+      if (c.next_follow_up && c.next_follow_up < today) next.late++;
+      // Cold calls: has a cold result AND hasn't had any action today (last_contacted_at not today)
+      if (COLD_RESULTS.includes(c.call_result)) {
+        const lastContacted = c.last_contacted_at ? c.last_contacted_at.slice(0, 10) : null;
+        if (lastContacted !== today) next.cold++;
+      }
+    });
+
+    setCounts(next);
     setLoading(false);
   };
 
-  return (
-    <aside className="hidden lg:flex flex-col w-64 shrink-0 border-l sticky top-0 h-screen overflow-y-auto p-4 space-y-4" style={{ borderColor: C.border }}>
-      <Section category="fresh" icon={Sparkles} color="#7FA887" loading={loading} items={groups.fresh} onSelectCategory={onSelectCategory}
-        subtitle={(c) => `Added ${fmtDate(c.created_at)}`} />
-      <Section category="callbackToday" icon={PhoneCall} color="#6E8CAE" loading={loading} items={groups.callbackToday} onSelectCategory={onSelectCategory}
-        subtitle={(c) => `Due ${fmtDate(c.next_follow_up)}`} />
-      <Section category="late" icon={AlertTriangle} color="#C9714F" loading={loading} items={groups.late} onSelectCategory={onSelectCategory}
-        subtitle={(c) => `Was due ${fmtDate(c.next_follow_up)}`} />
-      <Section category="oldFresh" icon={Archive} color="#9B7EBD" loading={loading} items={groups.oldFresh} onSelectCategory={onSelectCategory}
-        subtitle={(c) => `Added ${fmtDate(c.created_at)}`} />
-      <Section category="cold" icon={Snowflake} color="#8B93A3" loading={loading} items={groups.cold} onSelectCategory={onSelectCategory}
-        subtitle={(c) => c.call_result} />
-    </aside>
-  );
-}
+  const sections = [
+    { key: 'fresh',        icon: Sparkles,     color: '#7FA887', label: 'Fresh Leads' },
+    { key: 'callbackToday',icon: PhoneCall,     color: '#6E8CAE', label: 'Call Back Today' },
+    { key: 'late',         icon: AlertTriangle, color: '#C9714F', label: 'Late Leads' },
+    { key: 'oldFresh',     icon: Archive,       color: '#9B7EBD', label: 'Old Fresh Leads' },
+    { key: 'cold',         icon: Snowflake,     color: '#8B93A3', label: 'Cold Calls' },
+  ];
 
-function Section({ category, icon: Icon, color, loading, items, subtitle, onSelectCategory }) {
   return (
-    <div className="rounded-xl p-3" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
-      <button
-        onClick={() => onSelectCategory && onSelectCategory(category)}
-        className="flex items-center justify-between mb-2 w-full text-left"
-      >
-        <div className="flex items-center gap-1.5 text-sm font-bold">
-          <Icon size={14} style={{ color }} /> {LEAD_CATEGORY_LABELS[category]}
-        </div>
-        <span className="flex items-center gap-1">
-          <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${color}22`, color }}>{items.length}</span>
-          <ChevronRight size={14} style={{ color: C.muted }} />
-        </span>
-      </button>
-      {loading ? (
-        <p className="text-xs" style={{ color: C.muted }}>Loading...</p>
-      ) : items.length === 0 ? (
-        <p className="text-xs" style={{ color: C.muted }}>None right now</p>
-      ) : (
-        <div className="space-y-1.5 max-h-48 overflow-y-auto">
-          {items.map((c) => (
-            <div key={c.id} className="rounded-lg px-2 py-1.5" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
-              <div className="flex items-center justify-between gap-1">
-                <span className="text-xs font-medium truncate">{c.name}</span>
-                {c.phone && (
-                  <span className="flex items-center gap-1.5 shrink-0">
-                    <a href={`tel:${c.phone}`} style={{ color: C.gold }}>
-                      <Phone size={12} />
-                    </a>
-                    <a href={waLink(c.phone)} target="_blank" rel="noreferrer">
-                      <WhatsAppIcon size={18} />
-                    </a>
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] truncate" style={{ color: C.muted }}>{subtitle(c)}</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    <aside className="hidden lg:flex flex-col w-56 shrink-0 border-l sticky top-0 h-screen overflow-y-auto p-3 space-y-2" style={{ borderColor: C.border }}>
+      {sections.map(({ key, icon: Icon, color, label }) => (
+        <button
+          key={key}
+          onClick={() => onSelectCategory && onSelectCategory(key)}
+          className="flex items-center justify-between w-full rounded-xl px-3 py-2.5 text-left transition-colors"
+          style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+        >
+          <div className="flex items-center gap-2 text-sm font-medium" style={{ color: C.text }}>
+            <Icon size={14} style={{ color }} />
+            {label}
+          </div>
+          <span className="flex items-center gap-1 shrink-0">
+            <span
+              className="text-xs font-bold px-1.5 py-0.5 rounded-full"
+              style={{ backgroundColor: `${color}22`, color }}
+            >
+              {loading ? '—' : counts[key]}
+            </span>
+            <ChevronRight size={13} style={{ color: C.muted }} />
+          </span>
+        </button>
+      ))}
+    </aside>
   );
 }
