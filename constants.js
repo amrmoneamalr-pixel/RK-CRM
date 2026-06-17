@@ -125,11 +125,15 @@ export const leadCategory = (c) => {
 };
 
 // Status column: current touchpoint status
+const CONTACTED_ACTIONS = ['Contacted', 'No Answer', 'Switched Off', 'Send WhatsApp', 'Interested - Thinking', 'Very Interested', 'Call Again', 'Interest in Resale', 'Interest in Separate'];
+
 export const clientStatus = (c) => {
-  if (c.stage === 'won')                           return { label: 'Deal',          color: '#7FA887' };
-  if (c.call_result === 'Not Interested')          return { label: 'Not Interested', color: '#C9714F' };
-  if (c.previous_owners && c.previous_owners.length > 0 && c.stage !== 'won') return { label: 'Re-rotation', color: '#D4A24E' };
-  if (c.ever_contacted)                            return { label: 'Contacted',     color: '#FFFFFF' };
+  if (c.stage === 'won')                                        return { label: 'Deal',          color: '#7FA887' };
+  if (c.call_result === 'Not Interested')                       return { label: 'Not Interested', color: '#C9714F' };
+  if (c.call_result === 'Not Qualified')                        return { label: 'Not Qualified',  color: '#C9714F' };
+  if (c.call_result && CONTACTED_ACTIONS.includes(c.call_result)) return { label: 'Contacted',   color: '#FFFFFF' };
+  if (c.ever_contacted)                                         return { label: 'Contacted',      color: '#FFFFFF' };
+  if (c.previous_owners && c.previous_owners.length > 0)       return { label: 'Re-rotation',    color: '#D4A24E' };
   return { label: 'New', color: '#D6453E' };
 };
 

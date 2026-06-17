@@ -331,11 +331,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
           {!leadFilter && (
             <>
-              <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)} className={selectClass} style={selectStyle}>
-                <option value="all">All Stages</option>
-                {STAGES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-              </select>
-              <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className={selectClass} style={selectStyle}>
+<select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className={selectClass} style={selectStyle}>
                 <option value="all">All Sources</option>
                 {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
@@ -409,7 +405,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                   <th className="py-2.5 px-3 font-medium w-8"></th>
                   <th className="py-2.5 px-3 font-medium">Full Name</th>
                   <th className="py-2.5 px-3 font-medium">Mobile Phone</th>
-                  <th className="py-2.5 px-3 font-medium">Stage</th>
+                  <th className="py-2.5 px-3 font-medium">Stage Category</th>
                   <th className="py-2.5 px-3 font-medium">Status</th>
                   {hasTeamAccess && <th className="py-2.5 px-3 font-medium">Assigned To</th>}
                   {hasTeamAccess && <th className="py-2.5 px-3 font-medium">Lead Origin</th>}
@@ -429,6 +425,10 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                 {clients.map((c) => {
                   const cat = leadCategory(c);
                   const stat = clientStatus(c);
+                  const stageLabel = c.stage_category || cat.label;
+                  const stageColor = c.stage_category
+                    ? { 'New Fresh Lead': '#D6453E', 'Old Fresh Lead': '#C9714F', 'Cold Calls': '#6E8CAE', 'Old Campaign': '#9B7EBD' }[c.stage_category] || cat.color
+                    : cat.color;
                   const last = lastActivity[c.id];
                   const assignedFrom = c.previous_owners && c.previous_owners.length > 0
                     ? (owners[c.previous_owners[c.previous_owners.length - 1]] || '—')
@@ -452,7 +452,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                       </td>
                       <td className="py-2.5 px-3 font-medium whitespace-nowrap">{c.name}</td>
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.phone || '—'}</td>
-                      <td className="py-2.5 px-3"><Pill color={cat.color}>{cat.label}</Pill></td>
+                      <td className="py-2.5 px-3"><Pill color={stageColor}>{stageLabel}</Pill></td>
                       <td className="py-2.5 px-3">
                         <Pill color={stat.color === '#FFFFFF' ? C.text : stat.color}>{stat.label}</Pill>
                       </td>
