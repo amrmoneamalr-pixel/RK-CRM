@@ -670,16 +670,16 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
             {saving ? 'Saving...' : '+ Add Comment'}
           </button>
         </div>
+        ) : (
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
+            <p className="text-xs" style={{ color: C.muted }}>This lead is assigned to another rep. You can view comments but cannot add new ones.</p>
+          </div>
+        )}
 
         {noAnswerCount > 0 && (
           <p className="text-xs" style={{ color: noAnswerCount >= 3 ? '#C9714F' : C.muted }}>
             No-answer streak: {noAnswerCount}/3
           </p>
-        )}
-        ) : (
-          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
-            <p className="text-xs" style={{ color: C.muted }}>This lead is assigned to another rep. You can view comments but cannot add new ones.</p>
-          </div>
         )}
 
         {/* History */}
