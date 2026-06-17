@@ -495,10 +495,8 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
   const meetingNeedsComment = (plannedMeeting || actualMeeting) && !commentText.trim();
   const hasComment = commentText.trim().length > 0;
   const hasDate = nextFollowUp.length > 0;
-  // Action only allowed when comment is written
-  const actionDisabled = !hasComment;
-  // Save requires: comment + date (action optional)
-  const canSave = hasComment && hasDate && !meetingNeedsComment && !saving;
+  const hasAction = callResult.length > 0;
+  const canSave = hasAction && hasComment && hasDate && !meetingNeedsComment && !saving;
 
   const handleSave = async () => {
     if (!isDirty || saving) return;
@@ -551,7 +549,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
     setPlannedMeeting(false);
     setActualMeeting(false);
     onSaved();
-    if (onNext) onNext(); else onClose();
+    onClose();
   };
 
   const st = stageOf(client.stage);
@@ -621,18 +619,16 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
 
         {/* ---- The save block ---- */}
         <div ref={activityRef} className="rounded-lg p-3 space-y-3" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
-          <Field label="Action">
+          <Field label="Action *">
             <select
               value={callResult}
               onChange={(e) => setCallResult(e.target.value)}
-              disabled={actionDisabled}
               className={inputClass}
-              style={{ ...inputStyle, backgroundColor: C.surface, opacity: actionDisabled ? 0.4 : 1 }}
+              style={{ ...inputStyle, backgroundColor: C.surface }}
             >
-              <option value="">—</option>
+              <option value="">— اختر —</option>
               {ACTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
-            {actionDisabled && <p className="text-xs mt-1" style={{ color: C.muted }}>اكتب comment الأول عشان تختار action</p>}
           </Field>
 
           <textarea
@@ -661,9 +657,6 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
           <Field label="Next Follow-up Date">
             <input type="date" value={nextFollowUp} min={todayStr()} max={maxDate} onChange={(e) => setNextFollowUp(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }} />
           </Field>
-
-          {!hasComment && <p className="text-xs" style={{ color: C.muted }}>* Comment مطلوب</p>}
-          {hasComment && !hasDate && <p className="text-xs" style={{ color: '#C9714F' }}>* لازم تحدد Next Follow-up Date</p>}
 
           <button
             onClick={handleSave}
