@@ -227,7 +227,7 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
     (async () => {
       const dev = developers.find((d) => d.name === form.developer);
       if (!dev) { setProjectOptions([]); return; }
-      const { data } = await supabase.from('projects').select('id, name').eq('developer_id', dev.id).order('name');
+      const { data } = await supabase.from('developer_projects').select('id, name').eq('developer_id', dev.id).order('name');
       setProjectOptions(data || []);
     })();
   }, [form.developer, developers]);
