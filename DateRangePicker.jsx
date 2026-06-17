@@ -117,20 +117,21 @@ export default function DateRangePicker({ from, to, onChange, placeholder = 'Sel
       {open && (
         <div
           className="absolute z-50 top-8 left-0 rounded-xl shadow-xl"
-          style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, minWidth: 480 }}
+          style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, minWidth: 460, maxHeight: '80vh', overflowY: 'auto' }}
           onMouseLeave={() => setHovered(null)}
         >
           <div className="p-2 text-xs font-medium border-b" style={{ borderColor: C.border, color: C.muted }}>
             Please select a date range
             <button onClick={() => setOpen(false)} className="float-right px-2 rounded" style={{ backgroundColor: C.bg, color: C.muted }}>Close</button>
           </div>
-          <div className="flex">
+          <div className="flex flex-wrap">
             <CalendarMonth
               year={viewYear} month={viewMonth}
               from={from} to={to} hovered={hovered}
               onDay={handleDay} onHover={setHovered}
               onPrev={() => { if (viewMonth === 0) { setViewMonth(11); setViewYear(v => v-1); } else setViewMonth(v => v-1); }}
-              onNext={null} showPrev showNext={false}
+              onNext={() => { if (viewMonth === 11) { setViewMonth(0); setViewYear(v => v+1); } else setViewMonth(v => v+1); }}
+              showPrev showNext
             />
             <div style={{ width: 1, backgroundColor: C.border }} />
             <CalendarMonth
@@ -138,8 +139,8 @@ export default function DateRangePicker({ from, to, onChange, placeholder = 'Sel
               from={from} to={to} hovered={hovered}
               onDay={handleDay} onHover={setHovered}
               onPrev={null} showPrev={false}
-              onNext={() => { if (viewMonth === 11) { setViewMonth(0); setViewYear(v => v+1); } else setViewMonth(v => v+1); }}
-              showNext
+              onNext={null}
+              showNext={false}
             />
           </div>
           <div className="px-3 py-2 text-xs border-t flex flex-wrap gap-2 items-center" style={{ borderColor: C.border, color: C.muted }}>

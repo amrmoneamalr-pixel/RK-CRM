@@ -297,8 +297,8 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   const applyColFilters = () => { setColFilters({ ...pendingCols }); setPage(1); };
   const clearColFilters = () => { setColFilters({}); setPendingCols({}); setPage(1); };
   const hasColFilters = Object.values(colFilters).some(Boolean);
-
-  const noFiltersActive = !search && !leadFilter && stageFilter === 'all' && sourceFilter === 'all' && potentialFilter === 'all';
+  const hasPendingFilters = Object.values(pendingCols).some(Boolean);
+  const noFiltersActive = !search && !leadFilter && stageFilter === 'all' && sourceFilter === 'all' && potentialFilter === 'all' && !hasColFilters && !hasPendingFilters;
 
   if (totalCount === 0 && !loading && noFiltersActive && !showAdd) {
     return (
@@ -421,7 +421,12 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
       )}
 
       {totalCount === 0 ? (
-        <p className="text-sm text-center py-6" style={{ color: C.muted }}>No clients match these filters.</p>
+        <div className="text-center py-10">
+          <p className="text-sm mb-3" style={{ color: C.muted }}>No clients match these filters.</p>
+          <button onClick={() => { clearColFilters(); setSearch(''); setSearchInput(''); setStageFilter('all'); setSourceFilter('all'); setPotentialFilter('all'); }} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
+            Clear all filters
+          </button>
+        </div>
       ) : (
         <>
           {/* Table */}
