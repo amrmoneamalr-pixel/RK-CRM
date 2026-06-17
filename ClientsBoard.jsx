@@ -72,11 +72,9 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('all');
-  const [sourceFilter, setSourceFilter] = useState('all');
   // Column-level filters (applied on Search button press)
   const [colFilters, setColFilters] = useState({});
   const [pendingCols, setPendingCols] = useState({});
-  const [potentialFilter, setPotentialFilter] = useState('all');
   const [showAdd, setShowAdd] = useState(false);
   const [selected, setSelected] = useState(null);
   const [editTarget, setEditTarget] = useState(null);
@@ -99,7 +97,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   // reset to page 1 whenever search/filters change
   useEffect(() => {
     setPage(1);
-  }, [search, stageFilter, sourceFilter, potentialFilter, leadFilter, colFilters]);
+  }, [search, stageFilter, leadFilter, colFilters]);
 
   // load the list of owners (admin/team-access only) — once
   useEffect(() => {
@@ -168,9 +166,6 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
       }
     } else {
       if (stageFilter !== 'all') q = q.eq('stage', stageFilter);
-      if (sourceFilter !== 'all') q = q.eq('source', sourceFilter);
-      if (potentialFilter === 'yes') q = q.eq('potential', true);
-      if (potentialFilter === 'no') q = q.eq('potential', false);
     }
 
     return q;
@@ -195,7 +190,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
 
   useEffect(() => {
     load();
-  }, [userId, page, search, stageFilter, sourceFilter, potentialFilter, leadFilter, colFilters]);
+  }, [userId, page, search, stageFilter, leadFilter, colFilters]);
 
   // if filters shrink the result set below the current page, snap back
   useEffect(() => {
@@ -337,7 +332,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   const clearColFilters = () => { setColFilters({}); setPendingCols({}); setPage(1); };
   const hasColFilters = Object.values(colFilters).some(Boolean);
   const hasPendingFilters = Object.values(pendingCols).some(Boolean);
-  const noFiltersActive = !search && !leadFilter && stageFilter === 'all' && sourceFilter === 'all' && potentialFilter === 'all' && !hasColFilters && !hasPendingFilters;
+  const noFiltersActive = !search && !leadFilter && stageFilter === 'all' && !hasColFilters && !hasPendingFilters;
 
   if (totalCount === 0 && !loading && noFiltersActive && !showAdd) {
     return (
@@ -404,16 +399,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
           {!leadFilter && (
             <>
-<select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className={selectClass} style={selectStyle}>
-                <option value="all">All Sources</option>
-                {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <select value={potentialFilter} onChange={(e) => setPotentialFilter(e.target.value)} className={selectClass} style={selectStyle}>
-                <option value="all">Potential: All</option>
-                <option value="yes">Potential Only</option>
-                <option value="no">Not Potential</option>
-              </select>
-            </>
+</>
           )}
           <span className="flex-1" />
           {isAdmin && (
