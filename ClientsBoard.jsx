@@ -1,11 +1,22 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Papa from 'papaparse';
 import { supabase } from './supabaseClient';
-import { C, STAGES, SOURCES, COLD_RESULTS, fmtMoney, fmtDate, todayStr, stageOf, stageIdFromInput, LEAD_CATEGORY_LABELS, leadCategory, clientStatus } from './constants';
+import { C, STAGES, SOURCES, ACTIONS, LOCATIONS, LEAD_ORIGINS, COLD_RESULTS, fmtMoney, fmtDate, todayStr, stageOf, stageIdFromInput, LEAD_CATEGORY_LABELS, leadCategory, clientStatus } from './constants';
 import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight, X, Pencil, MessageSquarePlus, Loader2 } from 'lucide-react';
 import ClientModal from './ClientModal';
 import { SourceTag } from './BrandIcons';
 import DateRangePicker from './DateRangePicker';
+
+function FilterSelect({ value, onChange, options, placeholder }) {
+  return (
+    <select value={value||''} onChange={(e) => onChange(e.target.value)}
+      className="w-full rounded px-2 py-1 text-xs outline-none"
+      style={{ backgroundColor: C.surface, border: `1px solid ${value ? C.gold : C.border}`, color: value ? C.gold : C.muted }}>
+      <option value="">{placeholder || 'All'}</option>
+      {options.map((o) => <option key={o} value={o}>{o}</option>)}
+    </select>
+  );
+}
 
 function Pill({ color, children }) {
   return (
@@ -451,11 +462,11 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                 <td className="py-1.5 px-2 w-8"></td>
                 <td className="py-1.5 px-2"><input value={pendingCols.name||''} onChange={setCol('name')} placeholder="Name..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
                 <td className="py-1.5 px-2"><input value={pendingCols.phone||''} onChange={setCol('phone')} placeholder="Phone..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
-                <td className="py-1.5 px-2"><input value={pendingCols.stage_category||''} onChange={setCol('stage_category')} placeholder="Stage..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
-                <td className="py-1.5 px-2"><input value={pendingCols.status||''} onChange={setCol('status')} placeholder="Status..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
+                <td className="py-1.5 px-2"><FilterSelect value={pendingCols.stage_category} onChange={(v) => setPendingCols((p) => ({ ...p, stage_category: v }))} options={['New Fresh Lead','Old Fresh Lead','Cold Calls','Old Campaign']} placeholder="All Stages" /></td>
+                <td className="py-1.5 px-2"><FilterSelect value={pendingCols.status} onChange={(v) => setPendingCols((p) => ({ ...p, status: v }))} options={['New','Contacted','Re-rotation','Not Interested','Not Qualified','Deal']} placeholder="All Statuses" /></td>
                 {hasTeamAccess && <td className="py-1.5 px-2"><input value={pendingCols.assigned_to||''} onChange={setCol('assigned_to')} placeholder="Assigned to..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>}
-                {hasTeamAccess && <td className="py-1.5 px-2"><input value={pendingCols.lead_origin||''} onChange={setCol('lead_origin')} placeholder="Origin..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>}
-                <td className="py-1.5 px-2"><input value={pendingCols.source||''} onChange={setCol('source')} placeholder="Source..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
+                  {hasTeamAccess && <td className="py-1.5 px-2"><FilterSelect value={pendingCols.lead_origin} onChange={(v) => setPendingCols((p) => ({ ...p, lead_origin: v }))} options={LEAD_ORIGINS} placeholder="All Origins" /></td>}
+                <td className="py-1.5 px-2"><FilterSelect value={pendingCols.source} onChange={(v) => setPendingCols((p) => ({ ...p, source: v }))} options={SOURCES} placeholder="All Sources" /></td>
                 <td className="py-1.5 px-2">
                   <DateRangePicker
                     from={pendingCols.created_from || null}
@@ -466,8 +477,8 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                 </td>
                 <td className="py-1.5 px-2"><input value={pendingCols.developer||''} onChange={setCol('developer')} placeholder="Developer..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
                 <td className="py-1.5 px-2"><input value={pendingCols.project||''} onChange={setCol('project')} placeholder="Project..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
-                <td className="py-1.5 px-2"><input value={pendingCols.location||''} onChange={setCol('location')} placeholder="Location..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
-                <td className="py-1.5 px-2"><input value={pendingCols.call_result||''} onChange={setCol('call_result')} placeholder="Action..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
+                <td className="py-1.5 px-2"><FilterSelect value={pendingCols.location} onChange={(v) => setPendingCols((p) => ({ ...p, location: v }))} options={LOCATIONS} placeholder="All Locations" /></td>
+                <td className="py-1.5 px-2"><FilterSelect value={pendingCols.call_result} onChange={(v) => setPendingCols((p) => ({ ...p, call_result: v }))} options={ACTIONS} placeholder="All Actions" /></td>
                 <td className="py-1.5 px-2"></td>
                 <td className="py-1.5 px-2"></td>
                 <td className="py-1.5 px-2">
