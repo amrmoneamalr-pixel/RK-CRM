@@ -104,82 +104,149 @@ function OriginFields({ form, setForm, marketerNames }) {
 
 function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
   const marketerNames = useMarketerNames(profilesList);
+  const [developers, setDevelopers] = useState([]);
+  const [projectOptions, setProjectOptions] = useState([]);
   const [form, setForm] = useState({
-    name: '', project: 'Mountain View Creek View', developer: '', phone: '', secondary_phone: '',
-    source: SOURCES[0], location: '', notes: '', owner_id: userId, lead_origin: '', origin_name: '',
+    name: '',
+    phone: '',
+    secondary_phone: '',
+    developer: '',
+    project: '',
+    source: '',
+    stage_category: '',
+    lead_origin: '',
+    origin_name: '',
+    location: '',
+    owner_id: userId,
+    potential: false,
   });
   const [saving, setSaving] = useState(false);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from('developers').select('id, name').order('name');
+      setDevelopers(data || []);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!form.developer) { setProjectOptions([]); return; }
+    (async () => {
+      const dev = developers.find((d) => d.name === form.developer);
+      if (!dev) { setProjectOptions([]); return; }
+      const { data } = await supabase.from('developer_projects').select('id, name').eq('developer_id', dev.id).order('name');
+      setProjectOptions(data || []);
+    })();
+  }, [form.developer, developers]);
 
   const save = async () => {
     setSaving(true);
     await supabase.from('clients').insert({
       owner_id: form.owner_id || userId,
       name: form.name,
-      project: form.project,
-      developer: form.developer || null,
       phone: form.phone || null,
       secondary_phone: form.secondary_phone || null,
-      source: form.source,
-      location: form.location || null,
-      stage: 'new',
-      notes: form.notes || null,
+      developer: form.developer || null,
+      project: form.project || null,
+      source: form.source || null,
+      stage_category: form.stage_category || null,
       lead_origin: form.lead_origin || null,
       origin_name: form.lead_origin === 'Marketing' || form.lead_origin === 'Top Management' ? (form.origin_name || null) : null,
+      location: form.location || null,
+      stage: 'new',
+      potential: form.potential,
     });
     setSaving(false);
     onSaved();
     onClose();
   };
 
+  const required = form.name.trim() && form.phone.trim() && form.developer && form.project && form.source;
+
   return (
     <Modal title="New Lead" onClose={onClose}>
       <div className="space-y-3">
         <Field label="Full Name *">
-          <input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} placeholder="Client name" />
+          <input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} placeholder="مطلوب" />
         </Field>
-        <Field label="Project Name">
-          <input value={form.project} onChange={set('project')} className={inputClass} style={inputStyle} />
-        </Field>
-        <Field label="Developer">
-          <input value={form.developer} onChange={set('developer')} className={inputClass} style={inputStyle} list="developers-list" placeholder="e.g. Mountain View" />
-          <datalist id="developers-list">
-            {DEVELOPERS.map((d) => <option key={d} value={d} />)}
-          </datalist>
-        </Field>
-        <Field label="Mobile Number">
+        <Field label="Mobile Number *">
           <input value={form.phone} onChange={set('phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
         </Field>
         <Field label="Secondary Number">
           <input value={form.secondary_phone} onChange={set('secondary_phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
         </Field>
-        <Field label="Lead Source">
+        <Field label="Developer *">
+          <select value={form.developer} onChange={(e) => setForm((f) => ({ ...f, developer: e.target.value, project: '' }))} className={inputClass} style={inputStyle}>
+            <option value="">— اختر Developer —</option>
+            {developers.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
+          </select>
+        </Field>
+        <Field label="Project Name *">
+          <select value={form.project} onChange={set('project')} className={inputClass} style={inputStyle} disabled={!form.developer}>
+            <option value="">— اختر Project —</option>
+            {projectOptions.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
+          </select>
+        </Field>
+        <Field label="Lead Source *">
           <select value={form.source} onChange={set('source')} className={inputClass} style={inputStyle}>
+            <option value="">—</option>
             {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </Field>
-        <OriginFields form={form} setForm={setForm} marketerNames={marketerNames} />
-        <Field label="District">
-          <input value={form.location} onChange={set('location')} className={inputClass} style={inputStyle} list="locations-list" placeholder="e.g. New Cairo" />
-          <datalist id="locations-list">
-            {LOCATIONS.map((l) => <option key={l} value={l} />)}
-          </datalist>
+        <Field label="Stage Category *">
+          <select value={form.stage_category || ''} onChange={set('stage_category')} className={inputClass} style={inputStyle}>
+            <option value="">— اختر —</option>
+            <option value="New Fresh Lead">New Fresh Lead</option>
+            <option value="Old Fresh Lead">Old Fresh Lead</option>
+            <option value="Cold Calls">Cold Calls</option>
+            <option value="Old Campaign">Old Campaign</option>
+          </select>
+        </Field>
+        <Field label="Lead Origin">
+          <select value={form.lead_origin || ''} onChange={(e) => setForm((f) => ({ ...f, lead_origin: e.target.value, origin_name: '' }))} className={inputClass} style={inputStyle}>
+            <option value="">—</option>
+            {LEAD_ORIGINS.map((o) => <option key={o} value={o}>{o}</option>)}
+          </select>
+        </Field>
+        {form.lead_origin === 'Marketing' && (
+          <Field label="Marketer Name">
+            <select value={form.origin_name || ''} onChange={set('origin_name')} className={inputClass} style={inputStyle}>
+              <option value="">—</option>
+              {marketerNames.map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </Field>
+        )}
+        {form.lead_origin === 'Top Management' && (
+          <Field label="Top Management Member">
+            <select value={form.origin_name || ''} onChange={set('origin_name')} className={inputClass} style={inputStyle}>
+              <option value="">—</option>
+              {TOP_MANAGEMENT_NAMES.map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </Field>
+        )}
+        <Field label="Location">
+          <select value={form.location || ''} onChange={set('location')} className={inputClass} style={inputStyle}>
+            <option value="">—</option>
+            {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
+          </select>
         </Field>
         {isAdmin && profilesList && profilesList.length > 0 && (
-          <Field label="Assign To">
+          <Field label="Assigned To">
             <select value={form.owner_id} onChange={set('owner_id')} className={inputClass} style={inputStyle}>
-              {profilesList.map((p) => (
-                <option key={p.id} value={p.id}>{p.is_pool ? 'Unassigned Pool' : (p.full_name || p.username || p.id)}</option>
+              {profilesList.filter((p) => !p.is_pool).map((p) => (
+                <option key={p.id} value={p.id}>{p.full_name || p.username}</option>
               ))}
             </select>
           </Field>
         )}
-        <Field label="Notes">
-          <textarea value={form.notes} onChange={set('notes')} className={inputClass} style={inputStyle} rows={2} />
-        </Field>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={form.potential} onChange={(e) => setForm((f) => ({ ...f, potential: e.target.checked }))} />
+          <span style={{ color: C.muted }}>Mark as high-potential lead</span>
+        </label>
       </div>
       <button
-        disabled={!form.name.trim() || saving}
+        disabled={!required || saving}
         onClick={save}
         className="w-full mt-5 py-2.5 rounded-lg font-bold text-sm disabled:opacity-40"
         style={{ backgroundColor: C.gold, color: '#14181F' }}
@@ -189,6 +256,7 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
     </Modal>
   );
 }
+
 
 // ---- Admin-only full EDIT form (the pencil button) ----
 function EditForm({ userId, client, profilesList, onClose, onSaved }) {
