@@ -22,9 +22,27 @@ export default function Settings() {
   const [noAnswerEnabled, setNoAnswerEnabled] = useState(true);
   const [locations, setLocations] = useState([]);
 
+  const [salesReps, setSalesReps] = useState([]);
+
   useEffect(() => {
     load();
+    loadReps();
   }, []);
+
+  const loadReps = async () => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, full_name, username, rotation_excluded')
+      .eq('title', 'sales')
+      .eq('is_pool', false)
+      .order('full_name');
+    setSalesReps(data || []);
+  };
+
+  const toggleRep = async (id, excluded) => {
+    await supabase.from('profiles').update({ rotation_excluded: !excluded }).eq('id', id);
+    setSalesReps((prev) => prev.map((r) => r.id === id ? { ...r, rotation_excluded: !excluded } : r));
+  };
 
   const load = async () => {
     setLoading(true);
@@ -192,6 +210,36 @@ export default function Settings() {
           <input type="checkbox" checked={noAnswerEnabled} onChange={(e) => setNoAnswerEnabled(e.target.checked)} />
           <span>Move client to another rep after 3 "No Answer" results</span>
         </label>
+      </div>
+      <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
+        <h3 className="font-display font-bold text-sm">Sales Reps in Rotation</h3>
+        <p className="text-xs" style={{ color: C.muted }}>
+          اختر مين من السيلز يدخل في الـ rotation التلقائي. الـ check = داخل، بدون check = خارج.
+        </p>
+        {salesReps.length === 0 ? (
+          <p className="text-xs" style={{ color: C.muted }}>مفيش sales reps موجودين.</p>
+        ) : (
+          <div className="space-y-2">
+            {salesReps.map((rep) => (
+              <label key={rep.id} className="flex items-center gap-2.5 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!rep.rotation_excluded}
+                  onChange={() => toggleRep(rep.id, rep.rotation_excluded)}
+                  className="w-4 h-4"
+                />
+                <span style={{ color: rep.rotation_excluded ? C.muted : C.text }}>
+                  {rep.full_name || rep.username}
+                </span>
+                {rep.rotation_excluded && (
+                  <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: '#C9714F22', color: '#C9714F' }}>
+                    خارج الـ rotation
+                  </span>
+                )}
+              </label>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
