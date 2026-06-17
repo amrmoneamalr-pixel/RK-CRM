@@ -165,7 +165,6 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
       lead_origin: form.lead_origin || null,
       origin_name: form.lead_origin === 'Marketing' || form.lead_origin === 'Top Management' ? (form.origin_name || null) : null,
       location: form.location || null,
-      stage: stageCategoryToStage(form.stage_category),
       potential: form.potential,
     });
     setSaving(false);
