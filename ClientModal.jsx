@@ -492,11 +492,11 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
     setActivities((data || []).filter((a) => a.type !== 'system'));
   };
 
-  const meetingNeedsComment = (plannedMeeting || actualMeeting) && !commentText.trim();
   const hasComment = commentText.trim().length > 0;
   const hasDate = nextFollowUp.length > 0;
   const hasAction = callResult.length > 0;
-  const canSave = hasAction && hasComment && hasDate && !meetingNeedsComment && !saving;
+  const meetingNeedsComment = (plannedMeeting || actualMeeting) && !hasComment;
+  const canSave = hasAction && hasComment && hasDate && !saving;
 
   const handleSave = async () => {
     if (!isDirty || saving) return;
