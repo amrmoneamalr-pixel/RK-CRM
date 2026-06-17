@@ -18,6 +18,35 @@ function FilterSelect({ value, onChange, options, placeholder }) {
   );
 }
 
+function AutocompleteInput({ value, onChange, options, placeholder }) {
+  const [open, setOpen] = React.useState(false);
+  const filtered = value ? options.filter((o) => o.toLowerCase().includes(value.toLowerCase())) : options;
+  return (
+    <div className="relative">
+      <input
+        value={value || ''}
+        onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder={placeholder}
+        className="w-full rounded px-2 py-1 text-xs outline-none"
+        style={{ backgroundColor: C.surface, border: `1px solid ${value ? C.gold : C.border}`, color: value ? C.gold : C.text }}
+      />
+      {open && filtered.length > 0 && (
+        <div className="absolute z-50 top-7 left-0 w-full rounded shadow-lg max-h-40 overflow-y-auto" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
+          {filtered.map((o) => (
+            <div key={o} onMouseDown={() => { onChange(o); setOpen(false); }}
+              className="px-2 py-1.5 text-xs cursor-pointer hover:opacity-80"
+              style={{ color: C.text }}>
+              {o}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Pill({ color, children }) {
   return (
     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap" style={{ backgroundColor: `${color}22`, color }}>
@@ -37,6 +66,8 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   const [activities, setActivities] = useState([]);
   const [owners, setOwners] = useState({});
   const [profilesList, setProfilesList] = useState([]);
+  const [developerList, setDeveloperList] = useState([]);
+  const [projectList, setProjectList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -79,6 +110,10 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
       (p || []).forEach((row) => { map[row.id] = row.is_pool ? 'Unassigned Pool' : (row.full_name || row.username || '—'); });
       setOwners(map);
       setProfilesList(p || []);
+      const { data: devs } = await supabase.from('developers').select('name').order('name');
+      setDeveloperList((devs || []).map((d) => d.name));
+      const { data: projs } = await supabase.from('developer_projects').select('name').order('name');
+      setProjectList((projs || []).map((p) => p.name));
     })();
   }, [hasTeamAccess, userId]);
 
@@ -99,6 +134,10 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     if (colFilters.source)     q = q.ilike('source', `%${colFilters.source}%`);
     if (colFilters.stage_category) q = q.ilike('stage_category', `%${colFilters.stage_category}%`);
     if (colFilters.call_result) q = q.ilike('call_result', `%${colFilters.call_result}%`);
+    if (colFilters.assigned_to) {
+      const matchedId = Object.entries(owners).find(([, name]) => name === colFilters.assigned_to)?.[0];
+      if (matchedId) q = q.eq('owner_id', matchedId);
+    }
     if (colFilters.lead_origin) q = q.ilike('lead_origin', `%${colFilters.lead_origin}%`);
     if (colFilters.created_from) q = q.gte('created_at', colFilters.created_from);
     if (colFilters.created_to)   q = q.lte('created_at', colFilters.created_to + 'T23:59:59');
@@ -469,7 +508,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                 <td className="py-1.5 px-2"><input value={pendingCols.phone||''} onChange={setCol('phone')} placeholder="Phone..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
                 <td className="py-1.5 px-2"><FilterSelect value={pendingCols.stage_category} onChange={(v) => setPendingCols((p) => ({ ...p, stage_category: v }))} options={['New Fresh Lead','Old Fresh Lead','Cold Calls','Old Campaign']} placeholder="All Stages" /></td>
                 <td className="py-1.5 px-2"><FilterSelect value={pendingCols.status} onChange={(v) => setPendingCols((p) => ({ ...p, status: v }))} options={['New','Contacted','Re-rotation','Not Interested','Not Qualified','Deal']} placeholder="All Statuses" /></td>
-                {hasTeamAccess && <td className="py-1.5 px-2"><input value={pendingCols.assigned_to||''} onChange={setCol('assigned_to')} placeholder="Assigned to..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>}
+                {hasTeamAccess && <td className="py-1.5 px-2"><FilterSelect value={pendingCols.assigned_to} onChange={(v) => setPendingCols((p) => ({ ...p, assigned_to: v }))} options={profilesList.filter((p) => !p.is_pool).map((p) => p.full_name || p.username)} placeholder="All Users" /></td>}
                   {hasTeamAccess && <td className="py-1.5 px-2"><FilterSelect value={pendingCols.lead_origin} onChange={(v) => setPendingCols((p) => ({ ...p, lead_origin: v }))} options={LEAD_ORIGINS} placeholder="All Origins" /></td>}
                 <td className="py-1.5 px-2"><FilterSelect value={pendingCols.source} onChange={(v) => setPendingCols((p) => ({ ...p, source: v }))} options={SOURCES} placeholder="All Sources" /></td>
                 <td className="py-1.5 px-2">
@@ -480,8 +519,8 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                     placeholder="Created range..."
                   />
                 </td>
-                <td className="py-1.5 px-2"><input value={pendingCols.developer||''} onChange={setCol('developer')} placeholder="Developer..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
-                <td className="py-1.5 px-2"><input value={pendingCols.project||''} onChange={setCol('project')} placeholder="Project..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
+                <td className="py-1.5 px-2"><AutocompleteInput value={pendingCols.developer} onChange={(v) => setPendingCols((p) => ({ ...p, developer: v }))} options={developerList} placeholder="Developer..." /></td>
+                <td className="py-1.5 px-2"><AutocompleteInput value={pendingCols.project} onChange={(v) => setPendingCols((p) => ({ ...p, project: v }))} options={projectList} placeholder="Project..." /></td>
                 <td className="py-1.5 px-2"><FilterSelect value={pendingCols.location} onChange={(v) => setPendingCols((p) => ({ ...p, location: v }))} options={LOCATIONS} placeholder="All Locations" /></td>
                 <td className="py-1.5 px-2"><FilterSelect value={pendingCols.call_result} onChange={(v) => setPendingCols((p) => ({ ...p, call_result: v }))} options={ACTIONS} placeholder="All Actions" /></td>
                 <td className="py-1.5 px-2"></td>
