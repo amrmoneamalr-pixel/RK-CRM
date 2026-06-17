@@ -526,7 +526,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
       {editTarget && <ClientModal mode="edit" userId={userId} client={editTarget} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setEditTarget(null)} onSaved={load} />}
       {actionTarget && (() => {
         const idx = clients.findIndex((c) => c.id === actionTarget.id);
-        const nextClient = clients[idx + 1] || null;
+        const nextClient = idx >= 0 && idx < clients.length - 1 ? clients[idx + 1] : null;
         return (
           <ClientModal
             mode="detail"
@@ -537,7 +537,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
             autoFocusActivity={!isAdmin}
             onClose={() => setActionTarget(null)}
             onSaved={load}
-            onNext={nextClient ? () => setActionTarget(nextClient) : null}
+            onNext={nextClient ? () => { load(); setActionTarget(nextClient); } : null}
           />
         );
       })()}

@@ -549,7 +549,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
     setPlannedMeeting(false);
     setActualMeeting(false);
     onSaved();
-    onClose();
+    if (onNext) onNext(); else onClose();
   };
 
   const st = stageOf(client.stage);
