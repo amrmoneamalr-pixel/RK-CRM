@@ -499,7 +499,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
   const canSave = hasAction && hasComment && hasDate && !saving;
 
   const handleSave = async () => {
-    if (!isDirty || saving) return;
+    if (!canSave) return;
     setSaving(true);
 
     const patch = {};
