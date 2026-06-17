@@ -2,6 +2,16 @@ import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import { C, STAGES, SOURCES, LEAD_ORIGINS, TOP_MANAGEMENT_NAMES, ACTIONS, DEVELOPERS, LOCATIONS, fmtMoney, fmtDate, fmtTime, todayStr, stageOf, waLink } from './constants';
 
+const stageCategoryToStage = (cat) => {
+  switch (cat) {
+    case 'Cold Calls': return 'contacted';
+    case 'New Fresh Lead':
+    case 'Old Fresh Lead':
+    case 'Old Campaign':
+    default: return 'new';
+  }
+};
+
 const extractComment = (notes) => {
   if (!notes) return '';
   // Remove leading 'Action: X\n' line if present, return the rest
@@ -151,10 +161,11 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
       project: form.project || null,
       source: form.source || null,
       stage_category: form.stage_category || null,
+      stage: stageCategoryToStage(form.stage_category),
       lead_origin: form.lead_origin || null,
       origin_name: form.lead_origin === 'Marketing' || form.lead_origin === 'Top Management' ? (form.origin_name || null) : null,
       location: form.location || null,
-      stage: 'new',
+      stage: stageCategoryToStage(form.stage_category),
       potential: form.potential,
     });
     setSaving(false);
@@ -311,6 +322,7 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
       project: form.project || null,
       source: form.source || null,
       stage_category: form.stage_category || null,
+      stage: stageCategoryToStage(form.stage_category),
       lead_origin: form.lead_origin || null,
       origin_name: form.lead_origin === 'Marketing' || form.lead_origin === 'Top Management' ? (form.origin_name || null) : null,
       location: form.location || null,
