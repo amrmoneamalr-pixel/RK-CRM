@@ -4,7 +4,6 @@ import Login from './Login';
 import Layout from './Layout';
 import Dashboard from './Dashboard';
 import ClientsBoard from './ClientsBoard';
-import DevelopersBoard from './DevelopersBoard';
 import FollowUps from './FollowUps';
 import Targets from './Targets';
 import Reports from './Reports';
@@ -14,7 +13,7 @@ import Activity from './Activity';
 import Settings from './Settings';
 import { C } from './constants';
 
-const VALID_TABS = ['dashboard', 'clients', 'developers', 'orgchart', 'followups', 'targets', 'reports', 'activity', 'team', 'settings'];
+const VALID_TABS = ['dashboard', 'clients', 'orgchart', 'followups', 'targets', 'reports', 'activity', 'team', 'settings'];
 
 const tabFromHash = () => {
   const h = window.location.hash.replace('#', '');
@@ -133,16 +132,14 @@ export default function App() {
   }
 
   const isAdmin = profile.role === 'admin';
-  const hasTeamAccess = isAdmin || ['sales_manager', 'team_leader'].includes(profile.title);
-  const hasDeveloperAccess = isAdmin || profile.title === 'operation';
+  const hasTeamAccess = isAdmin || ['sales_manager', 'team_leader', 'top_management'].includes(profile.title);
 
   return (
     <Layout profile={profile} tab={tab} setTab={handleSetTab} onSelectCategory={selectLeadCategory} onSignOut={handleSignOut}>
       {tab === 'dashboard' && <Dashboard userId={session.user.id} />}
       {tab === 'clients' && <ClientsBoard userId={session.user.id} isAdmin={isAdmin} hasTeamAccess={hasTeamAccess} leadFilter={leadFilter} onClearLeadFilter={() => setLeadFilter(null)} />}
-      {tab === 'developers' && hasDeveloperAccess && <DevelopersBoard />}
       {tab === 'orgchart' && <OrgChart isAdmin={isAdmin} />}
-      {tab === 'followups' && <FollowUps userId={session.user.id} />}
+      {tab === 'followups' && <FollowUps userId={session.user.id} isAdmin={isAdmin} hasTeamAccess={hasTeamAccess} />}
       {tab === 'targets' && <Targets userId={session.user.id} />}
       {tab === 'reports' && hasTeamAccess && <Reports />}
       {tab === 'team' && isAdmin && <TeamPage currentUserId={session.user.id} currentUserTitle={profile.title} />}
