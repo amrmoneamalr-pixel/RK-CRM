@@ -108,10 +108,10 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
       (p || []).forEach((row) => { map[row.id] = row.is_pool ? 'Unassigned Pool' : (row.full_name || row.username || '—'); });
       setOwners(map);
       setProfilesList(p || []);
-      const { data: devs } = await supabase.from('developers').select('name').order('name');
+      const { data: devs } = await supabase.from('developers').select('id, name').order('name');
       setDeveloperList((devs || []).map((d) => d.name));
-      const { data: projs } = await supabase.from('developer_projects').select('name').order('name');
-      setProjectList((projs || []).map((p) => p.name));
+      const { data: projs } = await supabase.from('developer_projects').select('id, name, location, developer_id').order('name');
+      setProjectList(projs || []);
     })();
   }, [hasTeamAccess, userId]);
 
@@ -505,9 +505,13 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                     placeholder="Created range..."
                   />
                 </td>
-                <td className="py-1.5 px-2"><AutocompleteInput value={pendingCols.developer} onChange={(v) => setPendingCols((p) => ({ ...p, developer: v }))} options={developerList} placeholder="Developer..." /></td>
-                <td className="py-1.5 px-2"><AutocompleteInput value={pendingCols.project} onChange={(v) => setPendingCols((p) => ({ ...p, project: v }))} options={projectList} placeholder="Project..." /></td>
-                <td className="py-1.5 px-2"><FilterSelect value={pendingCols.location} onChange={(v) => setPendingCols((p) => ({ ...p, location: v }))} options={LOCATIONS} placeholder="All Locations" /></td>
+                <td className="py-1.5 px-2"><AutocompleteInput value={pendingCols.developer} onChange={(v) => setPendingCols((p) => ({ ...p, developer: v, project: '' }))} options={developerList} placeholder="Developer..." /></td>
+                <td className="py-1.5 px-2"><AutocompleteInput value={pendingCols.project} onChange={(v) => setPendingCols((p) => ({ ...p, project: v }))} options={
+                  projectList
+                    .filter((p) => !pendingCols.location || p.location === pendingCols.location)
+                    .map((p) => p.name)
+                } placeholder="Project..." /></td>
+                <td className="py-1.5 px-2"><FilterSelect value={pendingCols.location} onChange={(v) => setPendingCols((p) => ({ ...p, location: v, project: '' }))} options={LOCATIONS} placeholder="All Locations" /></td>
                 <td className="py-1.5 px-2"><FilterSelect value={pendingCols.call_result} onChange={(v) => setPendingCols((p) => ({ ...p, call_result: v }))} options={ACTIONS} placeholder="All Actions" /></td>
                 <td className="py-1.5 px-2"></td>
                 <td className="py-1.5 px-2"></td>
