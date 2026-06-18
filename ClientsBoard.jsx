@@ -402,6 +402,14 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
 </>
           )}
           <span className="flex-1" />
+          <button onClick={applyColFilters} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: C.gold, color: '#14181F' }}>
+            <Search size={13} /> Search
+          </button>
+          {(hasColFilters || hasPendingFilters) && (
+            <button onClick={clearColFilters} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.muted }}>
+              <X size={13} /> Clear
+            </button>
+          )}
           {isAdmin && (
             <>
               <button onClick={exportCsv} disabled={exporting} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0 disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
@@ -526,12 +534,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                   />
                 </td>
                 <td className="py-1.5 px-2"></td>
-                <td className="py-1.5 px-2">
-                  <div className="flex gap-1">
-                    <button onClick={applyColFilters} className="px-2 py-1 rounded text-xs font-bold whitespace-nowrap" style={{ backgroundColor: C.gold, color: '#14181F' }}>Search</button>
-                    {hasColFilters && <button onClick={clearColFilters} className="px-2 py-1 rounded text-xs whitespace-nowrap" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.muted }}>Clear</button>}
-                  </div>
-                </td>
+                <td className="py-1.5 px-2"></td>
               </tr>
                 {clients.map((c) => {
                   const cat = leadCategory(c);
