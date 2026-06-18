@@ -1,14 +1,15 @@
 import React from 'react';
 import { C } from './constants';
 import logo from './logo.png';
-import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, Activity as ActivityIcon, Settings as SettingsIcon } from 'lucide-react';
+import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, Activity as ActivityIcon, Settings as SettingsIcon, Building2 } from 'lucide-react';
 import LeadPanels from './LeadPanels';
 
 export default function Layout({ profile, tab, setTab, onSelectCategory, onSignOut, children }) {
   const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-    { id: 'clients', label: 'Clients', icon: Users },
-    { id: 'orgchart', label: 'Company Structure', icon: Network },
+    { id: 'dashboard',  label: 'Dashboard',         icon: BarChart3 },
+    { id: 'clients',    label: 'Clients',            icon: Users },
+    { id: 'developers', label: 'Developers',         icon: Building2 },
+    { id: 'orgchart',   label: 'Company Structure',  icon: Network },
   ];
   const isAdmin = profile.role === 'admin';
   const hasTeamAccess = isAdmin || ['sales_manager', 'team_leader', 'top_management'].includes(profile.title);
