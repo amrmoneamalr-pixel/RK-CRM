@@ -235,12 +235,6 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
             </select>
           </Field>
         )}
-        <Field label="Location">
-          <select value={form.location || ''} onChange={set('location')} className={inputClass} style={inputStyle}>
-            <option value="">—</option>
-            {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
-          </select>
-        </Field>
         {isAdmin && profilesList && profilesList.length > 0 && (
           <Field label="Assigned To">
             <select value={form.owner_id} onChange={set('owner_id')} className={inputClass} style={inputStyle}>
@@ -408,12 +402,6 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
             </select>
           </Field>
         )}
-        <Field label="Location">
-          <select value={form.location || ''} onChange={set('location')} className={inputClass} style={inputStyle}>
-            <option value="">—</option>
-            {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
-          </select>
-        </Field>
         {profilesList && profilesList.length > 0 && (
           <Field label="Assigned To">
             <select value={form.owner_id} onChange={set('owner_id')} className={inputClass} style={inputStyle}>
