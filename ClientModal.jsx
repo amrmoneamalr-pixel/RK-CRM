@@ -127,7 +127,7 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
     lead_origin: '',
     origin_name: '',
     location: '',
-    owner_id: userId,
+    owner_id: '',
     potential: false,
   });
   const [saving, setSaving] = useState(false);
