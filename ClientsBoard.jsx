@@ -505,12 +505,14 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                     placeholder="Created range..."
                   />
                 </td>
-                <td className="py-1.5 px-2"><AutocompleteInput value={pendingCols.developer} onChange={(v) => setPendingCols((p) => ({ ...p, developer: v, project: '' }))} options={developerList} placeholder="Developer..." /></td>
-                <td className="py-1.5 px-2"><AutocompleteInput value={pendingCols.project} onChange={(v) => setPendingCols((p) => ({ ...p, project: v }))} options={
-                  projectList
+                <td className="py-1.5 px-2"><AutocompleteInput value={pendingCols.developer} onChange={(v) => setPendingCols((p) => ({ ...p, developer: v, project: '' }))} options={developerList.map ? developerList.map((d) => typeof d === 'string' ? d : d.name) : []} placeholder="Developer..." /></td>
+                <td className="py-1.5 px-2"><AutocompleteInput value={pendingCols.project} onChange={(v) => setPendingCols((p) => ({ ...p, project: v }))} options={(() => {
+                  const selDev = developerList.find((d) => (typeof d === 'string' ? d : d.name) === pendingCols.developer);
+                  return projectList
                     .filter((p) => !pendingCols.location || p.location === pendingCols.location)
-                    .map((p) => p.name)
-                } placeholder="Project..." /></td>
+                    .filter((p) => !selDev || p.developer_id === selDev.id)
+                    .map((p) => p.name);
+                })()} placeholder="Project..." /></td>
                 <td className="py-1.5 px-2"><FilterSelect value={pendingCols.location} onChange={(v) => setPendingCols((p) => ({ ...p, location: v, project: '' }))} options={LOCATIONS} placeholder="All Locations" /></td>
                 <td className="py-1.5 px-2"><FilterSelect value={pendingCols.call_result} onChange={(v) => setPendingCols((p) => ({ ...p, call_result: v }))} options={ACTIONS} placeholder="All Actions" /></td>
                 <td className="py-1.5 px-2"></td>

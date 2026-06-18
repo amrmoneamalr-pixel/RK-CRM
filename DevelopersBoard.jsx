@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
 import { C, LOCATIONS } from './constants';
-import { ChevronRight, ChevronDown, Plus, Trash2, MapPin } from 'lucide-react';
+import { ChevronRight, ChevronDown, Plus, Trash2, MapPin, Pencil } from 'lucide-react';
 
 export default function DevelopersBoard({ isAdmin }) {
   const [developers, setDevelopers] = useState([]);
@@ -10,6 +10,7 @@ export default function DevelopersBoard({ isAdmin }) {
   const [loading, setLoading] = useState(true);
   const [newDevName, setNewDevName] = useState('');
   const [newProj, setNewProj] = useState({});   // { devId: { name, location } }
+  const [editingProj, setEditingProj] = useState(null); // { id, name, location }
 
   useEffect(() => { load(); }, []);
 
@@ -47,6 +48,13 @@ export default function DevelopersBoard({ isAdmin }) {
 
   const deleteProject = async (id) => {
     await supabase.from('developer_projects').delete().eq('id', id);
+    load();
+  };
+
+  const saveEditProject = async () => {
+    if (!editingProj?.name?.trim() || !editingProj?.location) return;
+    await supabase.from('developer_projects').update({ name: editingProj.name.trim(), location: editingProj.location }).eq('id', editingProj.id);
+    setEditingProj(null);
     load();
   };
 
@@ -113,21 +121,48 @@ export default function DevelopersBoard({ isAdmin }) {
               {isOpen && (
                 <div className="px-4 pb-3 pt-2 space-y-2" style={{ backgroundColor: C.bg }}>
                   {devProjects.map((p) => (
-                    <div key={p.id} className="flex items-center justify-between rounded-lg px-3 py-2" style={{ backgroundColor: C.surface }}>
-                      <div>
-                        <span className="text-sm font-medium">{p.name}</span>
-                        {p.location && (
-                          <span className="ml-2 text-xs flex items-center gap-1 inline-flex" style={{ color: C.muted }}>
-                            <MapPin size={11} /> {p.location}
-                          </span>
+                    editingProj?.id === p.id ? (
+                      <div key={p.id} className="flex gap-2 items-center rounded-lg px-3 py-2" style={{ backgroundColor: C.surface, border: `1px solid ${C.gold}` }}>
+                        <input
+                          value={editingProj.name}
+                          onChange={(e) => setEditingProj((prev) => ({ ...prev, name: e.target.value }))}
+                          className="flex-1 rounded px-2 py-1 text-xs outline-none"
+                          style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text }}
+                        />
+                        <select
+                          value={editingProj.location}
+                          onChange={(e) => setEditingProj((prev) => ({ ...prev, location: e.target.value }))}
+                          className="rounded px-2 py-1 text-xs outline-none"
+                          style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text }}
+                        >
+                          <option value="">Location *</option>
+                          {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
+                        </select>
+                        <button onClick={saveEditProject} className="px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: C.gold, color: '#14181F' }}>Save</button>
+                        <button onClick={() => setEditingProj(null)} className="px-2 py-1 rounded text-xs" style={{ backgroundColor: C.surface, color: C.muted, border: `1px solid ${C.border}` }}>Cancel</button>
+                      </div>
+                    ) : (
+                      <div key={p.id} className="flex items-center justify-between rounded-lg px-3 py-2" style={{ backgroundColor: C.surface }}>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">{p.name}</span>
+                          {p.location && (
+                            <span className="text-xs flex items-center gap-1" style={{ color: C.muted }}>
+                              <MapPin size={11} /> {p.location}
+                            </span>
+                          )}
+                        </div>
+                        {isAdmin && (
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => setEditingProj({ id: p.id, name: p.name, location: p.location || '' })} className="opacity-40 hover:opacity-100">
+                              <Pencil size={13} style={{ color: C.muted }} />
+                            </button>
+                            <button onClick={() => deleteProject(p.id)} className="opacity-40 hover:opacity-100">
+                              <Trash2 size={13} style={{ color: '#C9714F' }} />
+                            </button>
+                          </div>
                         )}
                       </div>
-                      {isAdmin && (
-                        <button onClick={() => deleteProject(p.id)} className="opacity-40 hover:opacity-100">
-                          <Trash2 size={13} style={{ color: '#C9714F' }} />
-                        </button>
-                      )}
-                    </div>
+                    )
                   ))}
 
                   {/* Add project */}
