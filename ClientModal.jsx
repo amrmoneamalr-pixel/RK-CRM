@@ -194,7 +194,15 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
           </select>
         </Field>
         <Field label="Project Name *">
-          <select value={form.project} onChange={(e) => { const proj = projectOptions.find((p) => p.name === e.target.value); setForm((f) => ({ ...f, project: e.target.value, location: proj?.location || f.location })); }} className={inputClass} style={inputStyle} disabled={!form.developer}>
+          <select value={form.project} onChange={async (e) => { 
+              const name = e.target.value; 
+              const proj = projectOptions.find((p) => p.name === name); 
+              if (proj && !proj.location) {
+                const { data } = await supabase.from('developer_projects').select('location').eq('id', proj.id).single();
+                proj.location = data?.location || null;
+              }
+              setForm((f) => ({ ...f, project: name, location: proj?.location || null })); 
+            }} className={inputClass} style={inputStyle} disabled={!form.developer}>
             <option value="">— Select Project —</option>
             {projectOptions.map((p) => <option key={p.id} value={p.name}>{p.name}{p.location ? ` — ${p.location}` : ''}</option>)}
           </select>
@@ -361,7 +369,15 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
           </select>
         </Field>
         <Field label="Project Name *">
-          <select value={form.project} onChange={(e) => { const proj = projectOptions.find((p) => p.name === e.target.value); setForm((f) => ({ ...f, project: e.target.value, location: proj?.location || f.location })); }} className={inputClass} style={inputStyle} disabled={!form.developer}>
+          <select value={form.project} onChange={async (e) => { 
+              const name = e.target.value; 
+              const proj = projectOptions.find((p) => p.name === name); 
+              if (proj && !proj.location) {
+                const { data } = await supabase.from('developer_projects').select('location').eq('id', proj.id).single();
+                proj.location = data?.location || null;
+              }
+              setForm((f) => ({ ...f, project: name, location: proj?.location || null })); 
+            }} className={inputClass} style={inputStyle} disabled={!form.developer}>
             <option value="">— Select Project —</option>
             {projectOptions.map((p) => <option key={p.id} value={p.name}>{p.name}{p.location ? ` — ${p.location}` : ''}</option>)}
           </select>
