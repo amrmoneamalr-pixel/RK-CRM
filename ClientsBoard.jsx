@@ -463,8 +463,8 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
       ) : (
         <>
           {/* Table */}
-          <div className="rounded-xl overflow-x-auto" style={{ border: `1px solid ${C.border}` }}>
-            <table className="text-sm" style={{ minWidth: hasTeamAccess ? '1800px' : '1500px', width: '100%' }}>
+          <div className="rounded-xl overflow-x-auto" style={{ border: `1px solid ${C.border}`, minHeight: "calc(100vh - 280px)" }}>
+            <table className="text-sm" style={{ minWidth: hasTeamAccess ? "1800px" : "1500px", width: "100%" }}>
               <thead>
                 <tr style={{ backgroundColor: C.surface, color: C.muted }} className="text-left text-xs">
                   <th className="py-2.5 px-3 font-medium w-8">
@@ -569,7 +569,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                           <MessageSquarePlus size={14} style={{ color: C.gold }} />
                         ) : null}
                       </td>
-                      <td className="py-2.5 px-3 font-medium whitespace-nowrap">{c.name}</td>
+                      <td className="py-2.5 px-3 font-medium truncate max-w-0">{c.name}</td>
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.phone || '—'}</td>
                       <td className="py-2.5 px-3"><Pill color={stageColor}>{stageLabel}</Pill></td>
                       <td className="py-2.5 px-3">
@@ -583,7 +583,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                       <td className="py-2.5 px-3 whitespace-nowrap">{c.project || '—'}</td>
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.location || '—'}</td>
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.call_result || '—'}</td>
-                      <td className="py-2.5 px-3 max-w-[200px] truncate" style={{ color: C.muted }}>{last?.notes ? last.notes.split('\n').find(l => !l.startsWith('Action: ') && l.trim()) || '—' : '—'}</td>
+                      <td className="py-2.5 px-3 truncate max-w-0" style={{ color: C.muted }}>{last?.notes ? last.notes.split('\n').find(l => !l.startsWith('Action: ') && l.trim()) || '—' : '—'}</td>
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{last ? fmtDate(last.date) : '—'}</td>
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: c.next_follow_up && c.next_follow_up < todayStr() ? '#C9714F' : C.muted }}>
                         {c.next_follow_up ? fmtDate(c.next_follow_up) : '—'}
