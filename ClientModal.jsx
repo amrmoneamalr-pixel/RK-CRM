@@ -152,7 +152,7 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
 
   const save = async () => {
     setSaving(true);
-    await supabase.from('clients').insert({
+    const { error } = await supabase.from('clients').insert({
       owner_id: form.owner_id || userId,
       name: form.name,
       phone: form.phone || null,
@@ -168,6 +168,7 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
       potential: form.potential,
     });
     setSaving(false);
+    if (error) { alert('Error: ' + error.message); return; }
     onSaved();
     onClose();
   };
