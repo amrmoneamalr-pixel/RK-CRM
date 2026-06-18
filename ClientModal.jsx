@@ -172,7 +172,7 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
     onClose();
   };
 
-  const required = form.name.trim() && form.phone.trim() && form.developer && form.project && form.source;
+  const required = form.name.trim().length > 0;
 
   return (
     <Modal title="New Lead" onClose={onClose}>
@@ -339,7 +339,7 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
     onClose();
   };
 
-  const required = form.name.trim() && form.phone.trim() && form.developer && form.project && form.source;
+  const required = form.name.trim().length > 0;
 
   return (
     <Modal title="Edit Lead" onClose={onClose}>
