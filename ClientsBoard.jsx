@@ -463,8 +463,8 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
       ) : (
         <>
           {/* Table */}
-          <div className="rounded-xl overflow-x-auto" style={{ border: `1px solid ${C.border}`, minHeight: "calc(100vh - 280px)", display: 'flex', flexDirection: 'column' }}>
-            <table className="text-sm" style={{ minWidth: hasTeamAccess ? "1800px" : "1500px", width: "100%", flex: 1 }}>
+          <div className="rounded-xl overflow-x-auto" style={{ border: `1px solid ${C.border}` }}>
+            <table className="text-sm" style={{ minWidth: hasTeamAccess ? "1800px" : "1500px", width: "100%" }}>
               <thead>
                 <tr style={{ backgroundColor: C.surface, color: C.muted }} className="text-left text-xs">
                   <th className="py-2.5 px-3 font-medium w-8">
