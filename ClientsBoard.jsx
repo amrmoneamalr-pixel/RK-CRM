@@ -109,7 +109,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
       setOwners(map);
       setProfilesList(p || []);
       const { data: devs } = await supabase.from('developers').select('id, name').order('name');
-      setDeveloperList((devs || []).map((d) => d.name));
+      setDeveloperList(devs || []);
       const { data: projs } = await supabase.from('developer_projects').select('id, name, location, developer_id').order('name');
       setProjectList(projs || []);
     })();
@@ -505,9 +505,9 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                     placeholder="Created range..."
                   />
                 </td>
-                <td className="py-1.5 px-2"><AutocompleteInput value={pendingCols.developer} onChange={(v) => setPendingCols((p) => ({ ...p, developer: v, project: '' }))} options={developerList.map ? developerList.map((d) => typeof d === 'string' ? d : d.name) : []} placeholder="Developer..." /></td>
+                <td className="py-1.5 px-2"><AutocompleteInput value={pendingCols.developer} onChange={(v) => setPendingCols((p) => ({ ...p, developer: v, project: '' }))} options={developerList.map((d) => d.name)} placeholder="Developer..." /></td>
                 <td className="py-1.5 px-2"><AutocompleteInput value={pendingCols.project} onChange={(v) => setPendingCols((p) => ({ ...p, project: v }))} options={(() => {
-                  const selDev = developerList.find((d) => (typeof d === 'string' ? d : d.name) === pendingCols.developer);
+                  const selDev = developerList.find((d) => d.name === pendingCols.developer);
                   return projectList
                     .filter((p) => !pendingCols.location || p.location === pendingCols.location)
                     .filter((p) => !selDev || p.developer_id === selDev.id)
