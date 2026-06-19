@@ -155,6 +155,48 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     if (colFilters.created_to)   q = q.lte('created_at', colFilters.created_to + 'T23:59:59');
     if (colFilters.followup_from) q = q.gte('next_follow_up', colFilters.followup_from);
     if (colFilters.followup_to)   q = q.lte('next_follow_up', colFilters.followup_to);
+    if (colFilters.country) {
+      const COUNTRY_PREFIXES = {
+        'Egypt': ['20','010','011','012','015'],
+        'Saudi Arabia': ['966','05'],
+        'UAE': ['971'],
+        'Kuwait': ['965'],
+        'Qatar': ['974'],
+        'Bahrain': ['973'],
+        'Oman': ['968'],
+        'Jordan': ['962'],
+        'Lebanon': ['961'],
+        'Iraq': ['964'],
+        'Libya': ['218'],
+        'Tunisia': ['216'],
+        'Algeria': ['213'],
+        'Morocco': ['212'],
+        'Sudan': ['249'],
+        'Yemen': ['967'],
+        'Palestine': ['970'],
+        'Turkey': ['90'],
+        'UK': ['44'],
+        'Germany': ['49'],
+        'France': ['33'],
+        'Italy': ['39'],
+        'Spain': ['34'],
+        'USA': ['1'],
+        'Russia': ['7'],
+        'India': ['91'],
+        'Pakistan': ['92'],
+        'China': ['86'],
+        'Australia': ['61'],
+        'Nigeria': ['234'],
+        'South Africa': ['27'],
+        'Kenya': ['254'],
+        'Ghana': ['233'],
+      };
+      const prefixes = COUNTRY_PREFIXES[colFilters.country];
+      if (prefixes) {
+        const orClauses = prefixes.map(p => `phone.ilike.${p}%`).join(',');
+        q = q.or(orClauses);
+      }
+    }
 
     if (leadFilter) {
       const today = todayStr();
@@ -347,10 +389,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   const hasColFilters = Object.values(colFilters).some(Boolean);
   const hasPendingFilters = Object.values(pendingCols).some(Boolean);
   const noFiltersActive = !search && !leadFilter && stageFilter === 'all' && !hasColFilters && !hasPendingFilters;
-  // Country filter applied client-side
-  const filteredClients = colFilters.country
-    ? clients.filter((c) => detectCountry(c.phone).name === colFilters.country)
-    : clients;
+
 
   if (totalCount === 0 && !loading && noFiltersActive && !showAdd) {
     return (
@@ -521,7 +560,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                 <td className="py-1.5 px-2 w-8"></td>
                 <td className="py-1.5 px-2 w-8"></td>
                 <td className="py-1.5 px-2"><input value={pendingCols.name||''} onChange={setCol('name')} placeholder="Name..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
-                <td className="py-1.5 px-2"><FilterSelect value={pendingCols.country} onChange={(v) => setPendingCols((p) => ({ ...p, country: v }))} options={[...new Set(clients.map(c => detectCountry(c.phone).name))].sort()} placeholder="All Countries" /></td>
+                <td className="py-1.5 px-2"><FilterSelect value={pendingCols.country} onChange={(v) => setPendingCols((p) => ({ ...p, country: v }))} options={['Algeria','Australia','Bahrain','Brazil','Canada','China','Denmark','Egypt','Ethiopia','France','Germany','Ghana','India','Indonesia','Iraq','Italy','Japan','Jordan','Kenya','Kuwait','Lebanon','Libya','Malaysia','Mexico','Morocco','Netherlands','Nigeria','Norway','Oman','Pakistan','Palestine','Poland','Qatar','Russia','Saudi Arabia','Singapore','South Africa','Spain','Sudan','Sweden','Switzerland','Thailand','Tunisia','Turkey','UAE','UK','USA','Yemen']} placeholder="All Countries" /></td>
                 <td className="py-1.5 px-2"><input value={pendingCols.phone||''} onChange={setCol('phone')} placeholder="Phone..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
                 <td className="py-1.5 px-2"><FilterSelect value={pendingCols.stage_category} onChange={(v) => setPendingCols((p) => ({ ...p, stage_category: v }))} options={['New Fresh Lead','Old Fresh Lead','Cold Calls','Old Campaign']} placeholder="All Stages" /></td>
                 <td className="py-1.5 px-2"><FilterSelect value={pendingCols.status} onChange={(v) => setPendingCols((p) => ({ ...p, status: v }))} options={['New','Contacted','Re-rotation','Not Interested','Not Qualified','Deal']} placeholder="All Statuses" /></td>
@@ -559,7 +598,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                 <td className="py-1.5 px-2"></td>
                 <td className="py-1.5 px-2"></td>
               </tr>
-                {filteredClients.map((c) => {
+                {clients.map((c) => {
                   const cat = leadCategory(c);
                   const stat = clientStatus(c);
                   // Stage category: use manual value but auto-upgrade New Fresh → Old Fresh after 7 days
