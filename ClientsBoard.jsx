@@ -6,7 +6,6 @@ import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight, X, Pe
 import ClientModal from './ClientModal';
 import { SourceTag } from './BrandIcons';
 import PhoneFlag, { detectCountry } from './PhoneFlag';
-import { getCountries } from 'libphonenumber-js';
 import DateRangePicker from './DateRangePicker';
 
 function FilterSelect({ value, onChange, options, placeholder }) {
@@ -522,7 +521,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                 <td className="py-1.5 px-2 w-8"></td>
                 <td className="py-1.5 px-2 w-8"></td>
                 <td className="py-1.5 px-2"><input value={pendingCols.name||''} onChange={setCol('name')} placeholder="Name..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
-                <td className="py-1.5 px-2"><FilterSelect value={pendingCols.country} onChange={(v) => setPendingCols((p) => ({ ...p, country: v }))} options={(() => { try { const r = new Intl.DisplayNames(['en'],{type:'region'}); return [...new Set(clients.map(c => detectCountry(c.phone).name))].sort(); } catch(e) { return []; } })()} placeholder="All Countries" /></td>
+                <td className="py-1.5 px-2"><FilterSelect value={pendingCols.country} onChange={(v) => setPendingCols((p) => ({ ...p, country: v }))} options={[...new Set(clients.map(c => detectCountry(c.phone).name))].sort()} placeholder="All Countries" /></td>
                 <td className="py-1.5 px-2"><input value={pendingCols.phone||''} onChange={setCol('phone')} placeholder="Phone..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
                 <td className="py-1.5 px-2"><FilterSelect value={pendingCols.stage_category} onChange={(v) => setPendingCols((p) => ({ ...p, stage_category: v }))} options={['New Fresh Lead','Old Fresh Lead','Cold Calls','Old Campaign']} placeholder="All Stages" /></td>
                 <td className="py-1.5 px-2"><FilterSelect value={pendingCols.status} onChange={(v) => setPendingCols((p) => ({ ...p, status: v }))} options={['New','Contacted','Re-rotation','Not Interested','Not Qualified','Deal']} placeholder="All Statuses" /></td>
