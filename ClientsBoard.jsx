@@ -171,17 +171,92 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
 
     if (colFilters.country) {
       const PREFIXES = {
-        'Egypt':['20','010','011','012','015'],'Saudi Arabia':['966','05'],'UAE':['971'],
-        'Kuwait':['965'],'Qatar':['974'],'Bahrain':['973'],'Oman':['968'],
-        'Jordan':['962'],'Lebanon':['961'],'Iraq':['964'],'Libya':['218'],
-        'Tunisia':['216'],'Algeria':['213'],'Morocco':['212'],'Sudan':['249'],
-        'Yemen':['967'],'Palestine':['970'],'Turkey':['90'],'UK':['44'],
-        'Germany':['49'],'France':['33'],'Italy':['39'],'Spain':['34'],
-        'USA':['1'],'Russia':['7'],'India':['91'],'Pakistan':['92'],
-        'China':['86'],'Australia':['61'],'Nigeria':['234'],'South Africa':['27'],
+        // Arab World
+        'Egypt':['20','010','011','012','015'],
+        'Saudi Arabia':['9665','9666','9661'],
+        'UAE':['9715','9714','9712'],
+        'Kuwait':['9655','9656','9659'],
+        'Qatar':['974'],
+        'Bahrain':['973'],
+        'Oman':['9689','9677'],
+        'Jordan':['96279','96278','96277'],
+        'Lebanon':['9613','9617','9618'],
+        'Iraq':['9647','9641'],
+        'Libya':['218'],
+        'Tunisia':['216'],
+        'Algeria':['213'],
+        'Morocco':['212'],
+        'Sudan':['249'],
+        'Yemen':['967'],
+        'Palestine':['970'],
+        'Syria':['963'],
+        // Europe
+        'Turkey':['90'],
+        'UK':['44'],
+        'Germany':['49'],
+        'France':['33'],
+        'Italy':['39'],
+        'Spain':['34'],
+        'Netherlands':['31'],
+        'Belgium':['32'],
+        'Switzerland':['41'],
+        'Sweden':['46'],
+        'Norway':['47'],
+        'Denmark':['45'],
+        'Poland':['48'],
+        'Portugal':['351'],
+        'Greece':['30'],
+        'Czech Republic':['420'],
+        'Romania':['40'],
+        'Hungary':['36'],
+        'Austria':['43'],
+        'Finland':['358'],
+        'Ireland':['353'],
+        // Americas
+        'USA':['1'],
+        'Canada':['1'],
+        'Brazil':['55'],
+        'Mexico':['52'],
+        'Argentina':['54'],
+        'Colombia':['57'],
+        'Chile':['56'],
+        'Peru':['51'],
+        // Asia
+        'Russia':['7'],
+        'India':['91'],
+        'Pakistan':['92'],
+        'China':['86'],
+        'Japan':['81'],
+        'South Korea':['82'],
+        'Indonesia':['62'],
+        'Malaysia':['60'],
+        'Singapore':['65'],
+        'Thailand':['66'],
+        'Philippines':['63'],
+        'Vietnam':['84'],
+        'Bangladesh':['880'],
+        'Sri Lanka':['94'],
+        'Nepal':['977'],
+        'Kazakhstan':['77','76'],
+        // Africa
+        'Nigeria':['234'],
+        'South Africa':['27'],
+        'Kenya':['254'],
+        'Ethiopia':['251'],
+        'Ghana':['233'],
+        'Tanzania':['255'],
+        'Uganda':['256'],
+        'Senegal':['221'],
+        'Ivory Coast':['225'],
+        // Oceania
+        'Australia':['61'],
+        'New Zealand':['64'],
       };
       const pfx = PREFIXES[colFilters.country];
-      if (pfx) q = q.or(pfx.map(p => `phone.ilike.${p}%`).join(','));
+      if (pfx) {
+        const clauses = pfx.map(p => `phone.ilike.${p}%`).join(',');
+        q = q.or(clauses);
+      }
     }
 
     if (leadFilter) {
@@ -535,7 +610,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                 <td className="py-1.5 px-2 w-8"></td>
                 <td className="py-1.5 px-2 w-8"></td>
                 <td className="py-1.5 px-2"><input value={pendingCols.name||''} onChange={setCol('name')} placeholder="Name..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
-                <td className="py-1.5 px-2"><FilterSelect value={pendingCols.country} onChange={(v) => setPendingCols((p) => ({ ...p, country: v }))} options={['Algeria','Australia','Bahrain','Brazil','Canada','China','Denmark','Egypt','Ethiopia','France','Germany','Ghana','India','Indonesia','Iraq','Italy','Japan','Jordan','Kenya','Kuwait','Lebanon','Libya','Malaysia','Mexico','Morocco','Netherlands','Nigeria','Norway','Oman','Pakistan','Palestine','Poland','Qatar','Russia','Saudi Arabia','Singapore','South Africa','Spain','Sudan','Sweden','Switzerland','Thailand','Tunisia','Turkey','UAE','UK','USA','Yemen']} placeholder="All Countries" /></td>
+                <td className="py-1.5 px-2"><FilterSelect value={pendingCols.country} onChange={(v) => setPendingCols((p) => ({ ...p, country: v }))} options={['Algeria','Argentina','Australia','Austria','Bahrain','Bangladesh','Belgium','Brazil','Canada','Chile','China','Colombia','Czech Republic','Denmark','Egypt','Ethiopia','Finland','France','Germany','Ghana','Greece','Hungary','India','Indonesia','Iraq','Ireland','Italy','Ivory Coast','Japan','Jordan','Kazakhstan','Kenya','Kuwait','Lebanon','Libya','Malaysia','Mexico','Morocco','Nepal','Netherlands','New Zealand','Nigeria','Norway','Oman','Pakistan','Palestine','Peru','Philippines','Poland','Portugal','Qatar','Romania','Russia','Saudi Arabia','Senegal','Singapore','South Africa','South Korea','Spain','Sri Lanka','Sudan','Sweden','Switzerland','Syria','Tanzania','Thailand','Tunisia','Turkey','UAE','Uganda','UK','USA','Vietnam','Yemen']} placeholder="All Countries" /></td>
                 <td className="py-1.5 px-2"><input value={pendingCols.phone||''} onChange={setCol('phone')} placeholder="Phone..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
                 <td className="py-1.5 px-2"><FilterSelect value={pendingCols.stage_category} onChange={(v) => setPendingCols((p) => ({ ...p, stage_category: v }))} options={['New Fresh Lead','Old Fresh Lead','Cold Calls','Old Campaign']} placeholder="All Stages" /></td>
                 <td className="py-1.5 px-2"><FilterSelect value={pendingCols.status} onChange={(v) => setPendingCols((p) => ({ ...p, status: v }))} options={['New','Contacted','Re-rotation','Not Interested','Not Qualified','Deal']} placeholder="All Statuses" /></td>
