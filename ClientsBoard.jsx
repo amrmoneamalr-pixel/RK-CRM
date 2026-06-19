@@ -94,6 +94,19 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     return () => clearTimeout(t);
   }, [searchInput]);
 
+  useEffect(() => {
+    const top = document.getElementById('top-scroll-mirror');
+    const main = document.getElementById('main-table-scroll');
+    const inner = document.getElementById('top-scroll-inner');
+    if (!top || !main || !inner) return;
+    inner.style.width = main.scrollWidth + 'px';
+    const syncFromTop = () => { main.scrollLeft = top.scrollLeft; };
+    const syncFromMain = () => { top.scrollLeft = main.scrollLeft; inner.style.width = main.scrollWidth + 'px'; };
+    top.addEventListener('scroll', syncFromTop);
+    main.addEventListener('scroll', syncFromMain);
+    return () => { top.removeEventListener('scroll', syncFromTop); main.removeEventListener('scroll', syncFromMain); };
+  });
+
   // reset to page 1 whenever search/filters change
   useEffect(() => {
     setPage(1);
@@ -601,17 +614,6 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
             </table>
           </div>
 
-          <script dangerouslySetInnerHTML={{ __html: `
-            (function() {
-              var top = document.getElementById('top-scroll-mirror');
-              var main = document.getElementById('main-table-scroll');
-              var inner = document.getElementById('top-scroll-inner');
-              if (!top || !main || !inner) return;
-              inner.style.width = main.scrollWidth + 'px';
-              top.addEventListener('scroll', function() { main.scrollLeft = top.scrollLeft; });
-              main.addEventListener('scroll', function() { top.scrollLeft = main.scrollLeft; inner.style.width = main.scrollWidth + 'px'; });
-            })();
-          ` }} />
           <div className="flex items-center justify-between gap-3 pt-1">
             <span className="text-xs" style={{ color: C.muted }}>
               {loading ? 'Loading...' : `${rangeStart}–${rangeEnd} of ${totalCount}`}
