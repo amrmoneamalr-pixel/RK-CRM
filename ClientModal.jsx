@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from './supabaseClient';
+import PhoneInput from './PhoneInput';
 import { C, STAGES, SOURCES, LEAD_ORIGINS, TOP_MANAGEMENT_NAMES, ACTIONS, DEVELOPERS, LOCATIONS, fmtMoney, fmtDate, fmtTime, todayStr, stageOf, waLink } from './constants';
 
 const stageCategoryToStage = (cat) => {
@@ -182,10 +183,10 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
           <input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} placeholder="Required" />
         </Field>
         <Field label="Mobile Number *">
-          <input value={form.phone} onChange={set('phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
+          <PhoneInput value={form.phone || ''} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} placeholder="1xxxxxxxxx" />
         </Field>
         <Field label="Secondary Number">
-          <input value={form.secondary_phone} onChange={set('secondary_phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
+          <PhoneInput value={form.secondary_phone || ''} onChange={(v) => setForm((f) => ({ ...f, secondary_phone: v }))} placeholder="1xxxxxxxxx" />
         </Field>
         <Field label="Developer *">
           <select value={form.developer} onChange={(e) => setForm((f) => ({ ...f, developer: e.target.value, project: '' }))} className={inputClass} style={inputStyle}>
@@ -357,10 +358,10 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
           <input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} placeholder="Required" />
         </Field>
         <Field label="Mobile Number *">
-          <input value={form.phone} onChange={set('phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
+          <PhoneInput value={form.phone || ''} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} placeholder="1xxxxxxxxx" />
         </Field>
         <Field label="Secondary Number">
-          <input value={form.secondary_phone} onChange={set('secondary_phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
+          <PhoneInput value={form.secondary_phone || ''} onChange={(v) => setForm((f) => ({ ...f, secondary_phone: v }))} placeholder="1xxxxxxxxx" />
         </Field>
         <Field label="Developer *">
           <select value={form.developer} onChange={(e) => { set('developer')(e); setForm((f) => ({ ...f, developer: e.target.value, project: '' })); }} className={inputClass} style={inputStyle}>
