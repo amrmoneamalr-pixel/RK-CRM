@@ -22,6 +22,10 @@ export default function TeamPage({ currentUserId, currentUserTitle }) {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('members'); // 'members' | 'credentials'
+  const isTopManagement = currentUserTitle === 'top_management';
+  const isOperation = currentUserTitle === 'operation';
+  const showCredentialsTab = isTopManagement || isOperation;
 
   useEffect(() => {
     load();
@@ -58,13 +62,59 @@ export default function TeamPage({ currentUserId, currentUserTitle }) {
         </button>
       </div>
 
+      {/* Tabs */}
+      {showCredentialsTab && (
+        <div className="flex gap-2">
+          {['members', 'credentials'].map((tab) => (
+            <button key={tab} onClick={() => setActiveTab(tab)}
+              className="px-4 py-1.5 rounded-lg text-sm font-medium capitalize"
+              style={{ backgroundColor: activeTab === tab ? C.gold : C.surface, color: activeTab === tab ? '#14181F' : C.muted, border: `1px solid ${activeTab === tab ? C.gold : C.border}` }}>
+              {tab === 'members' ? 'Members' : 'Credentials'}
+            </button>
+          ))}
+        </div>
+      )}
+
       {error && <p className="text-xs" style={{ color: '#C9714F' }}>{error}</p>}
 
-      <div className="space-y-2">
-        {visibleProfiles.map((p) => (
-          <UserRow key={p.id} profile={p} currentUserId={currentUserId} teamLeaders={teamLeaders} onChanged={load} setError={setError} />
-        ))}
-      </div>
+      {activeTab === 'members' && (
+        <div className="space-y-2">
+          {visibleProfiles.map((p) => (
+            <UserRow key={p.id} profile={p} currentUserId={currentUserId} teamLeaders={teamLeaders} onChanged={load} setError={setError} />
+          ))}
+        </div>
+      )}
+
+      {activeTab === 'credentials' && showCredentialsTab && (
+        <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ backgroundColor: C.surface, color: C.muted }} className="text-left text-xs">
+                <th className="py-2.5 px-4 font-medium">Full Name</th>
+                <th className="py-2.5 px-4 font-medium">Username</th>
+                <th className="py-2.5 px-4 font-medium">Role</th>
+                {isTopManagement && <th className="py-2.5 px-4 font-medium">Password</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {(isTopManagement ? visibleProfiles : visibleProfiles.filter((p) => p.title !== 'top_management')).map((p) => (
+                <tr key={p.id} style={{ borderTop: `1px solid ${C.border}` }}>
+                  <td className="py-2.5 px-4 font-medium">{p.full_name || '—'}</td>
+                  <td className="py-2.5 px-4" style={{ color: C.gold }}>@{p.username || '—'}</td>
+                  <td className="py-2.5 px-4 text-xs capitalize" style={{ color: C.muted }}>{(p.title || '').replace(/_/g, ' ')}</td>
+                  {isTopManagement && (
+                    <td className="py-2.5 px-4" style={{ color: C.muted }}>
+                      {p.plain_password ? (
+                        <span className="font-mono text-xs">{p.plain_password}</span>
+                      ) : '—'}
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {showAdd && <AddUserModal teamLeaders={teamLeaders} onClose={() => setShowAdd(false)} onSaved={load} setError={setError} />}
     </div>
@@ -122,6 +172,9 @@ function UserRow({ profile, currentUserId, teamLeaders, onChanged, setError }) {
     setSaving(true);
     setError('');
     const { error } = await supabase.rpc('admin_reset_password', { p_id: profile.id, p_new_password: newPassword });
+    if (!error) {
+      await supabase.from('profiles').update({ plain_password: newPassword }).eq('id', profile.id);
+    }
     setSaving(false);
     if (error) {
       setError(error.message);
@@ -253,13 +306,18 @@ function AddUserModal({ teamLeaders, onClose, onSaved, setError }) {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.rpc('admin_create_user', {
+    const { data: newUser, error } = await supabase.rpc('admin_create_user', {
       p_username: username.trim(),
       p_full_name: fullName.trim(),
       p_password: password,
       p_title: title,
       p_team_leader_id: title === 'sales' && teamLeaderId ? teamLeaderId : null,
     });
+    if (!error) {
+      // Save plain password for credentials tab
+      const { data: newProfile } = await supabase.from('profiles').select('id').eq('username', username.trim()).single();
+      if (newProfile) await supabase.from('profiles').update({ plain_password: password }).eq('id', newProfile.id);
+    }
     setSaving(false);
     if (error) {
       setLocalError(error.message.includes('Username already taken') ? 'Username already taken.' : error.message);
