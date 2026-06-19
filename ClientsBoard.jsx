@@ -142,15 +142,38 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     if (colFilters.phone)      q = q.ilike('phone', `%${colFilters.phone}%`);
     if (colFilters.project)    q = q.ilike('project', `%${colFilters.project}%`);
     if (colFilters.developer)  q = q.ilike('developer', `%${colFilters.developer}%`);
-    if (colFilters.location)   q = q.ilike('location', `%${colFilters.location}%`);
-    if (colFilters.source)     q = q.ilike('source', `%${colFilters.source}%`);
-    if (colFilters.stage_category) q = q.ilike('stage_category', `%${colFilters.stage_category}%`);
-    if (colFilters.call_result) q = q.ilike('call_result', `%${colFilters.call_result}%`);
+    if (colFilters.location)   q = q.eq('location', colFilters.location);
+    if (colFilters.source)     q = q.eq('source', colFilters.source);
+    if (colFilters.stage_category) q = q.eq('stage_category', colFilters.stage_category);
+    if (colFilters.call_result) q = q.eq('call_result', colFilters.call_result);
+    if (colFilters.status) {
+      switch (colFilters.status) {
+        case 'New':
+          q = q.eq('ever_contacted', false).is('previous_owners', null).neq('stage', 'won');
+          break;
+        case 'Contacted':
+          q = q.eq('ever_contacted', true).neq('stage', 'won');
+          break;
+        case 'Re-rotation':
+          q = q.not('previous_owners', 'is', null).neq('stage', 'won').neq('call_result', 'Not Interested');
+          break;
+        case 'Not Interested':
+          q = q.eq('call_result', 'Not Interested');
+          break;
+        case 'Not Qualified':
+          q = q.eq('call_result', 'Not Qualified');
+          break;
+        case 'Deal':
+          q = q.eq('stage', 'won');
+          break;
+        default: break;
+      }
+    }
     if (colFilters.assigned_to) {
       const matchedId = Object.entries(owners).find(([, name]) => name === colFilters.assigned_to)?.[0];
       if (matchedId) q = q.eq('owner_id', matchedId);
     }
-    if (colFilters.lead_origin) q = q.ilike('lead_origin', `%${colFilters.lead_origin}%`);
+    if (colFilters.lead_origin) q = q.eq('lead_origin', colFilters.lead_origin);
     if (colFilters.created_from) q = q.gte('created_at', colFilters.created_from);
     if (colFilters.created_to)   q = q.lte('created_at', colFilters.created_to + 'T23:59:59');
     if (colFilters.followup_from) q = q.gte('next_follow_up', colFilters.followup_from);
