@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from './supabaseClient';
-import PhoneInput from './PhoneInput';
+import PhoneFlag from './PhoneFlag';
 import { C, STAGES, SOURCES, LEAD_ORIGINS, TOP_MANAGEMENT_NAMES, ACTIONS, DEVELOPERS, LOCATIONS, fmtMoney, fmtDate, fmtTime, todayStr, stageOf, waLink } from './constants';
 
 const stageCategoryToStage = (cat) => {
@@ -183,10 +183,10 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
           <input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} placeholder="Required" />
         </Field>
         <Field label="Mobile Number *">
-          <PhoneInput value={form.phone || ''} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} placeholder="1xxxxxxxxx" />
+          <input value={form.phone} onChange={set('phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
         </Field>
         <Field label="Secondary Number">
-          <PhoneInput value={form.secondary_phone || ''} onChange={(v) => setForm((f) => ({ ...f, secondary_phone: v }))} placeholder="1xxxxxxxxx" />
+          <input value={form.secondary_phone} onChange={set('secondary_phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
         </Field>
         <Field label="Developer *">
           <select value={form.developer} onChange={(e) => setForm((f) => ({ ...f, developer: e.target.value, project: '' }))} className={inputClass} style={inputStyle}>
@@ -358,10 +358,10 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
           <input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} placeholder="Required" />
         </Field>
         <Field label="Mobile Number *">
-          <PhoneInput value={form.phone || ''} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} placeholder="1xxxxxxxxx" />
+          <input value={form.phone} onChange={set('phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
         </Field>
         <Field label="Secondary Number">
-          <PhoneInput value={form.secondary_phone || ''} onChange={(v) => setForm((f) => ({ ...f, secondary_phone: v }))} placeholder="1xxxxxxxxx" />
+          <input value={form.secondary_phone} onChange={set('secondary_phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
         </Field>
         <Field label="Developer *">
           <select value={form.developer} onChange={(e) => { set('developer')(e); setForm((f) => ({ ...f, developer: e.target.value, project: '' })); }} className={inputClass} style={inputStyle}>
@@ -620,7 +620,9 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
         {client.phone && (
           <div className="flex items-center gap-2">
             <a href={`tel:${client.phone}`} className="flex items-center gap-2 text-sm flex-1" style={{ color: C.text }}>
-              <Phone size={14} style={{ color: C.gold }} /> <span>{client.phone}</span>
+              <Phone size={14} style={{ color: C.gold }} />
+              <PhoneFlag phone={client.phone} size={13} />
+              <span>{client.phone}</span>
             </a>
             <a href={waLink(client.phone)} target="_blank" rel="noreferrer" className="shrink-0 flex items-center">
               <WhatsAppIcon size={26} />

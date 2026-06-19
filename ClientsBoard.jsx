@@ -5,6 +5,7 @@ import { C, STAGES, SOURCES, ACTIONS, LOCATIONS, LEAD_ORIGINS, COLD_RESULTS, fmt
 import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight, X, Pencil, MessageSquarePlus, Loader2 } from 'lucide-react';
 import ClientModal from './ClientModal';
 import { SourceTag } from './BrandIcons';
+import PhoneFlag from './PhoneFlag';
 import DateRangePicker from './DateRangePicker';
 
 function FilterSelect({ value, onChange, options, placeholder }) {
@@ -586,7 +587,12 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                         ) : null}
                       </td>
                       <td className="py-2.5 px-3 font-medium whitespace-nowrap">{c.name}</td>
-                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.phone || '—'}</td>
+                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>
+                        <span className="flex items-center gap-1.5">
+                          {c.phone && <PhoneFlag phone={c.phone} size={13} />}
+                          {c.phone || '—'}
+                        </span>
+                      </td>
                       <td className="py-2.5 px-3"><Pill color={stageColor}>{stageLabel}</Pill></td>
                       <td className="py-2.5 px-3">
                         <Pill color={stat.color === '#FFFFFF' ? C.text : stat.color}>{stat.label}</Pill>
