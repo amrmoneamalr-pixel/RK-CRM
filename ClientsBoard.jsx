@@ -476,7 +476,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
       ) : (
         <>
           {/* Table */}
-          <div className="overflow-x-auto pb-1" id="top-scroll-mirror" style={{ height: '12px' }}>
+          <div className="overflow-x-auto" id="top-scroll-mirror" style={{ height: '8px', borderRadius: '4px' }}>
             <div id="top-scroll-inner" style={{ height: '1px' }} />
           </div>
           <div className="rounded-xl overflow-x-auto" id="main-table-scroll" style={{ border: `1px solid ${C.border}` }}>

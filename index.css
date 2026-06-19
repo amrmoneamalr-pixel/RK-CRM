@@ -20,3 +20,27 @@ body {
 input[type="date"] {
   color-scheme: dark;
 }
+
+/* Custom scrollbar — gold on dark */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1E2530;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C9A84C;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #E8C96A;
+}
+
+::-webkit-scrollbar-corner {
+  background: #1E2530;
+}
