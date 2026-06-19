@@ -131,128 +131,44 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
 
   // build the filtered query (shared by page-load and export)
   const buildQuery = () => {
-    let q = supabase.from('clients').select('*');
+    let q = supabase.from('clients').select('*', { count: 'exact' });
+
+    if (!hasTeamAccess) q = q.eq('owner_id', userId);
 
     if (search) {
       const esc = search.replace(/[%,]/g, '');
       q = q.or(`name.ilike.%${esc}%,phone.ilike.%${esc}%,project.ilike.%${esc}%,developer.ilike.%${esc}%,location.ilike.%${esc}%`);
     }
-    // Column filters
+
     if (colFilters.name)       q = q.ilike('name', `%${colFilters.name}%`);
     if (colFilters.phone)      q = q.ilike('phone', `%${colFilters.phone}%`);
-    if (colFilters.project)    q = q.ilike('project', `%${colFilters.project}%`);
-    if (colFilters.developer)  q = q.ilike('developer', `%${colFilters.developer}%`);
-    if (colFilters.location)   q = q.eq('location', colFilters.location);
+    if (colFilters.stage_category) q = q.eq('stage_category', colFilters.stage_category);
     if (colFilters.source)     q = q.eq('source', colFilters.source);
-    if (colFilters.stage_category) {
-      if (colFilters.stage_category === 'New Fresh Lead') {
-        q = q.eq('stage','new').eq('ever_contacted',false).or('stage_category.eq.New Fresh Lead,stage_category.is.null');
-      } else if (colFilters.stage_category === 'Cold Calls') {
-        q = q.or('stage_category.eq.Cold Calls,call_result.eq.No Answer,call_result.eq.No Answer - Multiple Times,call_result.eq.Call Again');
-      } else {
-        q = q.eq('stage_category', colFilters.stage_category);
-      }
-    }
-    if (colFilters.call_result) q = q.eq('call_result', colFilters.call_result);
-    if (colFilters.status) {
-      switch (colFilters.status) {
-        case 'New':
-          q = q.eq('ever_contacted', false).neq('stage', 'won');
-          break;
-        case 'Contacted':
-          q = q.eq('ever_contacted', true).neq('stage', 'won');
-          break;
-        case 'Re-rotation':
-          q = q.not('previous_owners', 'is', null).neq('previous_owners', '{}').neq('stage', 'won');
-          break;
-        case 'Not Interested':
-          q = q.eq('call_result', 'Not Interested');
-          break;
-        case 'Not Qualified':
-          q = q.eq('call_result', 'Not Qualified');
-          break;
-        case 'Deal':
-          q = q.eq('stage', 'won');
-          break;
-        default: break;
-      }
-    }
     if (colFilters.assigned_to) {
       const matchedId = Object.entries(owners).find(([, name]) => name === colFilters.assigned_to)?.[0];
       if (matchedId) q = q.eq('owner_id', matchedId);
     }
     if (colFilters.lead_origin) q = q.eq('lead_origin', colFilters.lead_origin);
+    if (colFilters.developer)  q = q.ilike('developer', `%${colFilters.developer}%`);
+    if (colFilters.project)    q = q.ilike('project', `%${colFilters.project}%`);
+    if (colFilters.location)   q = q.eq('location', colFilters.location);
+    if (colFilters.call_result) q = q.eq('call_result', colFilters.call_result);
     if (colFilters.created_from) q = q.gte('created_at', colFilters.created_from);
     if (colFilters.created_to)   q = q.lte('created_at', colFilters.created_to + 'T23:59:59');
     if (colFilters.followup_from) q = q.gte('next_follow_up', colFilters.followup_from);
     if (colFilters.followup_to)   q = q.lte('next_follow_up', colFilters.followup_to);
-    if (colFilters.country) {
-      const COUNTRY_PREFIXES = {
-        'Egypt': ['20','010','011','012','015'],
-        'Saudi Arabia': ['966','05'],
-        'UAE': ['971'],
-        'Kuwait': ['965'],
-        'Qatar': ['974'],
-        'Bahrain': ['973'],
-        'Oman': ['968'],
-        'Jordan': ['962'],
-        'Lebanon': ['961'],
-        'Iraq': ['964'],
-        'Libya': ['218'],
-        'Tunisia': ['216'],
-        'Algeria': ['213'],
-        'Morocco': ['212'],
-        'Sudan': ['249'],
-        'Yemen': ['967'],
-        'Palestine': ['970'],
-        'Turkey': ['90'],
-        'UK': ['44'],
-        'Germany': ['49'],
-        'France': ['33'],
-        'Italy': ['39'],
-        'Spain': ['34'],
-        'USA': ['1'],
-        'Russia': ['7'],
-        'India': ['91'],
-        'Pakistan': ['92'],
-        'China': ['86'],
-        'Australia': ['61'],
-        'Nigeria': ['234'],
-        'South Africa': ['27'],
-        'Kenya': ['254'],
-        'Ghana': ['233'],
-      };
-      const prefixes = COUNTRY_PREFIXES[colFilters.country];
-      if (prefixes) {
-        const orClauses = prefixes.map(p => `phone.ilike.${p}%`).join(',');
-        q = q.or(orClauses);
-      }
-    }
 
     if (leadFilter) {
       const today = todayStr();
       const sevenDaysAgoIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       switch (leadFilter) {
-        case 'fresh':
-          q = q.eq('stage', 'new').eq('ever_contacted', false).gte('created_at', sevenDaysAgoIso);
-          break;
-        case 'oldFresh':
-          q = q.eq('stage', 'new').eq('ever_contacted', false).lt('created_at', sevenDaysAgoIso);
-          break;
-        case 'callbackToday':
-          q = q.eq('next_follow_up', today);
-          break;
-        case 'late':
-          q = q.not('next_follow_up', 'is', null).lt('next_follow_up', today);
-          break;
-        case 'cold':
-          q = q.in('call_result', COLD_RESULTS);
-          break;
-        default:
-          break;
+        case 'fresh':        q = q.eq('stage','new').eq('ever_contacted',false).gte('created_at',sevenDaysAgoIso); break;
+        case 'oldFresh':     q = q.eq('stage','new').eq('ever_contacted',false).lt('created_at',sevenDaysAgoIso); break;
+        case 'callbackToday': q = q.eq('next_follow_up', today); break;
+        case 'late':         q = q.not('next_follow_up','is',null).lt('next_follow_up', today); break;
+        case 'cold':         q = q.in('call_result', COLD_RESULTS); break;
+        default: break;
       }
-    } else {
-      if (stageFilter !== 'all') q = q.eq('stage', stageFilter);
     }
 
     return q;
@@ -262,13 +178,11 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     setLoading(true);
     const from = (page - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
-
-    // Separate count query (more reliable with complex filters)
-    const { count } = await buildQuery().select('*', { count: 'exact', head: true });
-    setTotalCount(count || 0);
-
-    const { data: c } = await buildQuery().order('last_contacted_at', { ascending: true, nullsFirst: true }).range(from, to);
+    const { data: c, count } = await buildQuery()
+      .order('last_contacted_at', { ascending: true, nullsFirst: true })
+      .range(from, to);
     setClients(c || []);
+    setTotalCount(count || 0);
 
     if (c && c.length > 0) {
       const { data: a } = await supabase.from('activities').select('*').in('client_id', c.map((x) => x.id)).order('date', { ascending: false });
