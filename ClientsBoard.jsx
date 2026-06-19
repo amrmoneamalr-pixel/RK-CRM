@@ -153,10 +153,36 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     if (colFilters.project)    q = q.ilike('project', `%${colFilters.project}%`);
     if (colFilters.location)   q = q.eq('location', colFilters.location);
     if (colFilters.call_result) q = q.eq('call_result', colFilters.call_result);
+    if (colFilters.status) {
+      switch (colFilters.status) {
+        case 'New':           q = q.eq('ever_contacted', false).neq('stage', 'won'); break;
+        case 'Contacted':     q = q.eq('ever_contacted', true).neq('stage', 'won'); break;
+        case 'Re-rotation':   q = q.not('previous_owners', 'is', null).neq('stage', 'won'); break;
+        case 'Not Interested':q = q.eq('call_result', 'Not Interested'); break;
+        case 'Not Qualified': q = q.eq('call_result', 'Not Qualified'); break;
+        case 'Deal':          q = q.eq('stage', 'won'); break;
+        default: break;
+      }
+    }
     if (colFilters.created_from) q = q.gte('created_at', colFilters.created_from);
     if (colFilters.created_to)   q = q.lte('created_at', colFilters.created_to + 'T23:59:59');
     if (colFilters.followup_from) q = q.gte('next_follow_up', colFilters.followup_from);
     if (colFilters.followup_to)   q = q.lte('next_follow_up', colFilters.followup_to);
+
+    if (colFilters.country) {
+      const PREFIXES = {
+        'Egypt':['20','010','011','012','015'],'Saudi Arabia':['966','05'],'UAE':['971'],
+        'Kuwait':['965'],'Qatar':['974'],'Bahrain':['973'],'Oman':['968'],
+        'Jordan':['962'],'Lebanon':['961'],'Iraq':['964'],'Libya':['218'],
+        'Tunisia':['216'],'Algeria':['213'],'Morocco':['212'],'Sudan':['249'],
+        'Yemen':['967'],'Palestine':['970'],'Turkey':['90'],'UK':['44'],
+        'Germany':['49'],'France':['33'],'Italy':['39'],'Spain':['34'],
+        'USA':['1'],'Russia':['7'],'India':['91'],'Pakistan':['92'],
+        'China':['86'],'Australia':['61'],'Nigeria':['234'],'South Africa':['27'],
+      };
+      const pfx = PREFIXES[colFilters.country];
+      if (pfx) q = q.or(pfx.map(p => `phone.ilike.${p}%`).join(','));
+    }
 
     if (leadFilter) {
       const today = todayStr();
