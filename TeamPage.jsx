@@ -30,7 +30,7 @@ export default function TeamPage({ currentUserId, currentUserTitle }) {
   const load = async () => {
     setLoading(true);
     const { data } = await supabase.from('profiles').select('*').order('is_pool').order('full_name');
-    setProfiles(data || []);
+    setProfiles((data || []).sort((a, b) => (TITLE_ORDER.indexOf(a.title) - TITLE_ORDER.indexOf(b.title)) || (a.full_name || '').localeCompare(b.full_name || '')));
     setLoading(false);
   };
 
@@ -45,7 +45,10 @@ export default function TeamPage({ currentUserId, currentUserTitle }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-display font-bold text-lg">Team Members</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="font-display font-bold text-lg">Users</h2>
+          <span className="text-sm px-2.5 py-0.5 rounded-full" style={{ backgroundColor: `${C.gold}22`, color: C.gold }}>{visibleProfiles.length}</span>
+        </div>
         <button
           onClick={() => setShowAdd(true)}
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold"

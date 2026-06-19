@@ -463,7 +463,10 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
       ) : (
         <>
           {/* Table */}
-          <div className="rounded-xl overflow-x-auto" style={{ border: `1px solid ${C.border}` }}>
+          <div className="overflow-x-auto pb-1" id="top-scroll-mirror" style={{ height: '12px' }}>
+            <div id="top-scroll-inner" style={{ height: '1px' }} />
+          </div>
+          <div className="rounded-xl overflow-x-auto" id="main-table-scroll" style={{ border: `1px solid ${C.border}` }}>
             <table className="text-sm" style={{ minWidth: hasTeamAccess ? "1800px" : "1500px", width: "100%" }}>
               <thead>
                 <tr style={{ backgroundColor: C.surface, color: C.muted }} className="text-left text-xs">
@@ -598,6 +601,17 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
             </table>
           </div>
 
+          <script dangerouslySetInnerHTML={{ __html: `
+            (function() {
+              var top = document.getElementById('top-scroll-mirror');
+              var main = document.getElementById('main-table-scroll');
+              var inner = document.getElementById('top-scroll-inner');
+              if (!top || !main || !inner) return;
+              inner.style.width = main.scrollWidth + 'px';
+              top.addEventListener('scroll', function() { main.scrollLeft = top.scrollLeft; });
+              main.addEventListener('scroll', function() { top.scrollLeft = main.scrollLeft; inner.style.width = main.scrollWidth + 'px'; });
+            })();
+          ` }} />
           <div className="flex items-center justify-between gap-3 pt-1">
             <span className="text-xs" style={{ color: C.muted }}>
               {loading ? 'Loading...' : `${rangeStart}–${rangeEnd} of ${totalCount}`}
