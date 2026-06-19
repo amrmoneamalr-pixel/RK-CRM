@@ -131,7 +131,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
 
   // build the filtered query (shared by page-load and export)
   const buildQuery = () => {
-    let q = supabase.from('clients').select('*', { count: 'exact' });
+    let q = supabase.from('clients').select('*');
 
     if (search) {
       const esc = search.replace(/[%,]/g, '');
@@ -146,9 +146,9 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     if (colFilters.source)     q = q.eq('source', colFilters.source);
     if (colFilters.stage_category) {
       if (colFilters.stage_category === 'New Fresh Lead') {
-        q = q.or('stage_category.eq.New Fresh Lead,stage_category.is.null').eq('stage','new').eq('ever_contacted',false);
+        q = q.eq('stage','new').eq('ever_contacted',false).or('stage_category.eq.New Fresh Lead,stage_category.is.null');
       } else if (colFilters.stage_category === 'Cold Calls') {
-        q = q.or(`stage_category.eq.Cold Calls,call_result.in.(${['No Answer','No Answer - Multiple Times','Call Again'].map(r=>`"${r}"`).join(',')})`);
+        q = q.or('stage_category.eq.Cold Calls,call_result.eq.No Answer,call_result.eq.No Answer - Multiple Times,call_result.eq.Call Again');
       } else {
         q = q.eq('stage_category', colFilters.stage_category);
       }
@@ -262,9 +262,13 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     setLoading(true);
     const from = (page - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
-    const { data: c, count } = await buildQuery().order('last_contacted_at', { ascending: true, nullsFirst: true }).range(from, to);
-    setClients(c || []);
+
+    // Separate count query (more reliable with complex filters)
+    const { count } = await buildQuery().select('*', { count: 'exact', head: true });
     setTotalCount(count || 0);
+
+    const { data: c } = await buildQuery().order('last_contacted_at', { ascending: true, nullsFirst: true }).range(from, to);
+    setClients(c || []);
 
     if (c && c.length > 0) {
       const { data: a } = await supabase.from('activities').select('*').in('client_id', c.map((x) => x.id)).order('date', { ascending: false });
