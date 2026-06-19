@@ -19,7 +19,7 @@ const extractComment = (notes) => {
   return lines.join('\n').trim();
 };
 import { WhatsAppIcon, SourceTag } from './BrandIcons';
-import { X, Phone, Trash2, AlertCircle } from 'lucide-react';
+import { X, Phone, Trash2, AlertCircle, Pencil } from 'lucide-react';
 
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
 const inputClass = 'rounded-lg px-3 py-2 text-sm outline-none w-full';
@@ -465,7 +465,15 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
 // ---- Read-only detail + Action/Comment (everyone, the comment button) ----
 function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, onClose, onSaved, onNext }) {
   const isOwner = client.owner_id === userId;
-  const canComment = isOwner || isAdmin; // assigned rep or admin can add comments
+  const canComment = isOwner || isAdmin;
+  const [editName, setEditName] = useState(false);
+  const [nameVal, setNameVal] = useState(client.name || '');
+  const [secPhone, setSecPhone] = useState(client.secondary_phone || '');
+  const saveName = async () => {
+    await supabase.from('clients').update({ name: nameVal, secondary_phone: secPhone || null }).eq('id', client.id);
+    setEditName(false);
+    onSaved();
+  }; // assigned rep or admin can add comments
   const [activities, setActivities] = useState([]);
   const [nextFollowUp, setNextFollowUp] = useState('');
   const [callResult, setCallResult] = useState('');
@@ -585,7 +593,20 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
   );
 
   return (
-    <Modal title={client.name} onClose={onClose}>
+    <Modal title={
+      editName ? (
+        <div className="flex items-center gap-2 flex-1">
+          <input value={nameVal} onChange={(e) => setNameVal(e.target.value)} className="flex-1 rounded px-2 py-1 text-sm outline-none" style={{ backgroundColor: C.bg, border: `1px solid ${C.gold}`, color: C.text }} />
+          <button onClick={saveName} className="px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: C.gold, color: '#14181F' }}>Save</button>
+          <button onClick={() => setEditName(false)} className="text-xs" style={{ color: C.muted }}>Cancel</button>
+        </div>
+      ) : (
+        <span className="flex items-center gap-2">
+          {client.name}
+          {(isOwner || isAdmin) && <button onClick={() => setEditName(true)}><Pencil size={13} style={{ color: C.muted }} /></button>}
+        </span>
+      )
+    } onClose={onClose}>
       <div className="space-y-4">
         <div className="flex flex-wrap gap-2">
           <Pill color={st.color}>{st.label}</Pill>
@@ -605,7 +626,13 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
             </a>
           </div>
         )}
-        {client.secondary_phone && (
+        {(isOwner || isAdmin) && (
+          <div className="flex items-center gap-2">
+            <Phone size={14} style={{ color: C.muted }} />
+            <input value={secPhone} onChange={(e) => setSecPhone(e.target.value)} placeholder="Secondary number..." className="flex-1 rounded px-2 py-1 text-sm outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} />
+          </div>
+        )}
+        {!(isOwner || isAdmin) && client.secondary_phone && (
           <div className="flex items-center gap-2">
             <a href={`tel:${client.secondary_phone}`} className="flex items-center gap-2 text-sm flex-1" style={{ color: C.text }}>
               <Phone size={14} style={{ color: C.gold }} /> <span>{client.secondary_phone}</span>

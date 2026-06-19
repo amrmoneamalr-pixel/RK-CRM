@@ -33,10 +33,10 @@ function AutocompleteInput({ value, onChange, options, placeholder }) {
         style={{ backgroundColor: C.surface, border: `1px solid ${value ? C.gold : C.border}`, color: value ? C.gold : C.text }}
       />
       {open && filtered.length > 0 && (
-        <div className="absolute z-50 top-7 left-0 w-full rounded shadow-lg max-h-40 overflow-y-auto" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
+        <div className="absolute z-50 top-7 left-0 rounded shadow-lg max-h-40 overflow-y-auto overflow-x-hidden" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, minWidth: '100%', width: 'max-content', maxWidth: '260px' }}>
           {filtered.map((o) => (
             <div key={o} onMouseDown={() => { onChange(o); setOpen(false); }}
-              className="px-2 py-1.5 text-xs cursor-pointer hover:opacity-80"
+              className="px-2 py-1.5 text-xs cursor-pointer hover:opacity-80 whitespace-nowrap"
               style={{ color: C.text }}>
               {o}
             </div>

@@ -6,6 +6,8 @@ import { Plus, Pencil, Trash2, Check, X, KeyRound, Eye, EyeOff } from 'lucide-re
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
 const inputClass = 'rounded-lg px-3 py-2 text-sm outline-none w-full';
 
+const TITLE_ORDER = ['top_management','sales_manager','team_leader','sales','marketing','operation'];
+
 const TITLE_COLORS = {
   top_management: C.gold,
   operation: '#C9714F',

@@ -18,7 +18,7 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
     tabs.push({ id: 'activity', label: 'Activity', icon: ActivityIcon });
   }
   if (isAdmin) {
-    tabs.push({ id: 'team', label: 'Teams', icon: UserCog });
+    tabs.push({ id: 'team', label: 'Users', icon: UserCog });
     tabs.push({ id: 'settings', label: 'Settings', icon: SettingsIcon });
   }
 
@@ -99,7 +99,7 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <main className="max-w-5xl mx-auto px-4 py-5 pb-24">{children}</main>
+        <main className="px-4 py-5 pb-24 overflow-x-auto">{children}</main>
       </div>
 
       {(tab === 'dashboard' || tab === 'clients') && (

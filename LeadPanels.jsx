@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
 import { C, fmtDate, todayStr, COLD_RESULTS, LEAD_CATEGORY_LABELS } from './constants';
-import { Sparkles, Archive, PhoneCall, AlertTriangle, Snowflake, ChevronRight } from 'lucide-react';
+import { Sparkles, Archive, PhoneCall, AlertTriangle, Snowflake, ChevronRight, Users } from 'lucide-react';
 
 export default function LeadPanels({ userId, isAdmin, onSelectCategory }) {
   const [counts, setCounts] = useState({ fresh: 0, oldFresh: 0, callbackToday: 0, late: 0, cold: 0 });
@@ -22,7 +22,7 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory }) {
     const today = todayStr();
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    const next = { fresh: 0, oldFresh: 0, callbackToday: 0, late: 0, cold: 0 };
+    const next = { all: clients.length, fresh: 0, oldFresh: 0, callbackToday: 0, late: 0, cold: 0 };
     clients.forEach((c) => {
       if (c.stage === 'new' && !c.ever_contacted && c.created_at >= sevenDaysAgo) next.fresh++;
       if (c.stage === 'new' && !c.ever_contacted && c.created_at < sevenDaysAgo) next.oldFresh++;
@@ -40,11 +40,12 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory }) {
   };
 
   const sections = [
+    { key: 'all',          icon: Users,        color: C.gold,    label: 'All Leads' },
     { key: 'fresh',        icon: Sparkles,     color: '#7FA887', label: 'Fresh Leads' },
-    { key: 'callbackToday',icon: PhoneCall,     color: '#6E8CAE', label: 'Call Back Today' },
-    { key: 'late',         icon: AlertTriangle, color: '#C9714F', label: 'Late Leads' },
-    { key: 'oldFresh',     icon: Archive,       color: '#9B7EBD', label: 'Old Fresh Leads' },
-    { key: 'cold',         icon: Snowflake,     color: '#8B93A3', label: 'Cold Calls' },
+    { key: 'callbackToday',icon: PhoneCall,    color: '#6E8CAE', label: 'Call Back Today' },
+    { key: 'late',         icon: AlertTriangle,color: '#C9714F', label: 'Late Leads' },
+    { key: 'oldFresh',     icon: Archive,      color: '#9B7EBD', label: 'Old Fresh Leads' },
+    { key: 'cold',         icon: Snowflake,    color: '#8B93A3', label: 'Cold Calls' },
   ];
 
   return (

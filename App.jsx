@@ -43,7 +43,7 @@ export default function App() {
   };
 
   const selectLeadCategory = (category) => {
-    setLeadFilter(category);
+    setLeadFilter(category === 'all' ? null : category);
     setTab('clients');
   };
 
