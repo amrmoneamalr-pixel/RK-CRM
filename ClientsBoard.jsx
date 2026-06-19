@@ -5,7 +5,7 @@ import { C, STAGES, SOURCES, ACTIONS, LOCATIONS, LEAD_ORIGINS, COLD_RESULTS, fmt
 import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight, X, Pencil, MessageSquarePlus, Loader2 } from 'lucide-react';
 import ClientModal from './ClientModal';
 import { SourceTag } from './BrandIcons';
-import PhoneFlag from './PhoneFlag';
+import PhoneFlag, { detectCountry } from './PhoneFlag';
 import DateRangePicker from './DateRangePicker';
 
 function FilterSelect({ value, onChange, options, placeholder }) {
@@ -347,6 +347,10 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   const hasColFilters = Object.values(colFilters).some(Boolean);
   const hasPendingFilters = Object.values(pendingCols).some(Boolean);
   const noFiltersActive = !search && !leadFilter && stageFilter === 'all' && !hasColFilters && !hasPendingFilters;
+  // Country filter applied client-side
+  const filteredClients = colFilters.country
+    ? clients.filter((c) => detectCountry(c.phone).name === colFilters.country)
+    : clients;
 
   if (totalCount === 0 && !loading && noFiltersActive && !showAdd) {
     return (
@@ -493,6 +497,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                   </th>
                   <th className="py-2.5 px-3 font-medium w-8"></th>
                   <th className="py-2.5 px-3 font-medium">Full Name</th>
+                  <th className="py-2.5 px-3 font-medium">Country</th>
                   <th className="py-2.5 px-3 font-medium">Mobile Phone</th>
                   <th className="py-2.5 px-3 font-medium">Stage Category</th>
                   <th className="py-2.5 px-3 font-medium">Status</th>
@@ -516,6 +521,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                 <td className="py-1.5 px-2 w-8"></td>
                 <td className="py-1.5 px-2 w-8"></td>
                 <td className="py-1.5 px-2"><input value={pendingCols.name||''} onChange={setCol('name')} placeholder="Name..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
+                <td className="py-1.5 px-2"><FilterSelect value={pendingCols.country} onChange={(v) => setPendingCols((p) => ({ ...p, country: v }))} options={['Egypt','Saudi Arabia','UAE','Kuwait','Qatar','Bahrain','Oman','Jordan','Lebanon','Iraq','Libya','Tunisia','Algeria','Morocco','Sudan','UK','Germany','France','Turkey','USA']} placeholder="All Countries" /></td>
                 <td className="py-1.5 px-2"><input value={pendingCols.phone||''} onChange={setCol('phone')} placeholder="Phone..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
                 <td className="py-1.5 px-2"><FilterSelect value={pendingCols.stage_category} onChange={(v) => setPendingCols((p) => ({ ...p, stage_category: v }))} options={['New Fresh Lead','Old Fresh Lead','Cold Calls','Old Campaign']} placeholder="All Stages" /></td>
                 <td className="py-1.5 px-2"><FilterSelect value={pendingCols.status} onChange={(v) => setPendingCols((p) => ({ ...p, status: v }))} options={['New','Contacted','Re-rotation','Not Interested','Not Qualified','Deal']} placeholder="All Statuses" /></td>
@@ -553,7 +559,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                 <td className="py-1.5 px-2"></td>
                 <td className="py-1.5 px-2"></td>
               </tr>
-                {clients.map((c) => {
+                {filteredClients.map((c) => {
                   const cat = leadCategory(c);
                   const stat = clientStatus(c);
                   // Stage category: use manual value but auto-upgrade New Fresh → Old Fresh after 7 days
@@ -587,12 +593,10 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                         ) : null}
                       </td>
                       <td className="py-2.5 px-3 font-medium whitespace-nowrap">{c.name}</td>
-                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>
-                        <span className="flex items-center gap-1.5">
-                          {c.phone && <PhoneFlag phone={c.phone} size={13} />}
-                          {c.phone || '—'}
-                        </span>
+                      <td className="py-2.5 px-3">
+                        {c.phone ? <PhoneFlag phone={c.phone} size={18} /> : <span style={{ color: C.muted }}>—</span>}
                       </td>
+                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.phone || '—'}</td>
                       <td className="py-2.5 px-3"><Pill color={stageColor}>{stageLabel}</Pill></td>
                       <td className="py-2.5 px-3">
                         <Pill color={stat.color === '#FFFFFF' ? C.text : stat.color}>{stat.label}</Pill>
