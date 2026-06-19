@@ -144,18 +144,26 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     if (colFilters.developer)  q = q.ilike('developer', `%${colFilters.developer}%`);
     if (colFilters.location)   q = q.eq('location', colFilters.location);
     if (colFilters.source)     q = q.eq('source', colFilters.source);
-    if (colFilters.stage_category) q = q.eq('stage_category', colFilters.stage_category);
+    if (colFilters.stage_category) {
+      if (colFilters.stage_category === 'New Fresh Lead') {
+        q = q.or('stage_category.eq.New Fresh Lead,stage_category.is.null').eq('stage','new').eq('ever_contacted',false);
+      } else if (colFilters.stage_category === 'Cold Calls') {
+        q = q.or(`stage_category.eq.Cold Calls,call_result.in.(${['No Answer','No Answer - Multiple Times','Call Again'].map(r=>`"${r}"`).join(',')})`);
+      } else {
+        q = q.eq('stage_category', colFilters.stage_category);
+      }
+    }
     if (colFilters.call_result) q = q.eq('call_result', colFilters.call_result);
     if (colFilters.status) {
       switch (colFilters.status) {
         case 'New':
-          q = q.eq('ever_contacted', false).is('previous_owners', null).neq('stage', 'won');
+          q = q.eq('ever_contacted', false).neq('stage', 'won');
           break;
         case 'Contacted':
           q = q.eq('ever_contacted', true).neq('stage', 'won');
           break;
         case 'Re-rotation':
-          q = q.not('previous_owners', 'is', null).neq('stage', 'won').neq('call_result', 'Not Interested');
+          q = q.not('previous_owners', 'is', null).neq('previous_owners', '{}').neq('stage', 'won');
           break;
         case 'Not Interested':
           q = q.eq('call_result', 'Not Interested');
