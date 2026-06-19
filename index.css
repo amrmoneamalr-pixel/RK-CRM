@@ -33,12 +33,12 @@ input[type="date"] {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #C9A84C;
+  background: #FFFFFF40;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #E8C96A;
+  background: #FFFFFF80;
 }
 
 ::-webkit-scrollbar-corner {
