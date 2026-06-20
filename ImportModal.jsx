@@ -184,8 +184,8 @@ export default function ImportModal({ userId, onClose, onDone }) {
         return {
           owner_id,
           name: (r.Name || r.name || r['الاسم'] || '').toString().trim(),
-          phone: cleanPhone(rawPhone) || null,
-          secondary_phone: cleanPhone(rawSecondary) || null,
+          phone: rawPhone || null,
+          secondary_phone: rawSecondary || null,
           stage_category: settings.stage_category,
           stage: settings.stage_category === 'Cold Calls' ? 'contacted' : 'new',
           source: settings.source,
