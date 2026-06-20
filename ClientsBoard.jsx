@@ -115,10 +115,22 @@ const EXPORT_BATCH = 1000;
 const SS_KEY = 'rk_clients_state';
 
 function loadSavedState() {
+  try {
+    // Try URL hash first (survives Chrome tab discard)
+    const hash = window.location.hash.slice(1);
+    if (hash) {
+      const parsed = JSON.parse(decodeURIComponent(hash));
+      if (parsed.page) return parsed;
+    }
+  } catch {}
   try { return JSON.parse(localStorage.getItem(SS_KEY) || '{}'); } catch { return {}; }
 }
 function saveState(obj) {
-  try { localStorage.setItem(SS_KEY, JSON.stringify(obj)); } catch {}
+  try {
+    // Save to both URL hash and localStorage
+    window.history.replaceState(null, '', '#' + encodeURIComponent(JSON.stringify({ page: obj.page })));
+    localStorage.setItem(SS_KEY, JSON.stringify(obj));
+  } catch {}
 }
 
 export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilter, onClearLeadFilter }) {
