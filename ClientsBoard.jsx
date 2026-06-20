@@ -21,6 +21,81 @@ function FilterSelect({ value, onChange, options, placeholder }) {
   );
 }
 
+function CountryFilter({ value, onChange }) {
+  // value is array of selected countries
+  const [open, setOpen] = React.useState(false);
+  const [search, setSearch] = React.useState('');
+  const ref = React.useRef(null);
+
+  const ALL_COUNTRIES = ['Afghanistan','Albania','Algeria','Angola','Argentina','Armenia','Australia','Austria','Azerbaijan','Bahrain','Bangladesh','Belgium','Bolivia','Bosnia','Botswana','Brazil','Bulgaria','Burkina Faso','Cambodia','Cameroon','Canada','Chad','Chile','China','Colombia','Congo','Costa Rica','Croatia','Cuba','Czech Republic','Denmark','Dominican Republic','DR Congo','Ecuador','Eritrea','Estonia','Ethiopia','Finland','France','Georgia','Germany','Ghana','Greece','Guatemala','Guinea','Honduras','Hong Kong','Hungary','Iceland','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy','Ivory Coast','Japan','Jordan','Kazakhstan','Kenya','Kuwait','Kyrgyzstan','Latvia','Lebanon','Libya','Lithuania','Luxembourg','Madagascar','Malawi','Malaysia','Mali','Malta','Mauritania','Mauritius','Mexico','Moldova','Mongolia','Montenegro','Morocco','Mozambique','Myanmar','Namibia','Nepal','Netherlands','New Zealand','Niger','Nigeria','North Macedonia','Norway','Oman','Pakistan','Palestine','Panama','Paraguay','Peru','Philippines','Poland','Portugal','Qatar','Romania','Russia','Rwanda','Saudi Arabia','Senegal','Serbia','Singapore','Slovakia','Slovenia','Somalia','South Africa','South Korea','South Sudan','Spain','Sri Lanka','Sudan','Sweden','Switzerland','Syria','Taiwan','Tajikistan','Tanzania','Thailand','Togo','Tunisia','Turkey','Turkmenistan','UAE','Uganda','UK','Ukraine','Uruguay','USA','Uzbekistan','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe'];
+
+  React.useEffect(() => {
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  const selected = value || [];
+  const filtered = search ? ALL_COUNTRIES.filter(c => c.toLowerCase().includes(search.toLowerCase())) : ALL_COUNTRIES;
+
+  const toggle = (country) => {
+    if (country === 'Overseas') {
+      onChange(selected.includes('Overseas') ? [] : ['Overseas']);
+      return;
+    }
+    const without = selected.filter(c => c !== 'Overseas');
+    if (without.includes(country)) onChange(without.filter(c => c !== country));
+    else onChange([...without, country]);
+  };
+
+  const label = selected.length === 0 ? 'All Countries'
+    : selected.includes('Overseas') ? '🌍 Overseas'
+    : selected.length === 1 ? selected[0]
+    : `${selected.length} countries`;
+
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={() => setOpen(v => !v)} className="w-full rounded px-2 py-1 text-xs text-left outline-none flex items-center justify-between"
+        style={{ backgroundColor: C.surface, border: `1px solid ${selected.length ? C.gold : C.border}`, color: selected.length ? C.gold : C.muted }}>
+        <span>{label}</span>
+        <span style={{ fontSize: 9 }}>▼</span>
+      </button>
+      {open && (
+        <div className="absolute z-50 top-7 left-0 rounded-xl shadow-xl" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, width: 220, maxHeight: 280, display: 'flex', flexDirection: 'column' }}>
+          <div className="p-2 shrink-0">
+            <input autoFocus value={search} onChange={e => setSearch(e.target.value)} placeholder="Search countries..."
+              className="w-full rounded px-2 py-1 text-xs outline-none"
+              style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text }} />
+          </div>
+          <div className="overflow-y-auto flex-1">
+            {/* Overseas option */}
+            {!search && (
+              <div onClick={() => toggle('Overseas')} className="flex items-center gap-2 px-3 py-1.5 cursor-pointer text-xs hover:opacity-80"
+                style={{ backgroundColor: selected.includes('Overseas') ? `${C.gold}22` : 'transparent', color: selected.includes('Overseas') ? C.gold : C.text, borderBottom: `1px solid ${C.border}` }}>
+                <span>{selected.includes('Overseas') ? '☑' : '☐'}</span>
+                <span>🌍 Overseas (non-Egypt)</span>
+              </div>
+            )}
+            {filtered.map(c => (
+              <div key={c} onClick={() => toggle(c)} className="flex items-center gap-2 px-3 py-1.5 cursor-pointer text-xs hover:opacity-80"
+                style={{ backgroundColor: selected.includes(c) ? `${C.gold}22` : 'transparent', color: selected.includes(c) ? C.gold : C.text }}>
+                <span>{selected.includes(c) ? '☑' : '☐'}</span>
+                <span>{c}</span>
+              </div>
+            ))}
+          </div>
+          {selected.length > 0 && (
+            <div className="p-2 shrink-0" style={{ borderTop: `1px solid ${C.border}` }}>
+              <button onClick={() => { onChange([]); setOpen(false); }} className="w-full text-xs py-1 rounded"
+                style={{ backgroundColor: C.bg, color: C.muted }}>Clear</button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AutocompleteInput({ value, onChange, options, placeholder }) {
   const [open, setOpen] = React.useState(false);
   const filtered = value ? options.filter((o) => o.toLowerCase().includes(value.toLowerCase())) : options;
@@ -172,51 +247,34 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     if (colFilters.followup_from) q = q.gte('next_follow_up', colFilters.followup_from);
     if (colFilters.followup_to)   q = q.lte('next_follow_up', colFilters.followup_to);
 
-    if (colFilters.country) {
+    if (colFilters.countries && colFilters.countries.length > 0) {
       const PREFIXES = {
         'Egypt':['20','010','011','012','015'],
         'Saudi Arabia':['966','05'],'UAE':['971'],'Kuwait':['965'],
         'Qatar':['974'],'Bahrain':['973'],'Oman':['968'],'Jordan':['962'],
         'Lebanon':['961'],'Iraq':['964'],'Syria':['963'],'Yemen':['967'],
         'Palestine':['970'],'Libya':['218'],'Tunisia':['216'],'Algeria':['213'],
-        'Morocco':['212'],'Sudan':['249'],'Mauritania':['222'],'Somalia':['252'],
-        'Turkey':['90'],'UK':['44'],'Germany':['49'],'France':['33'],
-        'Italy':['39'],'Spain':['34'],'Netherlands':['31'],'Belgium':['32'],
-        'Switzerland':['41'],'Sweden':['46'],'Norway':['47'],'Denmark':['45'],
-        'Finland':['358'],'Poland':['48'],'Portugal':['351'],'Greece':['30'],
-        'Austria':['43'],'Ireland':['353'],'Czech Republic':['420'],'Slovakia':['421'],
-        'Romania':['40'],'Hungary':['36'],'Bulgaria':['359'],'Croatia':['385'],
-        'Serbia':['381'],'Ukraine':['380'],'Russia':['7'],'Kazakhstan':['7'],
-        'Belarus':['375'],'Lithuania':['370'],'Latvia':['371'],'Estonia':['372'],
-        'Georgia':['995'],'Armenia':['374'],'Azerbaijan':['994'],'Moldova':['373'],
-        'Albania':['355'],'North Macedonia':['389'],'Bosnia':['387'],'Montenegro':['382'],
-        'Slovenia':['386'],'Cyprus':['357'],'Malta':['356'],
-        'USA':['1'],'Canada':['1'],'Mexico':['52'],'Brazil':['55'],
+        'Morocco':['212'],'Sudan':['249'],'Turkey':['90'],'UK':['44'],
+        'Germany':['49'],'France':['33'],'Italy':['39'],'Spain':['34'],
+        'Netherlands':['31'],'Belgium':['32'],'Switzerland':['41'],'Sweden':['46'],
+        'Norway':['47'],'Denmark':['45'],'Finland':['358'],'Poland':['48'],
+        'Portugal':['351'],'Greece':['30'],'Austria':['43'],'Ireland':['353'],
+        'Czech Republic':['420'],'Romania':['40'],'Hungary':['36'],'Ukraine':['380'],
+        'Russia':['7'],'USA':['1'],'Canada':['1'],'Mexico':['52'],'Brazil':['55'],
         'Argentina':['54'],'Colombia':['57'],'Chile':['56'],'Peru':['51'],
-        'Venezuela':['58'],'Ecuador':['593'],'Bolivia':['591'],'Paraguay':['595'],
-        'Uruguay':['598'],'Cuba':['53'],'Guatemala':['502'],'Honduras':['504'],
-        'El Salvador':['503'],'Costa Rica':['506'],'Panama':['507'],
-        'India':['91'],'Pakistan':['92'],'Bangladesh':['880'],'Sri Lanka':['94'],
-        'Nepal':['977'],'Afghanistan':['93'],'Iran':['98'],'China':['86'],
+        'India':['91'],'Pakistan':['92'],'Bangladesh':['880'],'China':['86'],
         'Japan':['81'],'South Korea':['82'],'Indonesia':['62'],'Malaysia':['60'],
         'Singapore':['65'],'Thailand':['66'],'Philippines':['63'],'Vietnam':['84'],
-        'Myanmar':['95'],'Cambodia':['855'],'Mongolia':['976'],'Taiwan':['886'],
-        'Hong Kong':['852'],'Uzbekistan':['998'],'Tajikistan':['992'],
-        'Kyrgyzstan':['996'],'Turkmenistan':['993'],
         'Nigeria':['234'],'South Africa':['27'],'Kenya':['254'],'Ethiopia':['251'],
-        'Ghana':['233'],'Tanzania':['255'],'Uganda':['256'],'Senegal':['221'],
-        'Ivory Coast':['225'],'Cameroon':['237'],'DR Congo':['243'],'Angola':['244'],
-        'Mozambique':['258'],'Zimbabwe':['263'],'Zambia':['260'],'Rwanda':['250'],
-        'South Sudan':['211'],'Mali':['223'],'Niger':['227'],'Chad':['235'],
-        'Guinea':['224'],'Burkina Faso':['226'],'Togo':['228'],'Benin':['229'],
-        'Mauritius':['230'],'Madagascar':['261'],'Malawi':['265'],'Namibia':['264'],
-        'Botswana':['267'],'Eritrea':['291'],
-        'Australia':['61'],'New Zealand':['64'],'Fiji':['679'],
+        'Ghana':['233'],'Australia':['61'],'New Zealand':['64'],
       };
-      const pfx = PREFIXES[colFilters.country];
-      if (pfx) {
-        const clauses = pfx.map(p => `phone.ilike.${p}%`).join(',');
-        q = q.or(clauses);
+      if (colFilters.countries.includes('Overseas')) {
+        q = q.not('phone','ilike','20%').not('phone','ilike','010%')
+             .not('phone','ilike','011%').not('phone','ilike','012%')
+             .not('phone','ilike','015%');
+      } else {
+        const allPfx = colFilters.countries.flatMap(c => PREFIXES[c] || []);
+        if (allPfx.length > 0) q = q.or(allPfx.map(p => `phone.ilike.${p}%`).join(','));
       }
     }
 
@@ -570,7 +628,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                 <td className="py-1.5 px-2 w-8"></td>
                 <td className="py-1.5 px-2 w-8"></td>
                 <td className="py-1.5 px-2"><input value={pendingCols.name||''} onChange={setCol('name')} placeholder="Name..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
-                <td className="py-1.5 px-2"><FilterSelect value={pendingCols.country} onChange={(v) => setPendingCols((p) => ({ ...p, country: v }))} options={['Afghanistan','Albania','Algeria','Angola','Argentina','Armenia','Australia','Austria','Azerbaijan','Bahrain','Bangladesh','Belgium','Bolivia','Bosnia','Botswana','Brazil','Bulgaria','Burkina Faso','Cambodia','Cameroon','Canada','Cape Verde','Chad','Chile','China','Colombia','Congo','Costa Rica','Croatia','Cuba','Czech Republic','Denmark','Djibouti','Dominican Republic','DR Congo','Ecuador','Egypt','Eritrea','Estonia','Ethiopia','Finland','France','Gabon','Gambia','Georgia','Germany','Ghana','Greece','Guatemala','Guinea','Guinea-Bissau','Honduras','Hong Kong','Hungary','Iceland','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy','Ivory Coast','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kosovo','Kuwait','Kyrgyzstan','Laos','Latvia','Lebanon','Liberia','Libya','Liechtenstein','Lithuania','Luxembourg','Madagascar','Malawi','Malaysia','Mali','Malta','Mauritania','Mauritius','Mexico','Moldova','Mongolia','Montenegro','Morocco','Mozambique','Myanmar','Namibia','Nepal','Netherlands','New Zealand','Niger','Nigeria','North Macedonia','Norway','Oman','Pakistan','Palestine','Panama','Paraguay','Peru','Philippines','Poland','Portugal','Qatar','Romania','Russia','Rwanda','Saudi Arabia','Senegal','Serbia','Seychelles','Sierra Leone','Singapore','Slovakia','Slovenia','Somalia','South Africa','South Korea','South Sudan','Spain','Sri Lanka','Sudan','Sweden','Switzerland','Syria','Taiwan','Tajikistan','Tanzania','Thailand','Togo','Trinidad & Tobago','Tunisia','Turkey','Turkmenistan','UAE','Uganda','UK','Ukraine','Uruguay','USA','Uzbekistan','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe']} placeholder="All Countries" /></td>
+                <td className="py-1.5 px-2"><CountryFilter value={pendingCols.countries} onChange={(v) => setPendingCols((p) => ({ ...p, countries: v }))} /></td>
                 <td className="py-1.5 px-2"><input value={pendingCols.phone||''} onChange={setCol('phone')} placeholder="Phone..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
                 <td className="py-1.5 px-2"><FilterSelect value={pendingCols.stage_category} onChange={(v) => setPendingCols((p) => ({ ...p, stage_category: v }))} options={['New Fresh Lead','Old Fresh Lead','Cold Calls','Old Campaign']} placeholder="All Stages" /></td>
                 <td className="py-1.5 px-2"><FilterSelect value={pendingCols.status} onChange={(v) => setPendingCols((p) => ({ ...p, status: v }))} options={['New','Contacted','Re-rotation','Not Interested','Not Qualified','Deal']} placeholder="All Statuses" /></td>
