@@ -81,30 +81,34 @@ export default function App() {
     let interval = null;
 
     (async () => {
-      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      const { data: existing } = await supabase
-        .from('user_sessions')
-        .select('id')
-        .eq('user_id', profile.id)
-        .is('ended_at', null)
-        .gte('last_seen_at', fiveMinAgo)
-        .order('last_seen_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      try {
+        const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+        const { data: existing } = await supabase
+          .from('user_sessions')
+          .select('id')
+          .eq('user_id', profile.id)
+          .is('ended_at', null)
+          .gte('last_seen_at', fiveMinAgo)
+          .order('last_seen_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-      if (existing) {
-        sessionIdRef.current = existing.id;
-        await supabase.from('user_sessions').update({ last_seen_at: new Date().toISOString() }).eq('id', existing.id);
-      } else {
-        const { data } = await supabase.from('user_sessions').insert({ user_id: profile.id }).select().single();
-        if (data) sessionIdRef.current = data.id;
-      }
-
-      interval = setInterval(() => {
-        if (sessionIdRef.current) {
-          supabase.from('user_sessions').update({ last_seen_at: new Date().toISOString() }).eq('id', sessionIdRef.current);
+        if (existing) {
+          sessionIdRef.current = existing.id;
+          await supabase.from('user_sessions').update({ last_seen_at: new Date().toISOString() }).eq('id', existing.id);
+        } else {
+          const { data } = await supabase.from('user_sessions').insert({ user_id: profile.id }).select().single();
+          if (data) sessionIdRef.current = data.id;
         }
-      }, 2 * 60 * 1000);
+
+        interval = setInterval(() => {
+          if (sessionIdRef.current) {
+            supabase.from('user_sessions').update({ last_seen_at: new Date().toISOString() }).eq('id', sessionIdRef.current);
+          }
+        }, 2 * 60 * 1000);
+      } catch (e) {
+        console.warn('user_sessions not available:', e);
+      }
     })();
 
     return () => {
