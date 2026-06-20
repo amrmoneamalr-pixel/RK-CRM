@@ -312,7 +312,11 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   };
 
 
-  const setCol = (key) => (e) => setPendingCols((p) => ({ ...p, [key]: e.target.value }));
+  const reloadActivities = async () => {
+    if (clients.length === 0) return;
+    const { data: a } = await supabase.from('activities').select('*').in('client_id', clients.map((x) => x.id)).order('date', { ascending: false });
+    setActivities(a || []);
+  };
   const applyColFilters = () => { setColFilters({ ...pendingCols }); setPage(1); };
   const clearColFilters = () => { setColFilters({}); setPendingCols({ countries: [] }); setPage(1); };
   const hasColFilters = Object.entries(colFilters).some(([k, v]) => k === 'countries' ? v?.length > 0 : Boolean(v));
@@ -517,13 +521,13 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
       </button>
 
       {showAdd && <ClientModal mode="add" userId={userId} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setShowAdd(false)} onSaved={load} />}
-      {selected && <ClientModal mode="detail" userId={userId} client={selected} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setSelected(null)} onSaved={load} />}
+      {selected && <ClientModal mode="detail" userId={userId} client={selected} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setSelected(null)} onSaved={reloadActivities} />}
       {editTarget && <ClientModal mode="edit" userId={userId} client={editTarget} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setEditTarget(null)} onSaved={load} />}
       {showImport && <ImportModal userId={userId} onClose={() => setShowImport(false)} onDone={() => { setShowImport(false); load(); }} />}
       {actionTarget && (() => {
         const idx = clients.findIndex((c) => c.id === actionTarget.id);
         const nextClient = idx >= 0 && idx < clients.length - 1 ? clients[idx + 1] : null;
-        return (<ClientModal mode="detail" userId={userId} client={actionTarget} isAdmin={hasTeamAccess} profilesList={profilesList} autoFocusActivity={!isAdmin} onClose={() => setActionTarget(null)} onSaved={load} onNext={nextClient ? () => { load(); setActionTarget(nextClient); } : null} />);
+        return (<ClientModal mode="detail" userId={userId} client={actionTarget} isAdmin={hasTeamAccess} profilesList={profilesList} autoFocusActivity={!isAdmin} onClose={() => setActionTarget(null)} onSaved={reloadActivities} onNext={nextClient ? () => { load(); setActionTarget(nextClient); } : null} />);
       })()}
     </div>
   );
