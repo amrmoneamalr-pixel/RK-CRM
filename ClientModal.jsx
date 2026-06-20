@@ -541,6 +541,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
         type: activityType,
         date: todayStr(),
         notes: logText,
+        next_follow_up: nextFollowUp || null,
       });
     }
 
@@ -726,7 +727,12 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
           <div className="space-y-1.5">
             {activities.map((a) => (
               <div key={a.id} className="flex items-start justify-between gap-2 p-2 rounded-lg" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
-                <span className="text-xs whitespace-pre-wrap" style={{ color: C.text }}>{a.notes}</span>
+                <div className="flex flex-col gap-1 flex-1">
+                  <span className="text-xs whitespace-pre-wrap" style={{ color: C.text }}>{a.notes}</span>
+                  {a.next_follow_up && (
+                    <span className="text-xs" style={{ color: C.gold }}>📅 Next Follow-up: {fmtDate(a.next_follow_up)}</span>
+                  )}
+                </div>
                 <span className="text-[11px] shrink-0 ml-2" style={{ color: C.muted }}>
                   {fmtDate(a.date)}{a.created_at ? ` · ${fmtTime(a.created_at)}` : ''}
                 </span>
