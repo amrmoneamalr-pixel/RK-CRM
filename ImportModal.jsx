@@ -8,60 +8,39 @@ import { Upload, Download, X, Check, AlertCircle } from 'lucide-react';
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
 const inputClass = 'rounded-lg px-3 py-2 text-sm outline-none w-full';
 
-// Remove country codes from phone numbers, keep local format
+// Remove country codes from phone numbers
 function cleanPhone(raw) {
   if (!raw) return '';
   let d = String(raw).replace(/[\s\-\(\)\.]/g, '');
-  // Remove + prefix
   if (d.startsWith('+')) d = d.slice(1);
-  // Remove 00 prefix
   if (d.startsWith('00')) d = d.slice(2);
-  // Handle 0 + country code format (e.g. 0201019739008 → 201019739008)
-  // Only if starts with 0 and looks too long for a local number
   if (d.startsWith('0') && d.length > 11) d = d.slice(1);
 
-  // Country code mappings: code → local prefix pattern
-  const COUNTRY_STRIP = [
-    { code: '20',  local: /^0[0-9]/ },   // Egypt: 20 + 01xxx → 01xxx
-    { code: '966', local: /^0[5]/ },      // Saudi: 966 + 05xxx → 05xxx
-    { code: '971', local: /^0[5]/ },      // UAE: 971 + 05xxx → 05xxx
-    { code: '965', local: /^[569]/ },     // Kuwait
-    { code: '974', local: /^[3567]/ },    // Qatar
-    { code: '973', local: /^[36]/ },      // Bahrain
-    { code: '968', local: /^[79]/ },      // Oman
-    { code: '962', local: /^0[7]/ },      // Jordan
-    { code: '961', local: /^0[37]/ },     // Lebanon
-    { code: '964', local: /^0[7]/ },      // Iraq
-    { code: '218', local: /^0[29]/ },     // Libya
-    { code: '216', local: /^[2-9]/ },     // Tunisia
-    { code: '213', local: /^0[5-7]/ },    // Algeria
-    { code: '212', local: /^0[5-7]/ },    // Morocco
-    { code: '249', local: /^0[19]/ },     // Sudan
-    { code: '967', local: /^0[7]/ },      // Yemen
-    { code: '90',  local: /^0[5]/ },      // Turkey
-    { code: '44',  local: /^0[7]/ },      // UK
-    { code: '49',  local: /^0[1]/ },      // Germany
-    { code: '33',  local: /^0[6-7]/ },    // France
-    { code: '1',   local: /^[2-9]\d{9}$/ },  // USA/Canada — exactly 10 digits
+  // Try to strip country code using dial codes (longest first)
+  const DIAL_CODES = [
+    '380','375','374','373','372','371','370','359','358','357','356','355','354','353','352','351',
+    '389','387','386','385','383','382','381','420','421','423','995','994','998','996','993','992',
+    '977','976','975','974','972','971','970','968','967','966','965','964','963','962','961','960',
+    '886','880','856','855','852','853','670','673','675','679',
+    '593','595','598','591','506','504','502','507',
+    '291','261','265','267','268','266','264','263','260','258','257','256','255','254','253','252',
+    '251','250','249','248','245','244','243','242','241','240','238','237','236','235','234','233',
+    '232','231','230','229','228','227','226','225','224','223','222','221','220','218','216','213',
+    '212','211',
+    '98','95','94','93','92','91','90','86','84','82','81','66','65','64','63','62','61','60',
+    '58','57','56','55','54','53','52','51',
+    '49','48','47','46','45','44','43','41','40','39','36','34','33','32','31','30',
+    '27','20','7','1',
   ];
 
-  for (const { code, local } of COUNTRY_STRIP) {
-    if (d.startsWith(code)) {
-      const remaining = d.slice(code.length);
-      // Check if remaining looks like a valid local number
-      if (local.test(remaining) && remaining.length >= 7) {
-        return remaining;
-      }
-      // Some countries need 0 added back
-      const withZero = '0' + remaining;
-      if (local.test(withZero) && remaining.length >= 7) {
-        return withZero;
-      }
+  for (const code of DIAL_CODES) {
+    if (d.startsWith(code) && d.length > code.length + 6) {
+      return d.slice(code.length);
     }
   }
-
   return d;
 }
+
 
 function Field({ label, required, children }) {
   return (
