@@ -317,6 +317,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     const { data: a } = await supabase.from('activities').select('*').in('client_id', clients.map((x) => x.id)).order('date', { ascending: false });
     setActivities(a || []);
   };
+  const setCol = (key) => (e) => setPendingCols((p) => ({ ...p, [key]: e.target.value }));
   const applyColFilters = () => { setColFilters({ ...pendingCols }); setPage(1); };
   const clearColFilters = () => { setColFilters({}); setPendingCols({ countries: [] }); setPage(1); };
   const hasColFilters = Object.entries(colFilters).some(([k, v]) => k === 'countries' ? v?.length > 0 : Boolean(v));
