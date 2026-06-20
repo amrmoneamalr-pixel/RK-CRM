@@ -42,7 +42,7 @@ function cleanPhone(raw) {
     { code: '44',  local: /^0[7]/ },      // UK
     { code: '49',  local: /^0[1]/ },      // Germany
     { code: '33',  local: /^0[6-7]/ },    // France
-    { code: '1',   local: /^[2-9]/ },     // USA/Canada — no leading 0
+    { code: '1',   local: /^[2-9]\d{9}$/ },  // USA/Canada — exactly 10 digits
   ];
 
   for (const { code, local } of COUNTRY_STRIP) {
