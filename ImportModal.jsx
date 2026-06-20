@@ -8,23 +8,58 @@ import { Upload, Download, X, Check, AlertCircle } from 'lucide-react';
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
 const inputClass = 'rounded-lg px-3 py-2 text-sm outline-none w-full';
 
-// Remove country codes from phone numbers
+// Remove country codes from phone numbers, keep local format
 function cleanPhone(raw) {
   if (!raw) return '';
-  let d = String(raw).replace(/[\s\-\(\)\.]/g, '').replace(/^\+/, '').replace(/^00/, '');
-  // Egyptian local format
-  if (/^01[0125]\d{8}$/.test(d)) return d;
-  // With country code 20
-  if (/^20(01[0125]\d{8})$/.test(d)) return d.slice(2);
-  // Other countries — just return digits
-  // Remove leading country codes (2-3 digits) if number is too long
-  if (d.length > 11) {
-    // try removing 1-3 digit prefix
-    for (const len of [3, 2, 1]) {
-      const local = d.slice(len);
-      if (local.length >= 7 && local.length <= 12) return local;
+  let d = String(raw).replace(/[\s\-\(\)\.]/g, '');
+  // Remove + prefix
+  if (d.startsWith('+')) d = d.slice(1);
+  // Remove 00 prefix
+  if (d.startsWith('00')) d = d.slice(2);
+  // Handle 0 + country code format (e.g. 0201019739008 → 201019739008)
+  // Only if starts with 0 and looks too long for a local number
+  if (d.startsWith('0') && d.length > 11) d = d.slice(1);
+
+  // Country code mappings: code → local prefix pattern
+  const COUNTRY_STRIP = [
+    { code: '20',  local: /^0[0-9]/ },   // Egypt: 20 + 01xxx → 01xxx
+    { code: '966', local: /^0[5]/ },      // Saudi: 966 + 05xxx → 05xxx
+    { code: '971', local: /^0[5]/ },      // UAE: 971 + 05xxx → 05xxx
+    { code: '965', local: /^[569]/ },     // Kuwait
+    { code: '974', local: /^[3567]/ },    // Qatar
+    { code: '973', local: /^[36]/ },      // Bahrain
+    { code: '968', local: /^[79]/ },      // Oman
+    { code: '962', local: /^0[7]/ },      // Jordan
+    { code: '961', local: /^0[37]/ },     // Lebanon
+    { code: '964', local: /^0[7]/ },      // Iraq
+    { code: '218', local: /^0[29]/ },     // Libya
+    { code: '216', local: /^[2-9]/ },     // Tunisia
+    { code: '213', local: /^0[5-7]/ },    // Algeria
+    { code: '212', local: /^0[5-7]/ },    // Morocco
+    { code: '249', local: /^0[19]/ },     // Sudan
+    { code: '967', local: /^0[7]/ },      // Yemen
+    { code: '90',  local: /^0[5]/ },      // Turkey
+    { code: '44',  local: /^0[7]/ },      // UK
+    { code: '49',  local: /^0[1]/ },      // Germany
+    { code: '33',  local: /^0[6-7]/ },    // France
+    { code: '1',   local: /^[2-9]/ },     // USA/Canada — no leading 0
+  ];
+
+  for (const { code, local } of COUNTRY_STRIP) {
+    if (d.startsWith(code)) {
+      const remaining = d.slice(code.length);
+      // Check if remaining looks like a valid local number
+      if (local.test(remaining) && remaining.length >= 7) {
+        return remaining;
+      }
+      // Some countries need 0 added back
+      const withZero = '0' + remaining;
+      if (local.test(withZero) && remaining.length >= 7) {
+        return withZero;
+      }
     }
   }
+
   return d;
 }
 
