@@ -595,7 +595,9 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
 
   return (
     <Modal title={
-      editName ? (
+      <span className="flex flex-col gap-0.5">
+        <span className="text-xs font-normal" style={{ color: C.muted, letterSpacing: '0.05em' }}>CLIENT CARD</span>
+        {editName ? (
         <div className="flex items-center gap-2 flex-1">
           <input value={nameVal} onChange={(e) => setNameVal(e.target.value)} className="flex-1 rounded px-2 py-1 text-sm outline-none" style={{ backgroundColor: C.bg, border: `1px solid ${C.gold}`, color: C.text }} />
           <button onClick={saveName} className="px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: C.gold, color: '#14181F' }}>Save</button>
@@ -607,6 +609,8 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
           {(isOwner || isAdmin) && <button onClick={() => setEditName(true)}><Pencil size={13} style={{ color: C.muted }} /></button>}
         </span>
       )
+      }
+      </span>
     } onClose={onClose}>
       <div className="space-y-4">
         <div className="flex flex-wrap gap-2">

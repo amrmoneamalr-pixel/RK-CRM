@@ -99,7 +99,30 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <main className="px-4 py-5 pb-24 overflow-x-auto">{children}</main>
+        <main className="px-4 py-5 pb-24 overflow-x-auto">
+          {tab && {
+            clients: 'Clients',
+            developers: 'Developers',
+            orgchart: 'Company Structure',
+            team: 'Users',
+            reports: 'Reports',
+            activity: 'Activity',
+            settings: 'Settings',
+          }[tab] && (
+            <h1 className="font-display font-bold text-2xl mb-5" style={{ color: C.text }}>
+              {{
+                clients: 'Clients',
+                developers: 'Developers',
+                orgchart: 'Company Structure',
+                team: 'Users',
+                reports: 'Reports',
+                activity: 'Activity',
+                settings: 'Settings',
+              }[tab]}
+            </h1>
+          )}
+          {children}
+        </main>
       </div>
 
       {(tab === 'dashboard' || tab === 'clients') && (
