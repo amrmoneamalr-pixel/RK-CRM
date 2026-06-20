@@ -1,24 +1,25 @@
 import React from 'react';
 import { C } from './constants';
-import logo from './logo.png';
-import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, Activity as ActivityIcon, Settings as SettingsIcon, Building2 } from 'lucide-react';
+import covoLogo from './covo-logo.png';
+import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, Activity as ActivityIcon, Settings as SettingsIcon } from 'lucide-react';
 import LeadPanels from './LeadPanels';
 
 export default function Layout({ profile, tab, setTab, onSelectCategory, onSignOut, children }) {
   const tabs = [
-    { id: 'dashboard',  label: 'Dashboard',         icon: BarChart3 },
-    { id: 'clients',    label: 'Clients',            icon: Users },
-    { id: 'developers', label: 'Developers',         icon: Building2 },
-    { id: 'orgchart',   label: 'Company Structure',  icon: Network },
+    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: 'clients', label: 'Clients', icon: Users },
+    { id: 'orgchart', label: 'Org Chart', icon: Network },
+    { id: 'followups', label: 'Follow-ups', icon: Clock },
+    { id: 'targets', label: 'Monthly Targets', icon: Target },
   ];
   const isAdmin = profile.role === 'admin';
-  const hasTeamAccess = isAdmin || ['sales_manager', 'team_leader', 'top_management'].includes(profile.title);
+  const hasTeamAccess = isAdmin || ['sales_manager', 'team_leader'].includes(profile.title);
   if (hasTeamAccess) {
-    tabs.push({ id: 'reports', label: 'Reports', icon: Briefcase });
+    tabs.push({ id: 'reports', label: 'Team Reports', icon: Briefcase });
     tabs.push({ id: 'activity', label: 'Activity', icon: ActivityIcon });
   }
   if (isAdmin) {
-    tabs.push({ id: 'team', label: 'Users', icon: UserCog });
+    tabs.push({ id: 'team', label: 'Teams', icon: UserCog });
     tabs.push({ id: 'settings', label: 'Settings', icon: SettingsIcon });
   }
 
@@ -27,9 +28,9 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
       {/* Sidebar (desktop) */}
       <aside className="hidden sm:flex flex-col w-60 shrink-0 border-r sticky top-0 h-screen p-4" style={{ borderColor: C.border }}>
         <div className="flex items-center gap-2.5 mb-6">
-          <img src={logo} alt="RK Real Estate" className="h-9" />
+          <img src={covoLogo} alt="COVO CRM" className="h-10" />
           <div>
-            <h1 className="font-display text-xl font-extrabold tracking-tight" style={{ color: C.gold }}>RK CRM</h1>
+            <p className="text-xs font-semibold mt-0.5" style={{ color: C.muted }}>RK</p>
             <p className="text-xs mt-0.5" style={{ color: C.muted }}>
               {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
             </p>
@@ -64,9 +65,9 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
         <div className="px-4 pt-4 pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <img src={logo} alt="RK Real Estate" className="h-9" />
+              <img src={covoLogo} alt="COVO CRM" className="h-9" />
               <div>
-                <h1 className="font-display text-xl font-extrabold tracking-tight" style={{ color: C.gold }}>RK CRM</h1>
+                <p className="text-xs font-semibold" style={{ color: C.muted }}>RK</p>
                 <p className="text-xs mt-0.5" style={{ color: C.muted }}>
                   {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
                 </p>
@@ -99,30 +100,7 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <main className="px-4 py-5 pb-24 overflow-x-auto">
-          {tab && {
-            clients: 'Clients',
-            developers: 'Developers',
-            orgchart: 'Company Structure',
-            team: 'Users',
-            reports: 'Reports',
-            activity: 'Activity',
-            settings: 'Settings',
-          }[tab] && (
-            <h1 className="font-display font-bold text-2xl mb-5" style={{ color: C.text }}>
-              {{
-                clients: 'Clients',
-                developers: 'Developers',
-                orgchart: 'Company Structure',
-                team: 'Users',
-                reports: 'Reports',
-                activity: 'Activity',
-                settings: 'Settings',
-              }[tab]}
-            </h1>
-          )}
-          {children}
-        </main>
+        <main className="max-w-5xl mx-auto px-4 py-5 pb-24">{children}</main>
       </div>
 
       {(tab === 'dashboard' || tab === 'clients') && (
