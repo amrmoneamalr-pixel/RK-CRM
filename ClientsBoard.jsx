@@ -112,29 +112,9 @@ const selectStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, co
 const selectClass = 'rounded-lg px-2.5 py-2 text-xs outline-none';
 const PAGE_SIZE = 30;
 const EXPORT_BATCH = 1000;
-const SS_KEY = 'rk_clients_state';
 
-function loadSavedState() {
-  try {
-    // Try URL hash first (survives Chrome tab discard)
-    const hash = window.location.hash.slice(1);
-    if (hash) {
-      const parsed = JSON.parse(decodeURIComponent(hash));
-      if (parsed.page) return parsed;
-    }
-  } catch {}
-  try { return JSON.parse(localStorage.getItem(SS_KEY) || '{}'); } catch { return {}; }
-}
-function saveState(obj) {
-  try {
-    const scrollY = typeof window !== 'undefined' ? window.scrollY : 0;
-    window.history.replaceState(null, '', '#' + encodeURIComponent(JSON.stringify({ page: obj.page, scrollY })));
-    localStorage.setItem(SS_KEY, JSON.stringify(obj));
-  } catch {}
-}
 
 export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilter, onClearLeadFilter }) {
-  const saved = loadSavedState();
   const [clients, setClients] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [activities, setActivities] = useState([]);
@@ -143,28 +123,22 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   const [developerList, setDeveloperList] = useState([]);
   const [projectList, setProjectList] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchInput, setSearchInput] = useState(saved.searchInput || '');
-  const [search, setSearch] = useState(saved.search || '');
-  const [stageFilter, setStageFilter] = useState(saved.stageFilter || 'all');
-  const [colFilters, setColFilters] = useState(saved.colFilters || {});
-  const [pendingCols, setPendingCols] = useState(saved.pendingCols || {});
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [stageFilter, setStageFilter] = useState('all');
+  const [colFilters, setColFilters] = useState({});
+  const [pendingCols, setPendingCols] = useState({});
   const [showAdd, setShowAdd] = useState(false);
   const [selected, setSelected] = useState(null);
   const [editTarget, setEditTarget] = useState(null);
   const [showImport, setShowImport] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [page, setPage] = useState(saved.page || 1);
+  const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkReassignTo, setBulkReassignTo] = useState('');
   const [bulkBusy, setBulkBusy] = useState(false);
   const [actionTarget, setActionTarget] = useState(null);
 
-  useEffect(() => {
-    const t = setTimeout(() => {
-      saveState({ searchInput, search, stageFilter, colFilters, pendingCols, page });
-    }, 200);
-    return () => clearTimeout(t);
-  }, [searchInput, search, stageFilter, colFilters, pendingCols, page]);
 
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput.trim()), 350);
@@ -293,34 +267,8 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     setLoading(false);
   };
 
-  // Restore scroll position after tab discard/reload
-  const restoreScrollOnce = useRef(true);
-  const doRestoreScroll = () => {
-    if (!restoreScrollOnce.current) return;
-    restoreScrollOnce.current = false;
-    try {
-      const hash = JSON.parse(decodeURIComponent(window.location.hash.slice(1)));
-      if (hash.scrollY > 0) setTimeout(() => window.scrollTo(0, hash.scrollY), 300);
-    } catch {}
-  };
 
-  const lastLoadRef = useRef(null);
-  const isHiddenRef = useRef(false);
-
-  useEffect(() => {
-    const onVisibility = () => { isHiddenRef.current = document.hidden; };
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => document.removeEventListener('visibilitychange', onVisibility);
-  }, []);
-
-  useEffect(() => {
-    // Don't reload when returning from minimize/tab switch
-    if (document.hidden) return;
-    const key = JSON.stringify({ userId, page, search, stageFilter, leadFilter, colFilters });
-    if (lastLoadRef.current === key && clients.length > 0) return;
-    lastLoadRef.current = key;
-    load().then(doRestoreScroll);
-  }, [userId, page, search, stageFilter, leadFilter, JSON.stringify(colFilters)]);
+  useEffect(() => { load(); }, [userId, page, search, stageFilter, leadFilter, colFilters]);
 
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -363,19 +311,6 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     URL.revokeObjectURL(url); setExporting(false);
   };
 
-  // Save scroll position continuously
-  useEffect(() => {
-    const handler = () => {
-      try {
-        const scrollY = window.scrollY;
-        const hash = window.location.hash.slice(1);
-        const current = hash ? JSON.parse(decodeURIComponent(hash)) : {};
-        window.history.replaceState(null, '', '#' + encodeURIComponent(JSON.stringify({ ...current, scrollY })));
-      } catch {}
-    };
-    window.addEventListener('scroll', handler, { passive: true });
-    return () => window.removeEventListener('scroll', handler);
-  }, []);
 
   const setCol = (key) => (e) => setPendingCols((p) => ({ ...p, [key]: e.target.value }));
   const applyColFilters = () => { setColFilters({ ...pendingCols }); setPage(1); };
