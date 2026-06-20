@@ -565,6 +565,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
     setPlannedMeeting(false);
     setActualMeeting(false);
     onSaved();
+    onClose();
   };
 
   const st = stageOf(client.stage);

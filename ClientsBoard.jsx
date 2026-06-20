@@ -3,7 +3,7 @@ import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { supabase } from './supabaseClient';
 import { C, STAGES, SOURCES, ACTIONS, LOCATIONS, LEAD_ORIGINS, COLD_RESULTS, fmtMoney, fmtDate, todayStr, stageOf, stageIdFromInput, LEAD_CATEGORY_LABELS, leadCategory, clientStatus } from './constants';
-import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight, X, Pencil, MessageSquarePlus, Loader2 } from 'lucide-react';
+import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X, Pencil, MessageSquarePlus, Loader2 } from 'lucide-react';
 import ClientModal from './ClientModal';
 import ImportModal from './ImportModal';
 import { SourceTag } from './BrandIcons';
@@ -414,6 +414,17 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
         </div>
       ) : (
         <>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs" style={{ color: C.muted }}>{loading ? 'Loading...' : `${rangeStart}–${rangeEnd} of ${totalCount}`}</span>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setPage(1)} disabled={currentPage <= 1} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} title="First page"><ChevronsLeft size={15} /></button>
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage <= 1} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}><ChevronLeft size={16} /></button>
+              <span className="text-xs font-medium px-2" style={{ color: C.muted }}>Page {currentPage} / {totalPages}</span>
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}><ChevronRight size={16} /></button>
+              <button onClick={() => setPage(totalPages)} disabled={currentPage >= totalPages} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} title="Last page"><ChevronsRight size={15} /></button>
+            </div>
+          </div>
+
           <div className="overflow-x-auto" id="top-scroll-mirror" style={{ height: '8px', borderRadius: '4px' }}>
             <div id="top-scroll-inner" style={{ height: '1px' }} />
           </div>
@@ -505,12 +516,14 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
               </tbody>
             </table>
           </div>
-          <div className="flex items-center justify-between gap-3 pt-1">
+          <div className="flex items-center justify-between gap-3">
             <span className="text-xs" style={{ color: C.muted }}>{loading ? 'Loading...' : `${rangeStart}–${rangeEnd} of ${totalCount}`}</span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <button onClick={() => setPage(1)} disabled={currentPage <= 1} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} title="First page"><ChevronsLeft size={15} /></button>
               <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage <= 1} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}><ChevronLeft size={16} /></button>
-              <span className="text-xs font-medium" style={{ color: C.muted }}>Page {currentPage} / {totalPages}</span>
+              <span className="text-xs font-medium px-2" style={{ color: C.muted }}>Page {currentPage} / {totalPages}</span>
               <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}><ChevronRight size={16} /></button>
+              <button onClick={() => setPage(totalPages)} disabled={currentPage >= totalPages} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} title="Last page"><ChevronsRight size={15} /></button>
             </div>
           </div>
         </>
@@ -521,13 +534,13 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
       </button>
 
       {showAdd && <ClientModal mode="add" userId={userId} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setShowAdd(false)} onSaved={load} />}
-      {selected && <ClientModal mode="detail" userId={userId} client={selected} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setSelected(null)} onSaved={reloadActivities} />}
+      {selected && <ClientModal mode="detail" userId={userId} client={selected} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setSelected(null)} onSaved={load} />}
       {editTarget && <ClientModal mode="edit" userId={userId} client={editTarget} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setEditTarget(null)} onSaved={load} />}
       {showImport && <ImportModal userId={userId} onClose={() => setShowImport(false)} onDone={() => { setShowImport(false); load(); }} />}
       {actionTarget && (() => {
         const idx = clients.findIndex((c) => c.id === actionTarget.id);
         const nextClient = idx >= 0 && idx < clients.length - 1 ? clients[idx + 1] : null;
-        return (<ClientModal mode="detail" userId={userId} client={actionTarget} isAdmin={hasTeamAccess} profilesList={profilesList} autoFocusActivity={!isAdmin} onClose={() => setActionTarget(null)} onSaved={reloadActivities} onNext={nextClient ? () => { load(); setActionTarget(nextClient); } : null} />);
+        return (<ClientModal mode="detail" userId={userId} client={actionTarget} isAdmin={hasTeamAccess} profilesList={profilesList} autoFocusActivity={!isAdmin} onClose={() => setActionTarget(null)} onSaved={load} onNext={nextClient ? () => { load(); setActionTarget(nextClient); } : null} />);
       })()}
     </div>
   );
