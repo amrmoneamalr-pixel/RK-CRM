@@ -282,8 +282,16 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   };
 
   const lastLoadRef = useRef(null);
+  const isHiddenRef = useRef(false);
 
   useEffect(() => {
+    const onVisibility = () => { isHiddenRef.current = document.hidden; };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
+
+  useEffect(() => {
+    if (isHiddenRef.current) return;
     const key = JSON.stringify({ userId, page, search, stageFilter, leadFilter, colFilters });
     if (lastLoadRef.current === key && clients.length > 0) return;
     lastLoadRef.current = key;
