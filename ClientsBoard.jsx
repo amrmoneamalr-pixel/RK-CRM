@@ -281,7 +281,14 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [userId, page, search, stageFilter, leadFilter, colFilters]);
+  const lastLoadRef = useRef(null);
+
+  useEffect(() => {
+    const key = JSON.stringify({ userId, page, search, stageFilter, leadFilter, colFilters });
+    if (lastLoadRef.current === key && clients.length > 0) return;
+    lastLoadRef.current = key;
+    load();
+  }, [userId, page, search, stageFilter, leadFilter, colFilters]);
 
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
