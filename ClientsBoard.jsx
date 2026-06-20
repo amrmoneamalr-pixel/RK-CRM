@@ -127,8 +127,8 @@ function loadSavedState() {
 }
 function saveState(obj) {
   try {
-    // Save to both URL hash and localStorage
-    window.history.replaceState(null, '', '#' + encodeURIComponent(JSON.stringify({ page: obj.page })));
+    const scrollY = typeof window !== 'undefined' ? window.scrollY : 0;
+    window.history.replaceState(null, '', '#' + encodeURIComponent(JSON.stringify({ page: obj.page, scrollY })));
     localStorage.setItem(SS_KEY, JSON.stringify(obj));
   } catch {}
 }
@@ -293,6 +293,17 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     setLoading(false);
   };
 
+  // Restore scroll position after tab discard/reload
+  const restoreScrollOnce = useRef(true);
+  const doRestoreScroll = () => {
+    if (!restoreScrollOnce.current) return;
+    restoreScrollOnce.current = false;
+    try {
+      const hash = JSON.parse(decodeURIComponent(window.location.hash.slice(1)));
+      if (hash.scrollY > 0) setTimeout(() => window.scrollTo(0, hash.scrollY), 300);
+    } catch {}
+  };
+
   const lastLoadRef = useRef(null);
   const isHiddenRef = useRef(false);
 
@@ -307,7 +318,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     const key = JSON.stringify({ userId, page, search, stageFilter, leadFilter, colFilters });
     if (lastLoadRef.current === key && clients.length > 0) return;
     lastLoadRef.current = key;
-    load();
+    load().then(doRestoreScroll);
   }, [userId, page, search, stageFilter, leadFilter, colFilters]);
 
   useEffect(() => {
@@ -350,6 +361,20 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     const a = document.createElement('a'); a.href = url; a.download = `rk-crm-clients-${todayStr()}.csv`; a.click();
     URL.revokeObjectURL(url); setExporting(false);
   };
+
+  // Save scroll position continuously
+  useEffect(() => {
+    const handler = () => {
+      try {
+        const scrollY = window.scrollY;
+        const hash = window.location.hash.slice(1);
+        const current = hash ? JSON.parse(decodeURIComponent(hash)) : {};
+        window.history.replaceState(null, '', '#' + encodeURIComponent(JSON.stringify({ ...current, scrollY })));
+      } catch {}
+    };
+    window.addEventListener('scroll', handler, { passive: true });
+    return () => window.removeEventListener('scroll', handler);
+  }, []);
 
   const setCol = (key) => (e) => setPendingCols((p) => ({ ...p, [key]: e.target.value }));
   const applyColFilters = () => { setColFilters({ ...pendingCols }); setPage(1); };
