@@ -454,9 +454,9 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
 
   const setCol = (key) => (e) => setPendingCols((p) => ({ ...p, [key]: e.target.value }));
   const applyColFilters = () => { setColFilters({ ...pendingCols }); setPage(1); };
-  const clearColFilters = () => { setColFilters({}); setPendingCols({}); setPage(1); };
-  const hasColFilters = Object.values(colFilters).some(Boolean);
-  const hasPendingFilters = Object.values(pendingCols).some(Boolean);
+  const clearColFilters = () => { setColFilters({}); setPendingCols({ countries: [] }); setPage(1); };
+  const hasColFilters = Object.entries(colFilters).some(([k, v]) => k === 'countries' ? v?.length > 0 : Boolean(v));
+  const hasPendingFilters = Object.entries(pendingCols).some(([k, v]) => k === 'countries' ? v?.length > 0 : Boolean(v));
   const noFiltersActive = !search && !leadFilter && stageFilter === 'all' && !hasColFilters && !hasPendingFilters;
 
 
