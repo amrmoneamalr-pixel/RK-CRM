@@ -2,7 +2,7 @@ import React from 'react';
 
 const COUNTRY_CODES = [
   // Egypt first (most common for RK CRM)
-  { code: 'eg', name: 'Egypt',                    dial: '+20',  tz: 'Africa/Cairo',                      test: (d) => /^(20)?(01[0125]\d{8})$/.test(d) || /^01[0125]\d{8}$/.test(d) },
+  { code: 'eg', name: 'Egypt',                    dial: '+20',  tz: 'Africa/Cairo',                      test: (d) => /^201[0125]\d{8}$/.test(d) || /^01[0125]\d{8}$/.test(d) || /^1[0125]\d{8}$/.test(d) },
   // Arab World
   { code: 'sa', name: 'Saudi Arabia',             dial: '+966', tz: 'Asia/Riyadh',                       test: (d) => /^966[5]\d{8}$/.test(d) || /^05\d{8}$/.test(d) },
   { code: 'ae', name: 'UAE',                      dial: '+971', tz: 'Asia/Dubai',                        test: (d) => /^971[5]\d{8}$/.test(d) },

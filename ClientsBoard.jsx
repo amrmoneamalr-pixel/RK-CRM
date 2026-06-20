@@ -223,8 +223,8 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     if (colFilters.followup_to)   q = q.lte('next_follow_up', colFilters.followup_to);
     if (colFilters.countries && colFilters.countries.length > 0) {
       const PREFIXES = {
-        'Egypt':['010','011','012','015'],
-        'Saudi Arabia':['9665','9666','05'],'UAE':['9715','9714'],'Kuwait':['965'],
+        'Egypt':['201'],
+        'Saudi Arabia':['966'],'UAE':['971'],'Kuwait':['965'],
         'Qatar':['974'],'Bahrain':['973'],'Oman':['968'],'Jordan':['962'],
         'Lebanon':['961'],'Iraq':['964'],'Syria':['963'],'Yemen':['967'],
         'Palestine':['970'],'Libya':['218'],'Tunisia':['216'],'Algeria':['213'],
@@ -243,8 +243,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
         'Ghana':['233'],'Australia':['61'],'New Zealand':['64'],
       };
       if (colFilters.countries.includes('Overseas')) {
-        q = q.not('phone','ilike','010%').not('phone','ilike','011%')
-             .not('phone','ilike','012%').not('phone','ilike','015%');
+        q = q.not('phone','ilike','201%');
       } else {
         const allPfx = colFilters.countries.flatMap(c => PREFIXES[c] || []);
         if (allPfx.length > 0) q = q.or(allPfx.map(p => `phone.ilike.${p}%`).join(','));
