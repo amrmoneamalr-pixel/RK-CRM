@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 import { supabase } from './supabaseClient';
 import { C, STAGES, SOURCES, ACTIONS, LOCATIONS, LEAD_ORIGINS, COLD_RESULTS, fmtMoney, fmtDate, todayStr, stageOf, stageIdFromInput, LEAD_CATEGORY_LABELS, leadCategory, clientStatus } from './constants';
 import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight, X, Pencil, MessageSquarePlus, Loader2 } from 'lucide-react';
 import ClientModal from './ClientModal';
+import ImportModal from './ImportModal';
 import { SourceTag } from './BrandIcons';
 import PhoneFlag, { detectCountry } from './PhoneFlag';
 import DateRangePicker from './DateRangePicker';
@@ -81,6 +83,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   const [editTarget, setEditTarget] = useState(null);
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState('');
+  const [showImport, setShowImport] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -454,7 +457,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
             + New Client
           </button>
           {isAdmin && (
-            <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
+            <button onClick={() => setShowImport(true)} disabled={importing} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
               <Upload size={14} /> {importing ? 'Importing...' : 'Import CSV'}
             </button>
           )}
@@ -522,10 +525,9 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
               <button onClick={exportCsv} disabled={exporting} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0 disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
                 {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} {exporting ? 'Exporting...' : 'Export'}
               </button>
-              <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0 disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
-                <Upload size={14} /> {importing ? 'Importing...' : 'Import'}
+              <button onClick={() => setShowImport(true)} disabled={importing} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0 disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
+                <Upload size={14} /> Import
               </button>
-              <input ref={fileInputRef} type="file" accept=".csv" onChange={handleImportFile} className="hidden" />
             </>
           )}
         </div>
@@ -753,6 +755,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
       {showAdd && <ClientModal mode="add" userId={userId} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setShowAdd(false)} onSaved={load} />}
       {selected && <ClientModal mode="detail" userId={userId} client={selected} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setSelected(null)} onSaved={load} />}
       {editTarget && <ClientModal mode="edit" userId={userId} client={editTarget} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setEditTarget(null)} onSaved={load} />}
+      {showImport && <ImportModal userId={userId} onClose={() => setShowImport(false)} onDone={() => { setShowImport(false); load(); }} />}
       {actionTarget && (() => {
         const idx = clients.findIndex((c) => c.id === actionTarget.id);
         const nextClient = idx >= 0 && idx < clients.length - 1 ? clients[idx + 1] : null;
