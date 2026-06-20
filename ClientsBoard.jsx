@@ -148,7 +148,10 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   const [actionTarget, setActionTarget] = useState(null);
 
   useEffect(() => {
-    saveState({ searchInput, search, stageFilter, colFilters, pendingCols, page });
+    const t = setTimeout(() => {
+      saveState({ searchInput, search, stageFilter, colFilters, pendingCols, page });
+    }, 200);
+    return () => clearTimeout(t);
   }, [searchInput, search, stageFilter, colFilters, pendingCols, page]);
 
   useEffect(() => {
@@ -169,7 +172,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     return () => { top.removeEventListener('scroll', syncFromTop); main.removeEventListener('scroll', syncFromMain); };
   });
 
-  useEffect(() => { setPage(1); }, [search, stageFilter, leadFilter, colFilters]);
+  useEffect(() => { setPage(1); }, [search, stageFilter, leadFilter]);
 
   useEffect(() => {
     if (!hasTeamAccess) return;
