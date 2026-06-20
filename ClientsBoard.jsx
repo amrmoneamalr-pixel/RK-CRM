@@ -22,43 +22,29 @@ function FilterSelect({ value, onChange, options, placeholder }) {
 }
 
 function CountryFilter({ value, onChange }) {
-  // value is array of selected countries
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState('');
   const ref = React.useRef(null);
-
   const ALL_COUNTRIES = ['Afghanistan','Albania','Algeria','Angola','Argentina','Armenia','Australia','Austria','Azerbaijan','Bahrain','Bangladesh','Belgium','Bolivia','Bosnia','Botswana','Brazil','Bulgaria','Burkina Faso','Cambodia','Cameroon','Canada','Chad','Chile','China','Colombia','Congo','Costa Rica','Croatia','Cuba','Czech Republic','Denmark','Dominican Republic','DR Congo','Ecuador','Egypt','Eritrea','Estonia','Ethiopia','Finland','France','Georgia','Germany','Ghana','Greece','Guatemala','Guinea','Honduras','Hong Kong','Hungary','Iceland','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy','Ivory Coast','Japan','Jordan','Kazakhstan','Kenya','Kuwait','Kyrgyzstan','Latvia','Lebanon','Libya','Lithuania','Luxembourg','Madagascar','Malawi','Malaysia','Mali','Malta','Mauritania','Mauritius','Mexico','Moldova','Mongolia','Montenegro','Morocco','Mozambique','Myanmar','Namibia','Nepal','Netherlands','New Zealand','Niger','Nigeria','North Macedonia','Norway','Oman','Pakistan','Palestine','Panama','Paraguay','Peru','Philippines','Poland','Portugal','Qatar','Romania','Russia','Rwanda','Saudi Arabia','Senegal','Serbia','Singapore','Slovakia','Slovenia','Somalia','South Africa','South Korea','South Sudan','Spain','Sri Lanka','Sudan','Sweden','Switzerland','Syria','Taiwan','Tajikistan','Tanzania','Thailand','Togo','Tunisia','Turkey','Turkmenistan','UAE','Uganda','UK','Ukraine','Uruguay','USA','Uzbekistan','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe'];
-
   React.useEffect(() => {
     const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener('mousedown', h);
     return () => document.removeEventListener('mousedown', h);
   }, []);
-
   const selected = value || [];
   const filtered = search ? ALL_COUNTRIES.filter(c => c.toLowerCase().includes(search.toLowerCase())) : ALL_COUNTRIES;
-
   const toggle = (country) => {
-    if (country === 'Overseas') {
-      onChange(selected.includes('Overseas') ? [] : ['Overseas']);
-      return;
-    }
+    if (country === 'Overseas') { onChange(selected.includes('Overseas') ? [] : ['Overseas']); return; }
     const without = selected.filter(c => c !== 'Overseas');
     if (without.includes(country)) onChange(without.filter(c => c !== country));
     else onChange([...without, country]);
   };
-
-  const label = selected.length === 0 ? 'All Countries'
-    : selected.includes('Overseas') ? '🌍 Overseas'
-    : selected.length === 1 ? selected[0]
-    : `${selected.length} countries`;
-
+  const label = selected.length === 0 ? 'All Countries' : selected.includes('Overseas') ? '🌍 Overseas' : selected.length === 1 ? selected[0] : `${selected.length} countries`;
   return (
     <div ref={ref} className="relative">
       <button onClick={() => setOpen(v => !v)} className="w-full rounded px-2 py-1 text-xs text-left outline-none flex items-center justify-between"
         style={{ backgroundColor: C.surface, border: `1px solid ${selected.length ? C.gold : C.border}`, color: selected.length ? C.gold : C.muted }}>
-        <span>{label}</span>
-        <span style={{ fontSize: 9 }}>▼</span>
+        <span>{label}</span><span style={{ fontSize: 9 }}>▼</span>
       </button>
       {open && (
         <div className="absolute z-50 top-7 left-0 rounded-xl shadow-xl" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, width: 220, maxHeight: 280, display: 'flex', flexDirection: 'column' }}>
@@ -68,7 +54,6 @@ function CountryFilter({ value, onChange }) {
               style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text }} />
           </div>
           <div className="overflow-y-auto flex-1">
-            {/* Overseas option */}
             {!search && (
               <div onClick={() => toggle('Overseas')} className="flex items-center gap-2 px-3 py-1.5 cursor-pointer text-xs hover:opacity-80"
                 style={{ backgroundColor: selected.includes('Overseas') ? `${C.gold}22` : 'transparent', color: selected.includes('Overseas') ? C.gold : C.text, borderBottom: `1px solid ${C.border}` }}>
@@ -79,8 +64,7 @@ function CountryFilter({ value, onChange }) {
             {filtered.map(c => (
               <div key={c} onClick={() => toggle(c)} className="flex items-center gap-2 px-3 py-1.5 cursor-pointer text-xs hover:opacity-80"
                 style={{ backgroundColor: selected.includes(c) ? `${C.gold}22` : 'transparent', color: selected.includes(c) ? C.gold : C.text }}>
-                <span>{selected.includes(c) ? '☑' : '☐'}</span>
-                <span>{c}</span>
+                <span>{selected.includes(c) ? '☑' : '☐'}</span><span>{c}</span>
               </div>
             ))}
           </div>
@@ -101,23 +85,16 @@ function AutocompleteInput({ value, onChange, options, placeholder }) {
   const filtered = value ? options.filter((o) => o.toLowerCase().includes(value.toLowerCase())) : options;
   return (
     <div className="relative">
-      <input
-        value={value || ''}
-        onChange={(e) => { onChange(e.target.value); setOpen(true); }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        placeholder={placeholder}
-        className="w-full rounded px-2 py-1 text-xs outline-none"
-        style={{ backgroundColor: C.surface, border: `1px solid ${value ? C.gold : C.border}`, color: value ? C.gold : C.text }}
-      />
+      <input value={value || ''} onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder={placeholder} className="w-full rounded px-2 py-1 text-xs outline-none"
+        style={{ backgroundColor: C.surface, border: `1px solid ${value ? C.gold : C.border}`, color: value ? C.gold : C.text }} />
       {open && filtered.length > 0 && (
-        <div className="absolute z-50 top-7 left-0 rounded shadow-lg max-h-40 overflow-y-auto overflow-x-hidden" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, minWidth: '100%', width: 'max-content', maxWidth: '260px' }}>
+        <div className="absolute z-50 top-7 left-0 rounded shadow-lg max-h-40 overflow-y-auto overflow-x-hidden"
+          style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, minWidth: '100%', width: 'max-content', maxWidth: '260px' }}>
           {filtered.map((o) => (
             <div key={o} onMouseDown={() => { onChange(o); setOpen(false); }}
-              className="px-2 py-1.5 text-xs cursor-pointer hover:opacity-80 whitespace-nowrap"
-              style={{ color: C.text }}>
-              {o}
-            </div>
+              className="px-2 py-1.5 text-xs cursor-pointer hover:opacity-80 whitespace-nowrap" style={{ color: C.text }}>{o}</div>
           ))}
         </div>
       )}
@@ -127,9 +104,7 @@ function AutocompleteInput({ value, onChange, options, placeholder }) {
 
 function Pill({ color, children }) {
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap" style={{ backgroundColor: `${color}22`, color }}>
-      {children}
-    </span>
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap" style={{ backgroundColor: `${color}22`, color }}>{children}</span>
   );
 }
 
@@ -137,8 +112,17 @@ const selectStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, co
 const selectClass = 'rounded-lg px-2.5 py-2 text-xs outline-none';
 const PAGE_SIZE = 30;
 const EXPORT_BATCH = 1000;
+const SS_KEY = 'rk_clients_state';
+
+function loadSavedState() {
+  try { return JSON.parse(sessionStorage.getItem(SS_KEY) || '{}'); } catch { return {}; }
+}
+function saveState(obj) {
+  try { sessionStorage.setItem(SS_KEY, JSON.stringify(obj)); } catch {}
+}
 
 export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilter, onClearLeadFilter }) {
+  const saved = loadSavedState();
   const [clients, setClients] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [activities, setActivities] = useState([]);
@@ -147,27 +131,26 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   const [developerList, setDeveloperList] = useState([]);
   const [projectList, setProjectList] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-  const [stageFilter, setStageFilter] = useState('all');
-  // Column-level filters (applied on Search button press)
-  const [colFilters, setColFilters] = useState({});
-  const [pendingCols, setPendingCols] = useState({});
+  const [searchInput, setSearchInput] = useState(saved.searchInput || '');
+  const [search, setSearch] = useState(saved.search || '');
+  const [stageFilter, setStageFilter] = useState(saved.stageFilter || 'all');
+  const [colFilters, setColFilters] = useState(saved.colFilters || {});
+  const [pendingCols, setPendingCols] = useState(saved.pendingCols || {});
   const [showAdd, setShowAdd] = useState(false);
   const [selected, setSelected] = useState(null);
   const [editTarget, setEditTarget] = useState(null);
-  const [importing, setImporting] = useState(false);
-  const [importMsg, setImportMsg] = useState('');
   const [showImport, setShowImport] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(saved.page || 1);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkReassignTo, setBulkReassignTo] = useState('');
   const [bulkBusy, setBulkBusy] = useState(false);
   const [actionTarget, setActionTarget] = useState(null);
-  const fileInputRef = useRef(null);
 
-  // debounce free-text search
+  useEffect(() => {
+    saveState({ searchInput, search, stageFilter, colFilters, pendingCols, page });
+  }, [searchInput, search, stageFilter, colFilters, pendingCols, page]);
+
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput.trim()), 350);
     return () => clearTimeout(t);
@@ -186,12 +169,8 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     return () => { top.removeEventListener('scroll', syncFromTop); main.removeEventListener('scroll', syncFromMain); };
   });
 
-  // reset to page 1 whenever search/filters change
-  useEffect(() => {
-    setPage(1);
-  }, [search, stageFilter, leadFilter, colFilters]);
+  useEffect(() => { setPage(1); }, [search, stageFilter, leadFilter, colFilters]);
 
-  // load the list of owners (admin/team-access only) — once
   useEffect(() => {
     if (!hasTeamAccess) return;
     (async () => {
@@ -207,50 +186,45 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     })();
   }, [hasTeamAccess, userId]);
 
-  // build the filtered query (shared by page-load and export)
   const buildQuery = () => {
     let q = supabase.from('clients').select('*', { count: 'exact' });
-
     if (!hasTeamAccess) q = q.eq('owner_id', userId);
-
     if (search) {
       const esc = search.replace(/[%,]/g, '');
       q = q.or(`name.ilike.%${esc}%,phone.ilike.%${esc}%,project.ilike.%${esc}%,developer.ilike.%${esc}%,location.ilike.%${esc}%`);
     }
-
-    if (colFilters.name)       q = q.ilike('name', `%${colFilters.name}%`);
-    if (colFilters.phone)      q = q.ilike('phone', `%${colFilters.phone}%`);
+    if (colFilters.name)        q = q.ilike('name', `%${colFilters.name}%`);
+    if (colFilters.phone)       q = q.ilike('phone', `%${colFilters.phone}%`);
     if (colFilters.stage_category) q = q.eq('stage_category', colFilters.stage_category);
-    if (colFilters.source)     q = q.eq('source', colFilters.source);
+    if (colFilters.source)      q = q.eq('source', colFilters.source);
     if (colFilters.assigned_to) {
       const matchedId = Object.entries(owners).find(([, name]) => name === colFilters.assigned_to)?.[0];
       if (matchedId) q = q.eq('owner_id', matchedId);
     }
     if (colFilters.lead_origin) q = q.eq('lead_origin', colFilters.lead_origin);
-    if (colFilters.developer)  q = q.ilike('developer', `%${colFilters.developer}%`);
-    if (colFilters.project)    q = q.ilike('project', `%${colFilters.project}%`);
-    if (colFilters.location)   q = q.eq('location', colFilters.location);
+    if (colFilters.developer)   q = q.ilike('developer', `%${colFilters.developer}%`);
+    if (colFilters.project)     q = q.ilike('project', `%${colFilters.project}%`);
+    if (colFilters.location)    q = q.eq('location', colFilters.location);
     if (colFilters.call_result) q = q.eq('call_result', colFilters.call_result);
     if (colFilters.status) {
       switch (colFilters.status) {
-        case 'New':           q = q.eq('ever_contacted', false).neq('stage', 'won'); break;
-        case 'Contacted':     q = q.eq('ever_contacted', true).neq('stage', 'won'); break;
-        case 'Re-rotation':   q = q.not('previous_owners', 'is', null).neq('stage', 'won'); break;
-        case 'Not Interested':q = q.eq('call_result', 'Not Interested'); break;
-        case 'Not Qualified': q = q.eq('call_result', 'Not Qualified'); break;
-        case 'Deal':          q = q.eq('stage', 'won'); break;
+        case 'New':            q = q.eq('ever_contacted', false).neq('stage', 'won'); break;
+        case 'Contacted':      q = q.eq('ever_contacted', true).neq('stage', 'won'); break;
+        case 'Re-rotation':    q = q.not('previous_owners', 'is', null).neq('stage', 'won'); break;
+        case 'Not Interested': q = q.eq('call_result', 'Not Interested'); break;
+        case 'Not Qualified':  q = q.eq('call_result', 'Not Qualified'); break;
+        case 'Deal':           q = q.eq('stage', 'won'); break;
         default: break;
       }
     }
-    if (colFilters.created_from) q = q.gte('created_at', colFilters.created_from);
-    if (colFilters.created_to)   q = q.lte('created_at', colFilters.created_to + 'T23:59:59');
+    if (colFilters.created_from)  q = q.gte('created_at', colFilters.created_from);
+    if (colFilters.created_to)    q = q.lte('created_at', colFilters.created_to + 'T23:59:59');
     if (colFilters.followup_from) q = q.gte('next_follow_up', colFilters.followup_from);
     if (colFilters.followup_to)   q = q.lte('next_follow_up', colFilters.followup_to);
-
     if (colFilters.countries && colFilters.countries.length > 0) {
       const PREFIXES = {
-        'Egypt':['20','010','011','012','015'],
-        'Saudi Arabia':['966','05'],'UAE':['971'],'Kuwait':['965'],
+        'Egypt':['010','011','012','015'],
+        'Saudi Arabia':['9665','9666','05'],'UAE':['9715','9714'],'Kuwait':['965'],
         'Qatar':['974'],'Bahrain':['973'],'Oman':['968'],'Jordan':['962'],
         'Lebanon':['961'],'Iraq':['964'],'Syria':['963'],'Yemen':['967'],
         'Palestine':['970'],'Libya':['218'],'Tunisia':['216'],'Algeria':['213'],
@@ -269,32 +243,25 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
         'Ghana':['233'],'Australia':['61'],'New Zealand':['64'],
       };
       if (colFilters.countries.includes('Overseas')) {
-        // Egyptian numbers are stored as 01xxxxxxxxx (local format)
-        // Exclude 010x, 011x, 012x, 015x
-        q = q
-          .not('phone','ilike','010%')
-          .not('phone','ilike','011%')
-          .not('phone','ilike','012%')
-          .not('phone','ilike','015%');
+        q = q.not('phone','ilike','010%').not('phone','ilike','011%')
+             .not('phone','ilike','012%').not('phone','ilike','015%');
       } else {
         const allPfx = colFilters.countries.flatMap(c => PREFIXES[c] || []);
         if (allPfx.length > 0) q = q.or(allPfx.map(p => `phone.ilike.${p}%`).join(','));
       }
     }
-
     if (leadFilter) {
       const today = todayStr();
       const sevenDaysAgoIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       switch (leadFilter) {
-        case 'fresh':        q = q.eq('stage','new').eq('ever_contacted',false).gte('created_at',sevenDaysAgoIso); break;
-        case 'oldFresh':     q = q.eq('stage','new').eq('ever_contacted',false).lt('created_at',sevenDaysAgoIso); break;
+        case 'fresh':         q = q.eq('stage','new').eq('ever_contacted',false).gte('created_at',sevenDaysAgoIso); break;
+        case 'oldFresh':      q = q.eq('stage','new').eq('ever_contacted',false).lt('created_at',sevenDaysAgoIso); break;
         case 'callbackToday': q = q.eq('next_follow_up', today); break;
-        case 'late':         q = q.not('next_follow_up','is',null).lt('next_follow_up', today); break;
-        case 'cold':         q = q.in('call_result', COLD_RESULTS); break;
+        case 'late':          q = q.not('next_follow_up','is',null).lt('next_follow_up', today); break;
+        case 'cold':          q = q.in('call_result', COLD_RESULTS); break;
         default: break;
       }
     }
-
     return q;
   };
 
@@ -302,70 +269,44 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     setLoading(true);
     const from = (page - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
-    const { data: c, count } = await buildQuery()
-      .order('last_contacted_at', { ascending: true, nullsFirst: true })
-      .range(from, to);
+    const { data: c, count } = await buildQuery().order('last_contacted_at', { ascending: true, nullsFirst: true }).range(from, to);
     setClients(c || []);
     setTotalCount(count || 0);
-
     if (c && c.length > 0) {
       const { data: a } = await supabase.from('activities').select('*').in('client_id', c.map((x) => x.id)).order('date', { ascending: false });
       setActivities(a || []);
-    } else {
-      setActivities([]);
-    }
+    } else { setActivities([]); }
     setLoading(false);
   };
 
-  useEffect(() => {
-    load();
-  }, [userId, page, search, stageFilter, leadFilter, colFilters]);
+  useEffect(() => { load(); }, [userId, page, search, stageFilter, leadFilter, colFilters]);
 
-  // if filters shrink the result set below the current page, snap back
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
     if (page > totalPages) setPage(totalPages);
   }, [totalCount]);
 
   const toggleSelect = (id) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
+    setSelectedIds((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   };
-
   const toggleSelectAllOnPage = (ids, allSelected) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      ids.forEach((id) => { if (allSelected) next.delete(id); else next.add(id); });
-      return next;
-    });
+    setSelectedIds((prev) => { const next = new Set(prev); ids.forEach((id) => { if (allSelected) next.delete(id); else next.add(id); }); return next; });
   };
-
   const bulkReassign = async () => {
     if (!bulkReassignTo || selectedIds.size === 0) return;
     setBulkBusy(true);
     await supabase.from('clients').update({ owner_id: bulkReassignTo, call_result: null, no_answer_count: 0 }).in('id', Array.from(selectedIds));
-    setBulkBusy(false);
-    setSelectedIds(new Set());
-    setBulkReassignTo('');
-    load();
+    setBulkBusy(false); setSelectedIds(new Set()); setBulkReassignTo(''); load();
   };
-
   const bulkDelete = async () => {
     if (selectedIds.size === 0) return;
     setBulkBusy(true);
     await supabase.from('clients').delete().in('id', Array.from(selectedIds));
-    setBulkBusy(false);
-    setSelectedIds(new Set());
-    load();
+    setBulkBusy(false); setSelectedIds(new Set()); load();
   };
-
   const exportCsv = async () => {
     setExporting(true);
-    let allRows = [];
-    let from = 0;
+    let allRows = []; let from = 0;
     while (true) {
       const { data, error } = await buildQuery().order('last_contacted_at', { ascending: true, nullsFirst: true }).range(from, from + EXPORT_BATCH - 1);
       if (error || !data || data.length === 0) break;
@@ -373,87 +314,12 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
       if (data.length < EXPORT_BATCH) break;
       from += EXPORT_BATCH;
     }
-
-    const rows = allRows.map((c) => ({
-      Name: c.name,
-      Phone: c.phone || '',
-      'Secondary Phone': c.secondary_phone || '',
-      Stage: stageOf(c.stage).label,
-      Project: c.project || '',
-      Developer: c.developer || '',
-      Location: c.location || '',
-      Budget: c.budget || '',
-      Source: c.source || '',
-      Potential: c.potential ? 'Yes' : 'No',
-      'Action': c.call_result || '',
-      'Next Follow-up': c.next_follow_up || '',
-      Comment: c.notes || '',
-      Created: c.created_at ? c.created_at.slice(0, 10) : '',
-    }));
+    const rows = allRows.map((c) => ({ Name: c.name, Phone: c.phone || '', 'Secondary Phone': c.secondary_phone || '', Stage: stageOf(c.stage).label, Project: c.project || '', Developer: c.developer || '', Location: c.location || '', Source: c.source || '', Potential: c.potential ? 'Yes' : 'No', 'Action': c.call_result || '', 'Next Follow-up': c.next_follow_up || '', Comment: c.notes || '', Created: c.created_at ? c.created_at.slice(0, 10) : '' }));
     const csv = Papa.unparse(rows);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `rk-crm-clients-${todayStr()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    supabase.from('export_log').insert({ user_id: userId, description: `Exported ${rows.length} client${rows.length === 1 ? '' : 's'} (CSV)` });
-    setExporting(false);
-  };
-
-  const handleImportFile = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setImporting(true);
-    setImportMsg('');
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (results) => {
-        const rows = results.data
-          .map((r) => ({
-            owner_id: userId,
-            name: (r.Name || r.name || '').toString().trim(),
-            phone: r.Phone || r.phone || null,
-            secondary_phone: r['Secondary Phone'] || r.secondary_phone || null,
-            project: r.Project || r.project || null,
-            developer: r.Developer || r.developer || null,
-            location: r.Location || r.location || null,
-            budget: (r.Budget || r.budget) ? Number(String(r.Budget || r.budget).replace(/[, ]/g, '')) || null : null,
-            source: r.Source || r.source || null,
-            stage: stageIdFromInput(r.Stage || r.stage),
-            potential: ['yes', 'true', '1'].includes(String(r.Potential || r.potential || '').trim().toLowerCase()),
-            call_result: r['Action'] || r.action || r['Call Result'] || r.call_result || null,
-            next_follow_up: /^\d{4}-\d{2}-\d{2}$/.test(String(r['Next Follow-up'] || r.next_follow_up || '')) ? (r['Next Follow-up'] || r.next_follow_up) : null,
-            notes: r.Comment || r.comment || r.Notes || r.notes || null,
-          }))
-          .filter((r) => r.name);
-
-        if (rows.length === 0) {
-          setImportMsg('No valid rows found (a "Name" column is required).');
-          setImporting(false);
-          return;
-        }
-
-        let insertedCount = 0;
-        for (let i = 0; i < rows.length; i += 300) {
-          const batch = rows.slice(i, i + 300);
-          const { error } = await supabase.from('clients').insert(batch);
-          if (error) {
-            setImportMsg(`Error after importing ${insertedCount}: ${error.message}`);
-            setImporting(false);
-            load();
-            return;
-          }
-          insertedCount += batch.length;
-        }
-        setImportMsg(`Imported ${insertedCount} client${insertedCount === 1 ? '' : 's'} successfully.`);
-        setImporting(false);
-        load();
-      },
-    });
-    e.target.value = '';
+    const a = document.createElement('a'); a.href = url; a.download = `rk-crm-clients-${todayStr()}.csv`; a.click();
+    URL.revokeObjectURL(url); setExporting(false);
   };
 
   const setCol = (key) => (e) => setPendingCols((p) => ({ ...p, [key]: e.target.value }));
@@ -463,39 +329,28 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   const hasPendingFilters = Object.entries(pendingCols).some(([k, v]) => k === 'countries' ? v?.length > 0 : Boolean(v));
   const noFiltersActive = !search && !leadFilter && stageFilter === 'all' && !hasColFilters && !hasPendingFilters;
 
-
   if (totalCount === 0 && !loading && noFiltersActive && !showAdd) {
     return (
       <div className="text-center py-16">
         <Users size={32} className="mx-auto mb-3" style={{ color: C.muted }} />
         <p className="font-display font-bold mb-1">No clients yet</p>
-        <p className="text-sm mb-4" style={{ color: C.muted }}>
-          {isAdmin ? 'Tap "New Client" to start tracking your first one, or import a CSV file' : 'Tap "New Client" to start tracking your first one'}
-        </p>
+        <p className="text-sm mb-4" style={{ color: C.muted }}>Tap "New Client" to start tracking your first one, or import a CSV file</p>
         <div className="flex items-center justify-center gap-2">
-          <button onClick={() => setShowAdd(true)} className="px-4 py-2 rounded-lg font-bold text-sm" style={{ backgroundColor: C.gold, color: '#14181F' }}>
-            + New Client
-          </button>
+          <button onClick={() => setShowAdd(true)} className="px-4 py-2 rounded-lg font-bold text-sm" style={{ backgroundColor: C.gold, color: '#14181F' }}>+ New Client</button>
           {isAdmin && (
-            <button onClick={() => setShowImport(true)} disabled={importing} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
-              <Upload size={14} /> {importing ? 'Importing...' : 'Import CSV'}
+            <button onClick={() => setShowImport(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
+              <Upload size={14} /> Import CSV
             </button>
           )}
         </div>
-        {isAdmin && importMsg && <p className="text-xs mt-3" style={{ color: importMsg.startsWith('Error') ? '#C9714F' : '#7FA887' }}>{importMsg}</p>}
-        {isAdmin && <input ref={fileInputRef} type="file" accept=".csv" onChange={handleImportFile} className="hidden" />}
         {showAdd && <ClientModal mode="add" userId={userId} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setShowAdd(false)} onSaved={load} />}
+        {showImport && <ImportModal userId={userId} onClose={() => setShowImport(false)} onDone={() => { setShowImport(false); load(); }} />}
       </div>
     );
   }
 
-  // latest activity per client (current page only)
   const lastActivity = {};
-  activities.forEach((a) => {
-    const current = lastActivity[a.client_id];
-    if (!current || a.date > current.date) lastActivity[a.client_id] = a;
-  });
-
+  activities.forEach((a) => { const cur = lastActivity[a.client_id]; if (!cur || a.date > cur.date) lastActivity[a.client_id] = a; });
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const rangeStart = totalCount === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
@@ -505,32 +360,19 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     <div className="space-y-4">
       {leadFilter && (
         <div className="flex items-center justify-between gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: C.surface, border: `1px solid ${C.gold}` }}>
-          <span className="text-sm font-medium">
-            Showing: <span style={{ color: C.gold }}>{LEAD_CATEGORY_LABELS[leadFilter]}</span> ({totalCount})
-          </span>
-          <button onClick={onClearLeadFilter} className="flex items-center gap-1 text-xs font-medium" style={{ color: C.muted }}>
-            <X size={14} /> Clear
-          </button>
+          <span className="text-sm font-medium">Showing: <span style={{ color: C.gold }}>{LEAD_CATEGORY_LABELS[leadFilter]}</span> ({totalCount})</span>
+          <button onClick={onClearLeadFilter} className="flex items-center gap-1 text-xs font-medium" style={{ color: C.muted }}><X size={14} /> Clear</button>
         </div>
       )}
-
-      {/* Search + filters */}
       <div className="space-y-2">
         <div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: C.muted }} />
-          <input
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
+          <input value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search by name, phone, project, developer, location..."
             className="rounded-lg pl-9 pr-3 py-2 text-sm outline-none w-full"
-            style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text }}
-          />
+            style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text }} />
         </div>
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          {!leadFilter && (
-            <>
-</>
-          )}
           <span className="flex-1" />
           <button onClick={applyColFilters} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: C.gold, color: '#14181F' }}>
             <Search size={13} /> Search
@@ -545,13 +387,12 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
               <button onClick={exportCsv} disabled={exporting} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0 disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
                 {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} {exporting ? 'Exporting...' : 'Export'}
               </button>
-              <button onClick={() => setShowImport(true)} disabled={importing} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0 disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
+              <button onClick={() => setShowImport(true)} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
                 <Upload size={14} /> Import
               </button>
             </>
           )}
         </div>
-        {isAdmin && importMsg && <p className="text-xs" style={{ color: importMsg.startsWith('Error') ? '#C9714F' : '#7FA887' }}>{importMsg}</p>}
       </div>
 
       {selectedIds.size > 0 && (
@@ -562,36 +403,23 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
             <>
               <select value={bulkReassignTo} onChange={(e) => setBulkReassignTo(e.target.value)} className={selectClass} style={selectStyle}>
                 <option value="">Reassign to...</option>
-                {profilesList.map((p) => (
-                  <option key={p.id} value={p.id}>{p.is_pool ? 'Unassigned Pool' : (p.full_name || p.username || p.id)}</option>
-                ))}
+                {profilesList.map((p) => (<option key={p.id} value={p.id}>{p.is_pool ? 'Unassigned Pool' : (p.full_name || p.username || p.id)}</option>))}
               </select>
-              <button onClick={bulkReassign} disabled={!bulkReassignTo || bulkBusy} className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-40" style={{ backgroundColor: C.gold, color: '#14181F' }}>
-                Reassign
-              </button>
+              <button onClick={bulkReassign} disabled={!bulkReassignTo || bulkBusy} className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-40" style={{ backgroundColor: C.gold, color: '#14181F' }}>Reassign</button>
             </>
           )}
-          {isAdmin && (
-            <button onClick={bulkDelete} disabled={bulkBusy} className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-40" style={{ backgroundColor: '#C9714F22', color: '#C9714F' }}>
-              Delete
-            </button>
-          )}
-          <button onClick={() => setSelectedIds(new Set())} className="flex items-center gap-1 text-xs" style={{ color: C.muted }}>
-            <X size={14} /> Clear
-          </button>
+          {isAdmin && (<button onClick={bulkDelete} disabled={bulkBusy} className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-40" style={{ backgroundColor: '#C9714F22', color: '#C9714F' }}>Delete</button>)}
+          <button onClick={() => setSelectedIds(new Set())} className="flex items-center gap-1 text-xs" style={{ color: C.muted }}><X size={14} /> Clear</button>
         </div>
       )}
 
       {totalCount === 0 ? (
         <div className="text-center py-10">
           <p className="text-sm mb-3" style={{ color: C.muted }}>No clients match these filters.</p>
-          <button onClick={() => { clearColFilters(); setSearch(''); setSearchInput(''); setStageFilter('all'); setSourceFilter('all'); setPotentialFilter('all'); }} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
-            Clear all filters
-          </button>
+          <button onClick={() => { clearColFilters(); setSearch(''); setSearchInput(''); setStageFilter('all'); }} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>Clear all filters</button>
         </div>
       ) : (
         <>
-          {/* Table */}
           <div className="overflow-x-auto" id="top-scroll-mirror" style={{ height: '8px', borderRadius: '4px' }}>
             <div id="top-scroll-inner" style={{ height: '1px' }} />
           </div>
@@ -599,13 +427,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
             <table className="text-sm" style={{ minWidth: hasTeamAccess ? "1800px" : "1500px", width: "100%" }}>
               <thead>
                 <tr style={{ backgroundColor: C.surface, color: C.muted }} className="text-left text-xs">
-                  <th className="py-2.5 px-3 font-medium w-8">
-                    <input
-                      type="checkbox"
-                      checked={clients.length > 0 && clients.every((c) => selectedIds.has(c.id))}
-                      onChange={() => toggleSelectAllOnPage(clients.map((c) => c.id), clients.length > 0 && clients.every((c) => selectedIds.has(c.id)))}
-                    />
-                  </th>
+                  <th className="py-2.5 px-3 font-medium w-8"><input type="checkbox" checked={clients.length > 0 && clients.every((c) => selectedIds.has(c.id))} onChange={() => toggleSelectAllOnPage(clients.map((c) => c.id), clients.length > 0 && clients.every((c) => selectedIds.has(c.id)))} /></th>
                   <th className="py-2.5 px-3 font-medium w-8"></th>
                   <th className="py-2.5 px-3 font-medium">Full Name</th>
                   <th className="py-2.5 px-3 font-medium">Country</th>
@@ -627,91 +449,50 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                 </tr>
               </thead>
               <tbody>
-                {/* Column filter row */}
-              <tr style={{ backgroundColor: C.bg }}>
-                <td className="py-1.5 px-2 w-8"></td>
-                <td className="py-1.5 px-2 w-8"></td>
-                <td className="py-1.5 px-2"><input value={pendingCols.name||''} onChange={setCol('name')} placeholder="Name..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
-                <td className="py-1.5 px-2"><CountryFilter value={pendingCols.countries} onChange={(v) => setPendingCols((p) => ({ ...p, countries: v }))} /></td>
-                <td className="py-1.5 px-2"><input value={pendingCols.phone||''} onChange={setCol('phone')} placeholder="Phone..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
-                <td className="py-1.5 px-2"><FilterSelect value={pendingCols.stage_category} onChange={(v) => setPendingCols((p) => ({ ...p, stage_category: v }))} options={['New Fresh Lead','Old Fresh Lead','Cold Calls','Old Campaign']} placeholder="All Stages" /></td>
-                <td className="py-1.5 px-2"><FilterSelect value={pendingCols.status} onChange={(v) => setPendingCols((p) => ({ ...p, status: v }))} options={['New','Contacted','Re-rotation','Not Interested','Not Qualified','Deal']} placeholder="All Statuses" /></td>
-                {hasTeamAccess && <td className="py-1.5 px-2"><FilterSelect value={pendingCols.assigned_to} onChange={(v) => setPendingCols((p) => ({ ...p, assigned_to: v }))} options={profilesList.filter((p) => !p.is_pool).map((p) => p.full_name || p.username)} placeholder="All Users" /></td>}
+                <tr style={{ backgroundColor: C.bg }}>
+                  <td className="py-1.5 px-2 w-8"></td>
+                  <td className="py-1.5 px-2 w-8"></td>
+                  <td className="py-1.5 px-2"><input value={pendingCols.name||''} onChange={setCol('name')} placeholder="Name..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
+                  <td className="py-1.5 px-2"><CountryFilter value={pendingCols.countries} onChange={(v) => setPendingCols((p) => ({ ...p, countries: v }))} /></td>
+                  <td className="py-1.5 px-2"><input value={pendingCols.phone||''} onChange={setCol('phone')} placeholder="Phone..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
+                  <td className="py-1.5 px-2"><FilterSelect value={pendingCols.stage_category} onChange={(v) => setPendingCols((p) => ({ ...p, stage_category: v }))} options={['New Fresh Lead','Old Fresh Lead','Cold Calls','Old Campaign']} placeholder="All Stages" /></td>
+                  <td className="py-1.5 px-2"><FilterSelect value={pendingCols.status} onChange={(v) => setPendingCols((p) => ({ ...p, status: v }))} options={['New','Contacted','Re-rotation','Not Interested','Not Qualified','Deal']} placeholder="All Statuses" /></td>
+                  {hasTeamAccess && <td className="py-1.5 px-2"><FilterSelect value={pendingCols.assigned_to} onChange={(v) => setPendingCols((p) => ({ ...p, assigned_to: v }))} options={profilesList.filter((p) => !p.is_pool).map((p) => p.full_name || p.username)} placeholder="All Users" /></td>}
                   {hasTeamAccess && <td className="py-1.5 px-2"><FilterSelect value={pendingCols.lead_origin} onChange={(v) => setPendingCols((p) => ({ ...p, lead_origin: v }))} options={LEAD_ORIGINS} placeholder="All Origins" /></td>}
-                <td className="py-1.5 px-2"><FilterSelect value={pendingCols.source} onChange={(v) => setPendingCols((p) => ({ ...p, source: v }))} options={SOURCES} placeholder="All Sources" /></td>
-                <td className="py-1.5 px-2">
-                  <DateRangePicker
-                    from={pendingCols.created_from || null}
-                    to={pendingCols.created_to || null}
-                    onChange={(f, t) => setPendingCols((p) => ({ ...p, created_from: f || '', created_to: t || '' }))}
-                    placeholder="Created range..."
-                  />
-                </td>
-                <td className="py-1.5 px-2"><AutocompleteInput value={pendingCols.developer} onChange={(v) => setPendingCols((p) => ({ ...p, developer: v, project: '' }))} options={developerList.map((d) => d.name)} placeholder="Developer..." /></td>
-                <td className="py-1.5 px-2"><AutocompleteInput value={pendingCols.project} onChange={(v) => setPendingCols((p) => ({ ...p, project: v }))} options={(() => {
-                  const selDev = developerList.find((d) => d.name === pendingCols.developer);
-                  return projectList
-                    .filter((p) => !pendingCols.location || p.location === pendingCols.location)
-                    .filter((p) => !selDev || p.developer_id === selDev.id)
-                    .map((p) => p.name);
-                })()} placeholder="Project..." /></td>
-                <td className="py-1.5 px-2"><FilterSelect value={pendingCols.location} onChange={(v) => setPendingCols((p) => ({ ...p, location: v, project: '' }))} options={LOCATIONS} placeholder="All Locations" /></td>
-                <td className="py-1.5 px-2"><FilterSelect value={pendingCols.call_result} onChange={(v) => setPendingCols((p) => ({ ...p, call_result: v }))} options={ACTIONS} placeholder="All Actions" /></td>
-                <td className="py-1.5 px-2"></td>
-                <td className="py-1.5 px-2"></td>
-                <td className="py-1.5 px-2">
-                  <DateRangePicker
-                    from={pendingCols.followup_from || null}
-                    to={pendingCols.followup_to || null}
-                    onChange={(f, t) => setPendingCols((p) => ({ ...p, followup_from: f || '', followup_to: t || '' }))}
-                    placeholder="Follow-up range..."
-                  />
-                </td>
-                <td className="py-1.5 px-2"></td>
-                <td className="py-1.5 px-2"></td>
-              </tr>
+                  <td className="py-1.5 px-2"><FilterSelect value={pendingCols.source} onChange={(v) => setPendingCols((p) => ({ ...p, source: v }))} options={SOURCES} placeholder="All Sources" /></td>
+                  <td className="py-1.5 px-2"><DateRangePicker from={pendingCols.created_from || null} to={pendingCols.created_to || null} onChange={(f, t) => setPendingCols((p) => ({ ...p, created_from: f || '', created_to: t || '' }))} placeholder="Created range..." /></td>
+                  <td className="py-1.5 px-2"><AutocompleteInput value={pendingCols.developer} onChange={(v) => setPendingCols((p) => ({ ...p, developer: v, project: '' }))} options={developerList.map((d) => d.name)} placeholder="Developer..." /></td>
+                  <td className="py-1.5 px-2"><AutocompleteInput value={pendingCols.project} onChange={(v) => setPendingCols((p) => ({ ...p, project: v }))} options={(() => { const selDev = developerList.find((d) => d.name === pendingCols.developer); return projectList.filter((p) => !pendingCols.location || p.location === pendingCols.location).filter((p) => !selDev || p.developer_id === selDev.id).map((p) => p.name); })()} placeholder="Project..." /></td>
+                  <td className="py-1.5 px-2"><FilterSelect value={pendingCols.location} onChange={(v) => setPendingCols((p) => ({ ...p, location: v, project: '' }))} options={LOCATIONS} placeholder="All Locations" /></td>
+                  <td className="py-1.5 px-2"><FilterSelect value={pendingCols.call_result} onChange={(v) => setPendingCols((p) => ({ ...p, call_result: v }))} options={ACTIONS} placeholder="All Actions" /></td>
+                  <td className="py-1.5 px-2"></td>
+                  <td className="py-1.5 px-2"></td>
+                  <td className="py-1.5 px-2"><DateRangePicker from={pendingCols.followup_from || null} to={pendingCols.followup_to || null} onChange={(f, t) => setPendingCols((p) => ({ ...p, followup_from: f || '', followup_to: t || '' }))} placeholder="Follow-up range..." /></td>
+                  <td className="py-1.5 px-2"></td>
+                </tr>
                 {clients.map((c) => {
                   const cat = leadCategory(c);
                   const stat = clientStatus(c);
-                  // Stage category: use manual value but auto-upgrade New Fresh → Old Fresh after 7 days
                   let rawCat = c.stage_category || cat.label;
                   if (rawCat === 'New Fresh Lead') {
                     const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
                     if (c.created_at < ninetyDaysAgo) rawCat = 'Old Fresh Lead';
                   }
                   const stageCatColors = { 'New Fresh Lead': '#D6453E', 'Old Fresh Lead': '#C9714F', 'Cold Calls': '#6E8CAE', 'Old Campaign': '#9B7EBD' };
-                  const stageLabel = rawCat;
                   const stageColor = stageCatColors[rawCat] || cat.color;
                   const last = lastActivity[c.id];
-                  const assignedFrom = c.previous_owners && c.previous_owners.length > 0
-                    ? (owners[c.previous_owners[c.previous_owners.length - 1]] || '—')
-                    : '—';
                   return (
-                    <tr
-                      key={c.id}
-                      onClick={() => { if (isAdmin || hasTeamAccess || c.owner_id === userId) setSelected(c); }}
-                      className="cursor-pointer transition-colors"
-                      style={{ borderTop: `1px solid ${C.border}` }}
-                    >
-                      <td className="py-2.5 px-3" onClick={(e) => e.stopPropagation()}>
-                        <input type="checkbox" checked={selectedIds.has(c.id)} onChange={() => toggleSelect(c.id)} />
-                      </td>
+                    <tr key={c.id} onClick={() => { if (isAdmin || hasTeamAccess || c.owner_id === userId) setSelected(c); }}
+                      className="cursor-pointer transition-colors" style={{ borderTop: `1px solid ${C.border}` }}>
+                      <td className="py-2.5 px-3" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={selectedIds.has(c.id)} onChange={() => toggleSelect(c.id)} /></td>
                       <td className="py-2.5 px-3" onClick={(e) => { e.stopPropagation(); if (isAdmin) setEditTarget(c); else if (c.owner_id === userId) setActionTarget(c); }}>
-                        {isAdmin ? (
-                          <Pencil size={14} style={{ color: C.muted }} />
-                        ) : c.owner_id === userId ? (
-                          <MessageSquarePlus size={14} style={{ color: C.gold }} />
-                        ) : null}
+                        {isAdmin ? <Pencil size={14} style={{ color: C.muted }} /> : c.owner_id === userId ? <MessageSquarePlus size={14} style={{ color: C.gold }} /> : null}
                       </td>
                       <td className="py-2.5 px-3 font-medium whitespace-nowrap">{c.name}</td>
-                      <td className="py-2.5 px-3">
-                        {c.phone ? <PhoneFlag phone={c.phone} size={18} /> : <span style={{ color: C.muted }}>—</span>}
-                      </td>
+                      <td className="py-2.5 px-3">{c.phone ? <PhoneFlag phone={c.phone} size={18} /> : <span style={{ color: C.muted }}>—</span>}</td>
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.phone || '—'}</td>
-                      <td className="py-2.5 px-3"><Pill color={stageColor}>{stageLabel}</Pill></td>
-                      <td className="py-2.5 px-3">
-                        <Pill color={stat.color === '#FFFFFF' ? C.text : stat.color}>{stat.label}</Pill>
-                      </td>
+                      <td className="py-2.5 px-3"><Pill color={stageColor}>{rawCat}</Pill></td>
+                      <td className="py-2.5 px-3"><Pill color={stat.color === '#FFFFFF' ? C.text : stat.color}>{stat.label}</Pill></td>
                       {hasTeamAccess && <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{owners[c.owner_id] || '—'}</td>}
                       {hasTeamAccess && <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{[c.lead_origin, c.origin_name].filter(Boolean).join(" · ") || "—"}</td>}
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}><SourceTag source={c.source} size={15} /></td>
@@ -722,53 +503,26 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.call_result || '—'}</td>
                       <td className="py-2.5 px-3 max-w-[200px] truncate" style={{ color: C.muted }}>{last?.notes ? last.notes.split('\n').find(l => !l.startsWith('Action: ') && l.trim()) || '—' : '—'}</td>
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{last ? fmtDate(last.date) : '—'}</td>
-                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: c.next_follow_up && c.next_follow_up < todayStr() ? '#C9714F' : C.muted }}>
-                        {c.next_follow_up ? fmtDate(c.next_follow_up) : '—'}
-                      </td>
-                      <td className="py-2.5 px-3">
-                        {c.potential ? <Pill color={C.gold}>Potential</Pill> : <span style={{ color: C.muted }}>—</span>}
-                      </td>
+                      <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: c.next_follow_up && c.next_follow_up < todayStr() ? '#C9714F' : C.muted }}>{c.next_follow_up ? fmtDate(c.next_follow_up) : '—'}</td>
+                      <td className="py-2.5 px-3">{c.potential ? <Pill color={C.gold}>Potential</Pill> : <span style={{ color: C.muted }}>—</span>}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
-
           <div className="flex items-center justify-between gap-3 pt-1">
-            <span className="text-xs" style={{ color: C.muted }}>
-              {loading ? 'Loading...' : `${rangeStart}–${rangeEnd} of ${totalCount}`}
-            </span>
+            <span className="text-xs" style={{ color: C.muted }}>{loading ? 'Loading...' : `${rangeStart}–${rangeEnd} of ${totalCount}`}</span>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage <= 1}
-                className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40"
-                style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <span className="text-xs font-medium" style={{ color: C.muted }}>
-                Page {currentPage} / {totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage >= totalPages}
-                className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40"
-                style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}
-              >
-                <ChevronRight size={16} />
-              </button>
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage <= 1} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}><ChevronLeft size={16} /></button>
+              <span className="text-xs font-medium" style={{ color: C.muted }}>Page {currentPage} / {totalPages}</span>
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}><ChevronRight size={16} /></button>
             </div>
           </div>
         </>
       )}
 
-      <button
-        onClick={() => setShowAdd(true)}
-        className="fixed bottom-5 right-5 z-20 flex items-center gap-2 px-4 py-3 rounded-full font-bold text-sm shadow-lg"
-        style={{ backgroundColor: C.gold, color: '#14181F' }}
-      >
+      <button onClick={() => setShowAdd(true)} className="fixed bottom-5 right-5 z-20 flex items-center gap-2 px-4 py-3 rounded-full font-bold text-sm shadow-lg" style={{ backgroundColor: C.gold, color: '#14181F' }}>
         <Plus size={18} /> New Client
       </button>
 
@@ -779,19 +533,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
       {actionTarget && (() => {
         const idx = clients.findIndex((c) => c.id === actionTarget.id);
         const nextClient = idx >= 0 && idx < clients.length - 1 ? clients[idx + 1] : null;
-        return (
-          <ClientModal
-            mode="detail"
-            userId={userId}
-            client={actionTarget}
-            isAdmin={hasTeamAccess}
-            profilesList={profilesList}
-            autoFocusActivity={!isAdmin}
-            onClose={() => setActionTarget(null)}
-            onSaved={load}
-            onNext={nextClient ? () => { load(); setActionTarget(nextClient); } : null}
-          />
-        );
+        return (<ClientModal mode="detail" userId={userId} client={actionTarget} isAdmin={hasTeamAccess} profilesList={profilesList} autoFocusActivity={!isAdmin} onClose={() => setActionTarget(null)} onSaved={load} onNext={nextClient ? () => { load(); setActionTarget(nextClient); } : null} />);
       })()}
     </div>
   );
