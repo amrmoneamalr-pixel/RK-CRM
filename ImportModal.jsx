@@ -14,6 +14,16 @@ function cleanPhone(raw) {
   let d = String(raw).replace(/[\s\-\(\)\.]/g, '');
   if (d.startsWith('+')) d = d.slice(1);
   if (d.startsWith('00')) d = d.slice(2);
+
+  // Egyptian numbers — handle first before generic stripping
+  // 201xxxxxxxxx → 01xxxxxxxxx
+  if (/^201[0125]\d{8}$/.test(d)) return '0' + d.slice(2);
+  // 0201xxxxxxxxx → 01xxxxxxxxx
+  if (/^0201[0125]\d{8}$/.test(d)) return '0' + d.slice(3);
+  // Already local Egyptian format
+  if (/^01[0125]\d{8}$/.test(d)) return d;
+
+  // Remove leading 0 + country code (e.g. 0962xxx → 962xxx)
   if (d.startsWith('0') && d.length > 11) d = d.slice(1);
 
   // Try to strip country code using dial codes (longest first)
@@ -30,7 +40,7 @@ function cleanPhone(raw) {
     '98','95','94','93','92','91','90','86','84','82','81','66','65','64','63','62','61','60',
     '58','57','56','55','54','53','52','51',
     '49','48','47','46','45','44','43','41','40','39','36','34','33','32','31','30',
-    '27','20','7','1',
+    '27','7','1',
   ];
 
   for (const code of DIAL_CODES) {
