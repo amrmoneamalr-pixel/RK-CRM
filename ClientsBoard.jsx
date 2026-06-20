@@ -115,10 +115,10 @@ const EXPORT_BATCH = 1000;
 const SS_KEY = 'rk_clients_state';
 
 function loadSavedState() {
-  try { return JSON.parse(sessionStorage.getItem(SS_KEY) || '{}'); } catch { return {}; }
+  try { return JSON.parse(localStorage.getItem(SS_KEY) || '{}'); } catch { return {}; }
 }
 function saveState(obj) {
-  try { sessionStorage.setItem(SS_KEY, JSON.stringify(obj)); } catch {}
+  try { localStorage.setItem(SS_KEY, JSON.stringify(obj)); } catch {}
 }
 
 export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilter, onClearLeadFilter }) {
