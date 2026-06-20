@@ -1,5 +1,6 @@
 import React from 'react';
 import { C } from './constants';
+import logo from './logo.png';
 import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, Activity as ActivityIcon, Settings as SettingsIcon, Building2 } from 'lucide-react';
 import LeadPanels from './LeadPanels';
 
@@ -26,7 +27,7 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
       {/* Sidebar (desktop) */}
       <aside className="hidden sm:flex flex-col w-60 shrink-0 border-r sticky top-0 h-screen p-4" style={{ borderColor: C.border }}>
         <div className="flex items-center gap-2.5 mb-6">
-          <span className="font-display font-bold text-lg" style={{ color: C.gold }}>COVO</span>
+          <img src={logo} alt="RK Real Estate" className="h-9" />
           <div>
             <h1 className="font-display text-xl font-extrabold tracking-tight" style={{ color: C.gold }}>RK CRM</h1>
             <p className="text-xs mt-0.5" style={{ color: C.muted }}>
@@ -63,7 +64,7 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
         <div className="px-4 pt-4 pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <span className="font-display font-bold text-lg" style={{ color: C.gold }}>COVO</span>
+              <img src={logo} alt="RK Real Estate" className="h-9" />
               <div>
                 <h1 className="font-display text-xl font-extrabold tracking-tight" style={{ color: C.gold }}>RK CRM</h1>
                 <p className="text-xs mt-0.5" style={{ color: C.muted }}>
