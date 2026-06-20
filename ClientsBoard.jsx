@@ -314,12 +314,13 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   }, []);
 
   useEffect(() => {
-    if (isHiddenRef.current) return;
+    // Don't reload when returning from minimize/tab switch
+    if (document.hidden) return;
     const key = JSON.stringify({ userId, page, search, stageFilter, leadFilter, colFilters });
     if (lastLoadRef.current === key && clients.length > 0) return;
     lastLoadRef.current = key;
     load().then(doRestoreScroll);
-  }, [userId, page, search, stageFilter, leadFilter, colFilters]);
+  }, [userId, page, search, stageFilter, leadFilter, JSON.stringify(colFilters)]);
 
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
