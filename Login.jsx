@@ -24,7 +24,6 @@ export default function Login() {
         p_username: username.trim(),
       });
       if (lookupError || !email) throw new Error('Invalid username or password');
-
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw new Error('Invalid username or password');
     } catch (err) {
@@ -43,19 +42,26 @@ export default function Login() {
     >
       <div className="w-full max-w-sm rounded-2xl" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
 
-        {/* Logos row: COVO left | divider | RK right */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 24px 8px 24px' }}>
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-            <img src={covoLogo} alt="COVO CRM" style={{ width: '160px', height: '120px', objectFit: 'contain' }} />
-          </div>
-          <div style={{ width: '1px', height: '80px', backgroundColor: '#ffffff30', flexShrink: 0 }} />
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-            <img src={rkLogo} alt="RK Real Estate" style={{ width: '160px', height: '120px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
-          </div>
+        {/* Top section: RK left big + COVO right */}
+        <div style={{ display: 'flex', alignItems: 'center', padding: '20px 20px 12px 20px', gap: '16px' }}>
+          {/* RK Logo — left, big */}
+          <img
+            src={rkLogo}
+            alt="RK Real Estate"
+            style={{ width: '160px', height: 'auto', filter: 'brightness(0) invert(1)', flexShrink: 0 }}
+          />
+          {/* Divider */}
+          <div style={{ width: '1px', height: '70px', backgroundColor: '#ffffff25', flexShrink: 0 }} />
+          {/* COVO Logo — right */}
+          <img
+            src={covoLogo}
+            alt="COVO CRM"
+            style={{ flex: 1, width: '0', minWidth: '0', height: '90px', objectFit: 'contain' }}
+          />
         </div>
 
         {/* Form */}
-        <div style={{ padding: '4px 24px 24px 24px' }}>
+        <div style={{ padding: '0 20px 20px 20px' }}>
           <p className="text-sm mb-4 text-center" style={{ color: C.muted }}>
             Log in to your account
           </p>
