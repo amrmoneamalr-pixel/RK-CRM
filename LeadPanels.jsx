@@ -10,6 +10,7 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, mobileRo
     callbackToday: 0, late: 0, reRotation: 0,
     oldFresh: 0, contactedOldFresh: 0,
     cold: 0, contactedCold: 0,
+    potential: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -19,7 +20,7 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, mobileRo
     setLoading(true);
     let q = supabase
       .from('clients')
-      .select('id, stage_category, ever_contacted, next_follow_up, previous_owners');
+      .select('id, stage_category, ever_contacted, next_follow_up, previous_owners, potential');
     if (!isAdmin) q = q.eq('owner_id', userId);
     const { data } = await q;
     const clients = data || [];
@@ -31,6 +32,7 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, mobileRo
       callbackToday: 0, late: 0, reRotation: 0,
       oldFresh: 0, contactedOldFresh: 0,
       cold: 0, contactedCold: 0,
+      potential: 0,
     };
 
     clients.forEach((c) => {
@@ -47,6 +49,7 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, mobileRo
       if ((cat === 'Old Fresh Lead' || cat === 'Old Campaign') && contacted)  next.contactedOldFresh++;
       if (cat === 'Cold Calls' && !contacted)      next.cold++;
       if (cat === 'Cold Calls' && contacted)       next.contactedCold++;
+      if (c.potential)                             next.potential++;
     });
 
     setCounts(next);
@@ -56,14 +59,15 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, mobileRo
   const sections = [
     { key: 'all',              icon: Users,        color: C.gold,    label: 'All Leads' },
     { key: 'newFresh',         icon: Sparkles,     color: '#D6453E', label: 'New Fresh Leads' },
-    { key: 'contactedFresh',   icon: UserCheck,    color: '#7FA887', label: 'Contacted Fresh' },
+    { key: 'contactedFresh',   icon: UserCheck,    color: '#7FA887', label: 'Contacted New Fresh Leads' },
     { key: 'callbackToday',    icon: PhoneCall,    color: '#6E8CAE', label: 'Call Back Today' },
     { key: 'late',             icon: AlertTriangle,color: '#C9714F', label: 'Late Leads' },
     { key: 'reRotation',       icon: RefreshCw,    color: '#D4A24E', label: 'Re-rotation' },
     { key: 'oldFresh',         icon: Archive,      color: '#9B7EBD', label: 'Old Fresh Leads' },
-    { key: 'contactedOldFresh',icon: UserCheck,    color: '#7B68EE', label: 'Contacted Old Fresh' },
+    { key: 'contactedOldFresh',icon: UserCheck,    color: '#7B68EE', label: 'Contacted Old Fresh Leads' },
     { key: 'cold',             icon: Snowflake,    color: '#8B93A3', label: 'Cold Calls' },
-    { key: 'contactedCold',    icon: PhoneMissed,  color: '#5F9EA0', label: 'Contacted Cold' },
+    { key: 'contactedCold',    icon: PhoneMissed,  color: '#5F9EA0', label: 'Contacted Cold Calls' },
+    { key: 'potential',        icon: Sparkles,     color: C.gold,    label: 'Potential Clients' },
   ];
 
   if (mobileRow) {

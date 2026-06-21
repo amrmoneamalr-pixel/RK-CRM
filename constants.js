@@ -136,7 +136,7 @@ export const clientStatus = (c) => {
 export const LEAD_CATEGORY_LABELS = {
   all:               'All Leads',
   newFresh:          'New Fresh Leads',
-  contactedFresh:    'Contacted Fresh Leads',
+  contactedFresh:    'Contacted New Fresh Leads',
   callbackToday:     'Call Back Today',
   late:              'Late Leads',
   reRotation:        'Re-rotation',
@@ -144,6 +144,7 @@ export const LEAD_CATEGORY_LABELS = {
   contactedOldFresh: 'Contacted Old Fresh Leads',
   cold:              'Cold Calls',
   contactedCold:     'Contacted Cold Calls',
+  potential:         'Potential Clients',
 };
 
 export const matchesLeadCategory = (c, category) => {

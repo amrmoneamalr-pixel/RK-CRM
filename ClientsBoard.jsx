@@ -267,6 +267,9 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
         case 'contactedCold':
           q = q.eq('stage_category', 'Cold Calls').eq('ever_contacted', true);
           break;
+        case 'potential':
+          q = q.eq('potential', true);
+          break;
         default: break;
       }
     }
