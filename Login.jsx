@@ -41,28 +41,28 @@ export default function Login() {
       className="min-h-screen flex items-center justify-center font-body px-4"
       style={{ backgroundColor: C.bg, color: C.text }}
     >
-      <div className="w-full max-w-sm rounded-2xl overflow-hidden" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
+      <div className="w-full max-w-sm rounded-2xl" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
 
-        {/* Top section: RK logo top-left corner */}
-        <div style={{ padding: '20px 24px 0 24px' }}>
+        {/* RK Logo — top left corner */}
+        <div style={{ padding: '16px 24px 0 24px' }}>
           <img
             src={rkLogo}
             alt="RK Real Estate"
-            style={{ width: '200px', height: 'auto', filter: 'brightness(0) invert(1)' }}
+            style={{ width: '110px', height: 'auto', filter: 'brightness(0) invert(1)' }}
           />
         </div>
 
-        {/* COVO Logo centered */}
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 24px 0 24px' }}>
+        {/* COVO Logo — centered, tight spacing */}
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 24px 4px 24px' }}>
           <img
             src={covoLogo}
             alt="COVO CRM"
-            style={{ width: '280px', height: 'auto' }}
+            style={{ width: '260px', height: 'auto' }}
           />
         </div>
 
-        {/* Form section */}
-        <div style={{ padding: '8px 24px 24px 24px' }}>
+        {/* Form */}
+        <div style={{ padding: '4px 24px 24px 24px' }}>
           <p className="text-sm mb-4 text-center" style={{ color: C.muted }}>
             Log in to your account
           </p>
