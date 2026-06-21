@@ -29,9 +29,9 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
       <aside className="hidden sm:flex flex-col w-60 shrink-0 border-r sticky top-0 h-screen p-4" style={{ borderColor: C.border }}>
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
-            <img src={rkLogo} alt="RK Real Estate" style={{ height: '44px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
-            <div style={{ width: '1px', height: '36px', backgroundColor: '#ffffff30' }} />
             <img src={covoSidebar} alt="COVO CRM" style={{ height: '44px', objectFit: 'contain' }} />
+            <div style={{ width: '1px', height: '36px', backgroundColor: '#ffffff30' }} />
+            <img src={rkLogo} alt="RK Real Estate" style={{ height: '44px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
           </div>
           <p className="text-xs" style={{ color: C.muted }}>
             {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
@@ -65,9 +65,11 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
       <header className="sm:hidden sticky top-0 z-20 border-b" style={{ backgroundColor: C.bg, borderColor: C.border }}>
         <div className="px-4 pt-4 pb-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <img src={covoSidebar} alt="COVO CRM" style={{ height: '40px', objectFit: 'contain' }} />
-              <p className="text-xs mt-0.5" style={{ color: C.muted }}>
+            <div className="flex items-center gap-2">
+              <img src={covoSidebar} alt="COVO CRM" style={{ height: '36px', objectFit: 'contain' }} />
+              <div style={{ width: '1px', height: '28px', backgroundColor: '#ffffff30' }} />
+              <img src={rkLogo} alt="RK Real Estate" style={{ height: '36px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+              <p className="text-xs" style={{ color: C.muted }}>
                 {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
               </p>
             </div>
