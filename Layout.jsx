@@ -31,7 +31,7 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
           <div className="flex items-center gap-3 mb-2">
             <img src={covoSidebar} alt="COVO CRM" style={{ height: '44px', objectFit: 'contain' }} />
             <div style={{ width: '1px', height: '36px', backgroundColor: '#ffffff30' }} />
-            <img src={rkLogo} alt="RK Real Estate" style={{ height: '44px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+            <img src={rkLogo} alt="RK Real Estate" style={{ height: '56px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
           </div>
           <p className="text-xs" style={{ color: C.muted }}>
             {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
@@ -68,7 +68,7 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
             <div className="flex items-center gap-2">
               <img src={covoSidebar} alt="COVO CRM" style={{ height: '36px', objectFit: 'contain' }} />
               <div style={{ width: '1px', height: '28px', backgroundColor: '#ffffff30' }} />
-              <img src={rkLogo} alt="RK Real Estate" style={{ height: '36px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+              <img src={rkLogo} alt="RK Real Estate" style={{ height: '52px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
               <p className="text-xs" style={{ color: C.muted }}>
                 {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
               </p>
