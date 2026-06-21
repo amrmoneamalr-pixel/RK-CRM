@@ -104,8 +104,8 @@ export const waLink = (phone) => {
   if (!phone) return null;
   let digits = String(phone).replace(/\D/g, '');
   if (!digits) return null;
+  // Local Egyptian format: 01xxxxxxxxx → 201xxxxxxxxx
   if (digits.startsWith('0')) digits = '20' + digits.slice(1);
-  else if (!digits.startsWith('20')) digits = '20' + digits;
   return `https://wa.me/${digits}`;
 };
 
