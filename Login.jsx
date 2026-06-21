@@ -48,11 +48,11 @@ export default function Login() {
         </div>
 
         {/* Login Card */}
-        <div className="rounded-2xl" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, padding: '28px 24px' }}>
+        <div className="rounded-2xl" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, padding: '20px 24px' }}>
 
           {/* RK Logo — inside card, centered, directly above username */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '4px' }}>
-            <img src={rkLogo} alt="RK Real Estate" style={{ width: '250px', height: 'auto', filter: 'brightness(0) invert(1)' }} />
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+            <img src={rkLogo} alt="RK Real Estate" style={{ width: '250px', height: '80px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
           </div>
 
           <form onSubmit={submit} className="space-y-3">
