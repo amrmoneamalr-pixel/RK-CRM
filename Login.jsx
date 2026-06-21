@@ -51,7 +51,7 @@ export default function Login() {
         <div className="rounded-2xl" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, padding: '28px 24px' }}>
 
           {/* RK Logo — inside card, centered, directly above username */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '4px' }}>
             <img src={rkLogo} alt="RK Real Estate" style={{ width: '250px', height: 'auto', filter: 'brightness(0) invert(1)' }} />
           </div>
 
