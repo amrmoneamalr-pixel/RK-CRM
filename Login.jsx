@@ -41,70 +41,81 @@ export default function Login() {
       className="min-h-screen flex items-center justify-center font-body px-4"
       style={{ backgroundColor: C.bg, color: C.text }}
     >
-      <div className="w-full max-w-sm p-6 rounded-2xl" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
+      <div className="w-full max-w-sm rounded-2xl overflow-hidden" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
 
-        {/* RK Logo — top left inside card, big */}
-        <div className="mb-2">
-          <img src={rkLogo} alt="RK Real Estate" style={{ height: '160px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
-        </div>
-
-        {/* COVO Logo — centered, pushed down */}
-        <div className="flex justify-center" style={{ marginTop: '24px', marginBottom: '24px' }}>
-          <img src={covoLogo} alt="COVO CRM" style={{ height: '200px', objectFit: 'contain' }} />
-        </div>
-
-        <p className="text-sm mb-6 text-center" style={{ color: C.muted }}>
-          Log in to your account
-        </p>
-
-        <form onSubmit={submit} className="space-y-3">
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Username"
-            className={inputClass}
-            style={inputStyle}
-            autoCapitalize="none"
-            autoCorrect="off"
-            required
+        {/* Top section: RK logo top-left corner */}
+        <div style={{ padding: '20px 24px 0 24px' }}>
+          <img
+            src={rkLogo}
+            alt="RK Real Estate"
+            style={{ width: '120px', height: 'auto', filter: 'brightness(0) invert(1)' }}
           />
-          <div className="relative">
+        </div>
+
+        {/* COVO Logo centered */}
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 24px 0 24px' }}>
+          <img
+            src={covoLogo}
+            alt="COVO CRM"
+            style={{ width: '280px', height: 'auto' }}
+          />
+        </div>
+
+        {/* Form section */}
+        <div style={{ padding: '8px 24px 24px 24px' }}>
+          <p className="text-sm mb-4 text-center" style={{ color: C.muted }}>
+            Log in to your account
+          </p>
+
+          <form onSubmit={submit} className="space-y-3">
             <input
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Username"
               className={inputClass}
-              style={{ ...inputStyle, paddingRight: '2.25rem' }}
+              style={inputStyle}
+              autoCapitalize="none"
+              autoCorrect="off"
               required
             />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                className={inputClass}
+                style={{ ...inputStyle, paddingRight: '2.25rem' }}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                className="absolute right-2 top-1/2 -translate-y-1/2"
+                style={{ color: C.muted }}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+
+            {error && <p className="text-xs" style={{ color: '#C9714F' }}>{error}</p>}
+
             <button
-              type="button"
-              onClick={() => setShowPassword((s) => !s)}
-              className="absolute right-2 top-1/2 -translate-y-1/2"
-              style={{ color: C.muted }}
-              tabIndex={-1}
+              disabled={loading}
+              type="submit"
+              className="w-full py-2.5 rounded-lg font-bold text-sm disabled:opacity-50"
+              style={{ backgroundColor: C.gold, color: '#14181F' }}
             >
-              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              {loading ? '...' : 'Log in'}
             </button>
-          </div>
+          </form>
 
-          {error && <p className="text-xs" style={{ color: '#C9714F' }}>{error}</p>}
-
-          <button
-            disabled={loading}
-            type="submit"
-            className="w-full py-2.5 rounded-lg font-bold text-sm disabled:opacity-50"
-            style={{ backgroundColor: C.gold, color: '#14181F' }}
-          >
-            {loading ? '...' : 'Log in'}
-          </button>
-        </form>
-
-        <p className="text-xs mt-4 text-center" style={{ color: C.muted }}>
-          Don't have an account? Ask your admin to create one for you.
-        </p>
+          <p className="text-xs mt-4 text-center" style={{ color: C.muted }}>
+            Don't have an account? Ask your admin to create one for you.
+          </p>
+        </div>
       </div>
     </div>
   );
