@@ -48,13 +48,13 @@ export default function Login() {
           <img
             src={covoLogo}
             alt="COVO CRM"
-            style={{ width: '160px', height: 'auto' }}
+            style={{ width: '150px', height: 'auto' }}
           />
           <div style={{ width: '1px', height: '80px', backgroundColor: '#ffffff40' }} />
           <img
             src={rkLogo}
             alt="RK Real Estate"
-            style={{ width: '250px', height: 'auto', filter: 'brightness(0) invert(1)' }}
+            style={{ width: '150px', height: 'auto', filter: 'brightness(0) invert(1)' }}
           />
         </div>
 
