@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { supabase } from './supabaseClient';
 import { C } from './constants';
 import logo from './logo.png';
+import covoLogo from './covo-logo.png';
+import rkLogo from './rk-logo.png';
 import { Eye, EyeOff } from 'lucide-react';
 
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
@@ -40,9 +42,16 @@ export default function Login() {
       className="min-h-screen flex items-center justify-center font-body px-4"
       style={{ backgroundColor: C.bg, color: C.text }}
     >
+      {/* RK Logo — top left, fixed */}
+      <div className="fixed top-4 left-4">
+        <img src={rkLogo} alt="RK Real Estate" className="h-14" />
+      </div>
+
+      {/* Login Card */}
       <div className="w-full max-w-sm p-6 rounded-2xl" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
-        <img src={logo} alt="RK Real Estate" className="h-16 mx-auto mb-3" />
-        <h1 className="font-display text-2xl font-extrabold mb-1 text-center" style={{ color: C.gold }}>RK CRM</h1>
+        {/* COVO CRM Logo in center of card */}
+        <img src={covoLogo} alt="COVO CRM" className="h-20 mx-auto mb-4 object-contain" />
+
         <p className="text-sm mb-6 text-center" style={{ color: C.muted }}>
           Log in to your account
         </p>
