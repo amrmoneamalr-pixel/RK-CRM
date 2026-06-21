@@ -40,31 +40,20 @@ export default function Login() {
       className="min-h-screen flex items-center justify-center font-body px-4"
       style={{ backgroundColor: C.bg, color: C.text }}
     >
-      <div className="w-full max-w-sm rounded-2xl" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
+      <div className="w-full max-w-sm">
 
-        {/* Top section: RK left big + COVO right */}
-        <div style={{ display: 'flex', alignItems: 'center', padding: '20px 20px 12px 20px', gap: '16px' }}>
-          {/* RK Logo — left, big */}
-          <img
-            src={rkLogo}
-            alt="RK Real Estate"
-            style={{ width: '160px', height: 'auto', filter: 'brightness(0) invert(1)', flexShrink: 0 }}
-          />
-          {/* Divider */}
-          <div style={{ width: '1px', height: '70px', backgroundColor: '#ffffff25', flexShrink: 0 }} />
-          {/* COVO Logo — right */}
-          <img
-            src={covoLogo}
-            alt="COVO CRM"
-            style={{ flex: 1, width: '0', minWidth: '0', height: '90px', objectFit: 'contain' }}
-          />
+        {/* COVO Logo — above card, centered */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+          <img src={covoLogo} alt="COVO CRM" style={{ width: '220px', height: 'auto' }} />
         </div>
 
-        {/* Form */}
-        <div style={{ padding: '0 20px 20px 20px' }}>
-          <p className="text-sm mb-4 text-center" style={{ color: C.muted }}>
-            Log in to your account
-          </p>
+        {/* Login Card */}
+        <div className="rounded-2xl" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, padding: '28px 24px' }}>
+
+          {/* RK Logo — inside card, centered */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
+            <img src={rkLogo} alt="RK Real Estate" style={{ width: '160px', height: 'auto', filter: 'brightness(0) invert(1)' }} />
+          </div>
 
           <form onSubmit={submit} className="space-y-3">
             <input
