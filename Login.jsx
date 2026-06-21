@@ -52,7 +52,7 @@ export default function Login() {
 
           {/* RK Logo — inside card, centered, directly above username */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
-            <img src={rkLogo} alt="RK Real Estate" style={{ width: '300px', height: '300px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+            <img src={rkLogo} alt="RK Real Estate" style={{ width: '200px', height: '200px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
           </div>
 
           <form onSubmit={submit} className="space-y-3">
