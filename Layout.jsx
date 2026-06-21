@@ -1,6 +1,6 @@
 import React from 'react';
 import { C } from './constants';
-import logo from './logo.png';
+import rkLogo from './rk-logo.png.png';
 import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, Activity as ActivityIcon, Settings as SettingsIcon, Building2 } from 'lucide-react';
 import LeadPanels from './LeadPanels';
 
@@ -27,13 +27,10 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
       {/* Sidebar (desktop) */}
       <aside className="hidden sm:flex flex-col w-60 shrink-0 border-r sticky top-0 h-screen p-4" style={{ borderColor: C.border }}>
         <div className="flex items-center gap-2.5 mb-6">
-          <img src={logo} alt="RK Real Estate" className="h-9" />
-          <div>
-            <h1 className="font-display text-xl font-extrabold tracking-tight" style={{ color: C.gold }}>RK CRM</h1>
-            <p className="text-xs mt-0.5" style={{ color: C.muted }}>
-              {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
-            </p>
-          </div>
+          <img src={rkLogo} alt="RK Real Estate" className="h-10 object-contain" />
+          <p className="text-xs mt-0.5" style={{ color: C.muted }}>
+            {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
+          </p>
         </div>
 
         <nav className="flex flex-col gap-1 flex-1">
@@ -64,13 +61,10 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
         <div className="px-4 pt-4 pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <img src={logo} alt="RK Real Estate" className="h-9" />
-              <div>
-                <h1 className="font-display text-xl font-extrabold tracking-tight" style={{ color: C.gold }}>RK CRM</h1>
-                <p className="text-xs mt-0.5" style={{ color: C.muted }}>
-                  {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
-                </p>
-              </div>
+              <img src={rkLogo} alt="RK Real Estate" className="h-9 object-contain" />
+              <p className="text-xs mt-0.5" style={{ color: C.muted }}>
+                {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
+              </p>
             </div>
             <button onClick={onSignOut} className="flex items-center gap-1 text-xs" style={{ color: C.muted }}>
               <LogOut size={14} /> Sign out
