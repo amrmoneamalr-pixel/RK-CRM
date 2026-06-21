@@ -1,56 +1,12 @@
 import React, { useState } from 'react';
 import { supabase } from './supabaseClient';
 import { C } from './constants';
+import covoLogo from './covo-logo.png.png';
 import rkLogo from './rk-logo.png.png';
 import { Eye, EyeOff } from 'lucide-react';
 
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
 const inputClass = 'rounded-lg px-3 py-2 text-sm outline-none w-full';
-
-function CovoLogo({ height = 90 }) {
-  return (
-    <svg viewBox="0 0 420 160" height={height} xmlns="http://www.w3.org/2000/svg">
-      {/* Elephant */}
-      <g transform="translate(10, 10)">
-        {/* Body */}
-        <ellipse cx="75" cy="100" rx="45" ry="38" fill="none" stroke="#111" strokeWidth="3.5"/>
-        {/* Head */}
-        <circle cx="105" cy="62" r="28" fill="none" stroke="#111" strokeWidth="3.5"/>
-        {/* Ear */}
-        <ellipse cx="84" cy="58" rx="16" ry="20" fill="none" stroke="#111" strokeWidth="3"/>
-        {/* Eye */}
-        <circle cx="112" cy="56" r="3" fill="#111"/>
-        {/* Trunk */}
-        <path d="M118 75 Q135 90 128 108 Q122 120 115 118" fill="none" stroke="#111" strokeWidth="3.5" strokeLinecap="round"/>
-        {/* Tail */}
-        <path d="M32 95 Q18 100 20 112" fill="none" stroke="#111" strokeWidth="3" strokeLinecap="round"/>
-        {/* Legs */}
-        <rect x="45" y="130" width="14" height="22" rx="7" fill="none" stroke="#111" strokeWidth="3"/>
-        <rect x="65" y="132" width="14" height="20" rx="7" fill="none" stroke="#111" strokeWidth="3"/>
-        <rect x="84" y="132" width="14" height="20" rx="7" fill="none" stroke="#111" strokeWidth="3"/>
-        <rect x="103" y="130" width="14" height="22" rx="7" fill="none" stroke="#111" strokeWidth="3"/>
-      </g>
-
-      {/* COVO text */}
-      <text x="195" y="88" fontFamily="'Arial Black', Arial, sans-serif" fontWeight="900" fontSize="58" fill="#111" letterSpacing="-1">COVO</text>
-
-      {/* 4 colored bars */}
-      <rect x="195" y="96" width="38" height="6" rx="3" fill="#6366f1"/>
-      <rect x="240" y="96" width="38" height="6" rx="3" fill="#ec4899"/>
-      <rect x="285" y="96" width="38" height="6" rx="3" fill="#f59e0b"/>
-      <rect x="330" y="96" width="38" height="6" rx="3" fill="#10b981"/>
-
-      {/* CRM */}
-      <text x="240" y="120" fontFamily="Arial, sans-serif" fontWeight="400" fontSize="15" fill="#555" letterSpacing="6">C R M</text>
-
-      {/* Divider */}
-      <line x1="195" y1="128" x2="375" y2="128" stroke="#ccc" strokeWidth="1"/>
-
-      {/* Tagline */}
-      <text x="195" y="145" fontFamily="Arial, sans-serif" fontSize="10" fill="#888">Connecting Opportunities · Visualizing Outcomes</text>
-    </svg>
-  );
-}
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -85,17 +41,17 @@ export default function Login() {
       className="min-h-screen flex items-center justify-center font-body px-4"
       style={{ backgroundColor: C.bg, color: C.text }}
     >
-      {/* RK Logo — top left fixed */}
-      <div className="fixed top-4 left-4">
-        <img src={rkLogo} alt="RK Real Estate" className="h-14 object-contain" />
-      </div>
-
       {/* Login Card */}
-      <div className="w-full max-w-sm p-6 rounded-2xl" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
+      <div className="w-full max-w-sm p-6 rounded-2xl relative" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
 
-        {/* COVO SVG Logo */}
+        {/* RK Logo — top left inside card */}
+        <div className="mb-4">
+          <img src={rkLogo} alt="RK Real Estate" className="h-10 object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
+        </div>
+
+        {/* COVO Logo — centered */}
         <div className="flex justify-center mb-4">
-          <CovoLogo height={90} />
+          <img src={covoLogo} alt="COVO CRM" className="h-24 object-contain" />
         </div>
 
         <p className="text-sm mb-6 text-center" style={{ color: C.muted }}>
