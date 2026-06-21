@@ -44,11 +44,11 @@ export default function Login() {
       <div className="w-full max-w-sm rounded-2xl" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
 
         {/* RK Logo — top left corner */}
-        <div style={{ padding: '16px 24px 0 24px' }}>
+        <div style={{ padding: '10px 0 0 10px' }}>
           <img
             src={rkLogo}
             alt="RK Real Estate"
-            style={{ width: '110px', height: 'auto', filter: 'brightness(0) invert(1)' }}
+            style={{ width: '150px', height: 'auto', filter: 'brightness(0) invert(1)' }}
           />
         </div>
 
