@@ -95,6 +95,13 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
               );
             })}
           </nav>
+
+          {/* LeadPanels as horizontal row on mobile — only on clients/dashboard */}
+          {(tab === 'clients' || tab === 'dashboard') && (
+            <div className="flex gap-2 mt-2 overflow-x-auto -mx-1 px-1 pb-2">
+              <LeadPanels userId={profile.id} isAdmin={profile.role === 'admin'} onSelectCategory={onSelectCategory} mobileRow />
+            </div>
+          )}
         </div>
       </header>
 

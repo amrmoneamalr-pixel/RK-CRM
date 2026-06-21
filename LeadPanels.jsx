@@ -3,7 +3,7 @@ import { supabase } from './supabaseClient';
 import { C, todayStr, COLD_RESULTS, LEAD_CATEGORY_LABELS } from './constants';
 import { Sparkles, Archive, PhoneCall, AlertTriangle, Snowflake, ChevronRight, Users, UserCheck } from 'lucide-react';
 
-export default function LeadPanels({ userId, isAdmin, onSelectCategory }) {
+export default function LeadPanels({ userId, isAdmin, onSelectCategory, mobileRow }) {
   const [counts, setCounts] = useState({ all: 0, newFresh: 0, contactedFresh: 0, callbackToday: 0, late: 0, oldFresh: 0, cold: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -54,6 +54,27 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory }) {
     { key: 'oldFresh',       icon: Archive,      color: '#9B7EBD', label: 'Old Fresh Leads' },
     { key: 'cold',           icon: Snowflake,    color: '#8B93A3', label: 'Cold Calls' },
   ];
+
+  if (mobileRow) {
+    return (
+      <>
+        {sections.map(({ key, icon: Icon, color, label }) => (
+          <button
+            key={key}
+            onClick={() => onSelectCategory && onSelectCategory(key)}
+            className="flex items-center gap-2 rounded-xl px-3 py-2 shrink-0"
+            style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+          >
+            <Icon size={13} style={{ color }} />
+            <span className="text-xs font-medium whitespace-nowrap" style={{ color: C.text }}>{label}</span>
+            <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${color}22`, color }}>
+              {loading ? '—' : counts[key]}
+            </span>
+          </button>
+        ))}
+      </>
+    );
+  }
 
   return (
     <aside className="hidden lg:flex flex-col w-56 shrink-0 border-l sticky top-0 h-screen overflow-y-auto p-3 space-y-2" style={{ borderColor: C.border }}>
