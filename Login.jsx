@@ -43,21 +43,18 @@ export default function Login() {
     >
       <div className="w-full max-w-sm rounded-2xl" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
 
-        {/* RK Logo — top left corner */}
-        <div style={{ padding: '10px 0 0 10px' }}>
-          <img
-            src={rkLogo}
-            alt="RK Real Estate"
-            style={{ width: '150px', height: 'auto', filter: 'brightness(0) invert(1)' }}
-          />
-        </div>
-
-        {/* COVO Logo — centered, tight spacing */}
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 24px 4px 24px' }}>
+        {/* Logos row: COVO left | divider | RK right */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px', padding: '24px 24px 8px 24px' }}>
           <img
             src={covoLogo}
             alt="COVO CRM"
-            style={{ width: '260px', height: 'auto' }}
+            style={{ width: '160px', height: 'auto' }}
+          />
+          <div style={{ width: '1px', height: '80px', backgroundColor: '#ffffff40' }} />
+          <img
+            src={rkLogo}
+            alt="RK Real Estate"
+            style={{ width: '100px', height: 'auto', filter: 'brightness(0) invert(1)' }}
           />
         </div>
 
