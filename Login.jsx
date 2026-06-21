@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { supabase } from './supabaseClient';
 import { C } from './constants';
 import logo from './logo.png';
-import covoLogo from './covo-logo.png';
-import rkLogo from './rk-logo.png';
+import covoLogo from './covo-logo.png.jpg';
+import rkLogo from './rk-logo.png.png';
 import { Eye, EyeOff } from 'lucide-react';
 
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
