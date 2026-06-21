@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
-import { C, todayStr, COLD_RESULTS, LEAD_CATEGORY_LABELS } from './constants';
-import { Sparkles, Archive, PhoneCall, AlertTriangle, Snowflake, ChevronRight, Users, UserCheck } from 'lucide-react';
+import { C, todayStr, LEAD_CATEGORY_LABELS } from './constants';
+import { Sparkles, Archive, PhoneCall, AlertTriangle, Snowflake, ChevronRight, Users, UserCheck, RefreshCw, PhoneMissed } from 'lucide-react';
 
 export default function LeadPanels({ userId, isAdmin, onSelectCategory, mobileRow }) {
-  const [counts, setCounts] = useState({ all: 0, newFresh: 0, contactedFresh: 0, callbackToday: 0, late: 0, oldFresh: 0, cold: 0 });
+  const [counts, setCounts] = useState({
+    all: 0,
+    newFresh: 0, contactedFresh: 0,
+    callbackToday: 0, late: 0, reRotation: 0,
+    oldFresh: 0, contactedOldFresh: 0,
+    cold: 0, contactedCold: 0,
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { load(); }, [userId, isAdmin]);
@@ -13,32 +19,34 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, mobileRo
     setLoading(true);
     let q = supabase
       .from('clients')
-      .select('id, stage, stage_category, ever_contacted, created_at, next_follow_up, call_result, last_contacted_at');
+      .select('id, stage_category, ever_contacted, next_follow_up, previous_owners');
     if (!isAdmin) q = q.eq('owner_id', userId);
     const { data } = await q;
     const clients = data || [];
 
     const today = todayStr();
-    const next = { all: clients.length, newFresh: 0, contactedFresh: 0, callbackToday: 0, late: 0, oldFresh: 0, cold: 0 };
+    const next = {
+      all: clients.length,
+      newFresh: 0, contactedFresh: 0,
+      callbackToday: 0, late: 0, reRotation: 0,
+      oldFresh: 0, contactedOldFresh: 0,
+      cold: 0, contactedCold: 0,
+    };
 
     clients.forEach((c) => {
-      // New Fresh Leads: stage_category = New Fresh Lead + never contacted
-      if (c.stage_category === 'New Fresh Lead' && !c.ever_contacted) next.newFresh++;
+      const cat = c.stage_category;
+      const contacted = c.ever_contacted;
+      const hasRotation = c.previous_owners && c.previous_owners.length > 0;
 
-      // Contacted Fresh Leads: stage_category = New Fresh Lead + ever contacted
-      if (c.stage_category === 'New Fresh Lead' && c.ever_contacted) next.contactedFresh++;
-
-      // Call Back Today
-      if (c.next_follow_up === today) next.callbackToday++;
-
-      // Late Leads
+      if (cat === 'New Fresh Lead' && !contacted)  next.newFresh++;
+      if (cat === 'New Fresh Lead' && contacted)   next.contactedFresh++;
+      if (c.next_follow_up === today)              next.callbackToday++;
       if (c.next_follow_up && c.next_follow_up < today) next.late++;
-
-      // Old Fresh Leads: Old Fresh Lead OR Old Campaign
-      if (c.stage_category === 'Old Fresh Lead' || c.stage_category === 'Old Campaign') next.oldFresh++;
-
-      // Cold Calls: stage_category = Cold Calls
-      if (c.stage_category === 'Cold Calls') next.cold++;
+      if (hasRotation)                             next.reRotation++;
+      if ((cat === 'Old Fresh Lead' || cat === 'Old Campaign') && !contacted) next.oldFresh++;
+      if ((cat === 'Old Fresh Lead' || cat === 'Old Campaign') && contacted)  next.contactedOldFresh++;
+      if (cat === 'Cold Calls' && !contacted)      next.cold++;
+      if (cat === 'Cold Calls' && contacted)       next.contactedCold++;
     });
 
     setCounts(next);
@@ -46,13 +54,16 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, mobileRo
   };
 
   const sections = [
-    { key: 'all',            icon: Users,        color: C.gold,    label: 'All Leads' },
-    { key: 'newFresh',       icon: Sparkles,     color: '#D6453E', label: 'New Fresh Leads' },
-    { key: 'contactedFresh', icon: UserCheck,    color: '#7FA887', label: 'Contacted Fresh Leads' },
-    { key: 'callbackToday',  icon: PhoneCall,    color: '#6E8CAE', label: 'Call Back Today' },
-    { key: 'late',           icon: AlertTriangle,color: '#C9714F', label: 'Late Leads' },
-    { key: 'oldFresh',       icon: Archive,      color: '#9B7EBD', label: 'Old Fresh Leads' },
-    { key: 'cold',           icon: Snowflake,    color: '#8B93A3', label: 'Cold Calls' },
+    { key: 'all',              icon: Users,        color: C.gold,    label: 'All Leads' },
+    { key: 'newFresh',         icon: Sparkles,     color: '#D6453E', label: 'New Fresh Leads' },
+    { key: 'contactedFresh',   icon: UserCheck,    color: '#7FA887', label: 'Contacted Fresh' },
+    { key: 'callbackToday',    icon: PhoneCall,    color: '#6E8CAE', label: 'Call Back Today' },
+    { key: 'late',             icon: AlertTriangle,color: '#C9714F', label: 'Late Leads' },
+    { key: 'reRotation',       icon: RefreshCw,    color: '#D4A24E', label: 'Re-rotation' },
+    { key: 'oldFresh',         icon: Archive,      color: '#9B7EBD', label: 'Old Fresh Leads' },
+    { key: 'contactedOldFresh',icon: UserCheck,    color: '#7B68EE', label: 'Contacted Old Fresh' },
+    { key: 'cold',             icon: Snowflake,    color: '#8B93A3', label: 'Cold Calls' },
+    { key: 'contactedCold',    icon: PhoneMissed,  color: '#5F9EA0', label: 'Contacted Cold' },
   ];
 
   if (mobileRow) {
@@ -90,10 +101,7 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, mobileRo
             {label}
           </div>
           <span className="flex items-center gap-1 shrink-0">
-            <span
-              className="text-xs font-bold px-1.5 py-0.5 rounded-full"
-              style={{ backgroundColor: `${color}22`, color }}
-            >
+            <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${color}22`, color }}>
               {loading ? '—' : counts[key]}
             </span>
             <ChevronRight size={13} style={{ color: C.muted }} />

@@ -252,11 +252,20 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
         case 'late':
           q = q.not('next_follow_up', 'is', null).lt('next_follow_up', today);
           break;
+        case 'reRotation':
+          q = q.not('previous_owners', 'is', null).neq('previous_owners', '[]');
+          break;
         case 'oldFresh':
-          q = q.in('stage_category', ['Old Fresh Lead', 'Old Campaign']);
+          q = q.in('stage_category', ['Old Fresh Lead', 'Old Campaign']).eq('ever_contacted', false);
+          break;
+        case 'contactedOldFresh':
+          q = q.in('stage_category', ['Old Fresh Lead', 'Old Campaign']).eq('ever_contacted', true);
           break;
         case 'cold':
-          q = q.eq('stage_category', 'Cold Calls');
+          q = q.eq('stage_category', 'Cold Calls').eq('ever_contacted', false);
+          break;
+        case 'contactedCold':
+          q = q.eq('stage_category', 'Cold Calls').eq('ever_contacted', true);
           break;
         default: break;
       }

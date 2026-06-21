@@ -134,13 +134,16 @@ export const clientStatus = (c) => {
 
 // Updated LEAD_CATEGORY_LABELS with new keys
 export const LEAD_CATEGORY_LABELS = {
-  all:            'All Leads',
-  newFresh:       'New Fresh Leads',
-  contactedFresh: 'Contacted Fresh Leads',
-  callbackToday:  'Call Back Today',
-  late:           'Late Leads',
-  oldFresh:       'Old Fresh Leads',
-  cold:           'Cold Calls',
+  all:               'All Leads',
+  newFresh:          'New Fresh Leads',
+  contactedFresh:    'Contacted Fresh Leads',
+  callbackToday:     'Call Back Today',
+  late:              'Late Leads',
+  reRotation:        'Re-rotation',
+  oldFresh:          'Old Fresh Leads',
+  contactedOldFresh: 'Contacted Old Fresh Leads',
+  cold:              'Cold Calls',
+  contactedCold:     'Contacted Cold Calls',
 };
 
 export const matchesLeadCategory = (c, category) => {
