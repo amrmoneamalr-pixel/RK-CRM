@@ -1,6 +1,7 @@
 import React from 'react';
 import { C } from './constants';
 import rkLogo from './rk-logo.png.png';
+import covoSidebar from './covo-only.png';
 import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, Activity as ActivityIcon, Settings as SettingsIcon, Building2 } from 'lucide-react';
 import LeadPanels from './LeadPanels';
 
@@ -26,11 +27,14 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
     <div dir="ltr" lang="en" className="min-h-screen font-body sm:flex" style={{ backgroundColor: C.bg, color: C.text }}>
       {/* Sidebar (desktop) */}
       <aside className="hidden sm:flex flex-col w-60 shrink-0 border-r sticky top-0 h-screen p-4" style={{ borderColor: C.border }}>
-        <div className="flex items-center gap-2.5 mb-6">
-          <img src={rkLogo} alt="RK Real Estate" className="h-10 object-contain" />
-          <p className="text-xs mt-0.5" style={{ color: C.muted }}>
-            {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
-          </p>
+        <div className="mb-6">
+          <img src={covoSidebar} alt="COVO CRM" style={{ height: '48px', objectFit: 'contain', marginBottom: '8px' }} />
+          <div className="flex items-center gap-2.5">
+            <img src={rkLogo} alt="RK Real Estate" style={{ height: '32px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+            <p className="text-xs" style={{ color: C.muted }}>
+              {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
+            </p>
+          </div>
         </div>
 
         <nav className="flex flex-col gap-1 flex-1">
@@ -61,7 +65,7 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
         <div className="px-4 pt-4 pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <img src={rkLogo} alt="RK Real Estate" className="h-9 object-contain" />
+              <img src={covoSidebar} alt="COVO CRM" style={{ height: '40px', objectFit: 'contain' }} />
               <p className="text-xs mt-0.5" style={{ color: C.muted }}>
                 {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
               </p>
