@@ -8,49 +8,29 @@ import { Upload, Download, X, Check, AlertCircle } from 'lucide-react';
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
 const inputClass = 'rounded-lg px-3 py-2 text-sm outline-none w-full';
 
-// Remove country codes from phone numbers
-function cleanPhone(raw) {
+// Normalize phone number:
+// - Egyptian numbers (01x) → 201x
+// - International numbers → add 00 if not already present
+function normalizePhone(raw) {
   if (!raw) return '';
-  let d = String(raw).replace(/[\s\-\(\)\.]/g, '');
+  let d = String(raw).trim().replace(/[\s\-\(\)\.]/g, '');
+  if (!d) return '';
+
+  // Remove leading +
   if (d.startsWith('+')) d = d.slice(1);
+
+  // Already has 00 prefix → remove it to get country code
   if (d.startsWith('00')) d = d.slice(2);
 
-  // Egyptian numbers — handle first before generic stripping
-  // 201xxxxxxxxx → 01xxxxxxxxx
-  if (/^201[0125]\d{8}$/.test(d)) return '0' + d.slice(2);
-  // 0201xxxxxxxxx → 01xxxxxxxxx
-  if (/^0201[0125]\d{8}$/.test(d)) return '0' + d.slice(3);
-  // Already local Egyptian format
-  if (/^01[0125]\d{8}$/.test(d)) return d;
+  // Egyptian local format: 01xxxxxxxxx → 201xxxxxxxxx
+  if (/^01[0125]\d{8}$/.test(d)) return '2' + d;
 
-  // Remove leading 0 + country code (e.g. 0962xxx → 962xxx)
-  if (d.startsWith('0') && d.length > 11) d = d.slice(1);
+  // Egyptian with country code already: 201xxxxxxxxx → keep
+  if (/^201[0125]\d{8}$/.test(d)) return d;
 
-  // Try to strip country code using dial codes (longest first)
-  const DIAL_CODES = [
-    '380','375','374','373','372','371','370','359','358','357','356','355','354','353','352','351',
-    '389','387','386','385','383','382','381','420','421','423','995','994','998','996','993','992',
-    '977','976','975','974','972','971','970','968','967','966','965','964','963','962','961','960',
-    '886','880','856','855','852','853','670','673','675','679',
-    '593','595','598','591','506','504','502','507',
-    '291','261','265','267','268','266','264','263','260','258','257','256','255','254','253','252',
-    '251','250','249','248','245','244','243','242','241','240','238','237','236','235','234','233',
-    '232','231','230','229','228','227','226','225','224','223','222','221','220','218','216','213',
-    '212','211',
-    '98','95','94','93','92','91','90','86','84','82','81','66','65','64','63','62','61','60',
-    '58','57','56','55','54','53','52','51',
-    '49','48','47','46','45','44','43','41','40','39','36','34','33','32','31','30',
-    '27','7','1',
-  ];
-
-  for (const code of DIAL_CODES) {
-    if (d.startsWith(code) && d.length > code.length + 6) {
-      return d.slice(code.length);
-    }
-  }
+  // All other international numbers → store as-is (already has country code)
   return d;
 }
-
 
 function Field({ label, required, children }) {
   return (
@@ -77,7 +57,7 @@ export default function ImportModal({ userId, onClose, onDone }) {
     developer: '',
     project: '',
     location: '',
-    assigned_to: '', // owner_id
+    assigned_to: '',
   });
   const [profiles, setProfiles] = useState([]);
 
@@ -155,7 +135,6 @@ export default function ImportModal({ userId, onClose, onDone }) {
     setImporting(true);
     setResult(null);
 
-    // Parse full file
     let rows = [];
     const ext = file.name.split('.').pop().toLowerCase();
     if (ext === 'csv') {
@@ -184,8 +163,8 @@ export default function ImportModal({ userId, onClose, onDone }) {
         return {
           owner_id,
           name: (r.Name || r.name || r['الاسم'] || '').toString().trim(),
-          phone: rawPhone || null,
-          secondary_phone: rawSecondary || null,
+          phone: normalizePhone(rawPhone) || null,
+          secondary_phone: normalizePhone(rawSecondary) || null,
           stage_category: settings.stage_category,
           stage: settings.stage_category === 'Cold Calls' ? 'contacted' : 'new',
           source: settings.source,
@@ -221,13 +200,33 @@ export default function ImportModal({ userId, onClose, onDone }) {
     setImporting(false);
   };
 
+  // Template with Phone column as Text format
   const downloadTemplate = () => {
+    const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet([
       ['Name', 'Phone', 'Secondary Phone'],
-      ['Ahmed Mohamed', '01012345678', ''],
-      ['Sara Ali', '0501234567', ''],
+      ['Ahmed Mohamed', '201012345678', ''],
+      ['Sara Ali', '966501234567', ''],
     ]);
-    const wb = XLSX.utils.book_new();
+
+    // Set Phone and Secondary Phone columns as Text format
+    if (!ws['!cols']) ws['!cols'] = [];
+    ws['!cols'][0] = { wch: 25 };
+    ws['!cols'][1] = { wch: 20 };
+    ws['!cols'][2] = { wch: 20 };
+
+    // Force Phone cells to be text type
+    ['B2', 'B3', 'C2', 'C3'].forEach(cell => {
+      if (ws[cell]) {
+        ws[cell].t = 's'; // string type
+        ws[cell].z = '@'; // text format
+      }
+    });
+
+    // Set column format for entire Phone columns
+    ws['!cols'][1] = { wch: 20, z: '@' };
+    ws['!cols'][2] = { wch: 20, z: '@' };
+
     XLSX.utils.book_append_sheet(wb, ws, 'Clients');
     XLSX.writeFile(wb, 'rk-import-template.xlsx');
   };
@@ -235,20 +234,17 @@ export default function ImportModal({ userId, onClose, onDone }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: '#00000088' }}>
       <div className="w-full max-w-lg rounded-2xl overflow-hidden" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, maxHeight: '90vh', overflowY: 'auto' }}>
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${C.border}` }}>
           <h2 className="font-display font-bold text-base">Import Leads</h2>
           <button onClick={onClose}><X size={18} style={{ color: C.muted }} /></button>
         </div>
 
         <div className="p-5 space-y-4">
-          {/* Template download */}
           <button onClick={downloadTemplate} className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg w-full justify-center"
             style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.gold }}>
             <Download size={13} /> Download Template (Name + Phone only)
           </button>
 
-          {/* Required settings */}
           <div className="grid grid-cols-2 gap-3">
             <Field label="Stage Category" required>
               <select value={settings.stage_category} onChange={set('stage_category')} className={inputClass} style={inputStyle}>
@@ -308,7 +304,6 @@ export default function ImportModal({ userId, onClose, onDone }) {
             <p className="text-xs" style={{ color: C.muted }}>📍 Location: <strong style={{ color: C.gold }}>{settings.location}</strong></p>
           )}
 
-          {/* File upload */}
           <div
             className="rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 py-8 cursor-pointer"
             style={{ borderColor: file ? C.gold : C.border }}
@@ -322,7 +317,6 @@ export default function ImportModal({ userId, onClose, onDone }) {
             <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" onChange={handleFile} className="hidden" />
           </div>
 
-          {/* Preview */}
           {preview.length > 0 && (
             <div className="rounded-lg overflow-hidden text-xs" style={{ border: `1px solid ${C.border}` }}>
               <p className="px-3 py-1.5 font-medium" style={{ backgroundColor: C.bg, color: C.muted }}>Preview (first 3 rows)</p>
@@ -341,7 +335,6 @@ export default function ImportModal({ userId, onClose, onDone }) {
             </div>
           )}
 
-          {/* Result */}
           {result?.success && (
             <div className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm" style={{ backgroundColor: '#7FA88722', color: '#7FA887' }}>
               <Check size={14} /> Imported {result.success} leads successfully!
@@ -353,7 +346,6 @@ export default function ImportModal({ userId, onClose, onDone }) {
             </div>
           )}
 
-          {/* Buttons */}
           <div className="flex gap-2 pt-1">
             {result?.success ? (
               <button onClick={onDone} className="flex-1 py-2.5 rounded-lg font-bold text-sm" style={{ backgroundColor: C.gold, color: '#14181F' }}>
