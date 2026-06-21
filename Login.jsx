@@ -44,18 +44,14 @@ export default function Login() {
       <div className="w-full max-w-sm rounded-2xl" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
 
         {/* Logos row: COVO left | divider | RK right */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px', padding: '24px 24px 8px 24px' }}>
-          <img
-            src={covoLogo}
-            alt="COVO CRM"
-            style={{ width: '150px', height: 'auto' }}
-          />
-          <div style={{ width: '1px', height: '80px', backgroundColor: '#ffffff40' }} />
-          <img
-            src={rkLogo}
-            alt="RK Real Estate"
-            style={{ width: '150px', height: 'auto', filter: 'brightness(0) invert(1)' }}
-          />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 24px 8px 24px' }}>
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+            <img src={covoLogo} alt="COVO CRM" style={{ width: '160px', height: '120px', objectFit: 'contain' }} />
+          </div>
+          <div style={{ width: '1px', height: '80px', backgroundColor: '#ffffff30', flexShrink: 0 }} />
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+            <img src={rkLogo} alt="RK Real Estate" style={{ width: '160px', height: '120px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+          </div>
         </div>
 
         {/* Form */}
