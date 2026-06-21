@@ -54,7 +54,7 @@ export default function Login() {
           <img
             src={rkLogo}
             alt="RK Real Estate"
-            style={{ width: '100px', height: 'auto', filter: 'brightness(0) invert(1)' }}
+            style={{ width: '250px', height: 'auto', filter: 'brightness(0) invert(1)' }}
           />
         </div>
 
