@@ -46,12 +46,12 @@ export default function Login() {
 
         {/* RK Logo — top left inside card */}
         <div className="mb-4">
-          <img src={rkLogo} alt="RK Real Estate" className="h-20 object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
+          <img src={rkLogo} alt="RK Real Estate" className="h-40 object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
         </div>
 
         {/* COVO Logo — centered */}
-        <div className="flex justify-center mb-4">
-          <img src={covoLogo} alt="COVO CRM" className="h-40 object-contain" />
+        <div className="flex justify-center mb-4 mt-6">
+          <img src={covoLogo} alt="COVO CRM" className="h-52 object-contain" />
         </div>
 
         <p className="text-sm mb-6 text-center" style={{ color: C.muted }}>
