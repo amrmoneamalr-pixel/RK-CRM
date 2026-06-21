@@ -40,7 +40,6 @@ export const SOURCES = ['Facebook Campaign', 'Instagram Campaign', 'Facebook Org
 export const LEAD_ORIGINS = ['RK', 'Marketing', 'Top Management'];
 export const TOP_MANAGEMENT_NAMES = ['Rania Khalid', 'Amr Abdel Moneam', 'Mohamed Khalid'];
 
-// Action options shown to everyone when logging a touchpoint on a lead
 export const ACTIONS = ['Contacted', 'No Answer', 'Switched Off', 'Send WhatsApp', 'Not Interested', 'Not Qualified', 'Interest in Resale', 'Interest in Separate'];
 
 export const DEVELOPERS = ['Mountain View', 'Tatweer Misr', 'City Edge', 'SODIC', 'Palm Hills', 'Emaar Misr', 'Madinet Nasr Housing', 'Modon Developments', 'Hassan Allam', 'Ora Developers'];
@@ -65,7 +64,6 @@ export const monthKey = (d = new Date()) =>
 
 export const todayStr = () => {
   const d = new Date();
-  // Use Cairo timezone (Africa/Cairo = UTC+2 or UTC+3 in summer)
   const cairo = new Date(d.toLocaleString('en-US', { timeZone: 'Africa/Cairo' }));
   const y = cairo.getFullYear();
   const m = String(cairo.getMonth() + 1).padStart(2, '0');
@@ -102,7 +100,6 @@ export const fmtDateTime = (d) => {
   return new Date(d).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 };
 
-// Builds a wa.me link from an Egyptian-style number (e.g. 01012345678 -> 201012345678)
 export const waLink = (phone) => {
   if (!phone) return null;
   let digits = String(phone).replace(/\D/g, '');
@@ -114,7 +111,6 @@ export const waLink = (phone) => {
 
 export const COLD_RESULTS = ['No Answer', 'No Answer - Multiple Times', 'Call Again'];
 
-// Stage/category column: what kind of lead is this?
 export const leadCategory = (c) => {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   if (c.stage === 'new' && !c.ever_contacted && c.created_at >= sevenDaysAgo) return { label: 'New Fresh Lead',  color: '#D6453E' };
@@ -124,7 +120,6 @@ export const leadCategory = (c) => {
   return { label: 'Active', color: '#7FA887' };
 };
 
-// Status column: current touchpoint status
 const CONTACTED_ACTIONS = ['Contacted', 'No Answer', 'Switched Off', 'Send WhatsApp', 'Interested - Thinking', 'Very Interested', 'Call Again', 'Interest in Resale', 'Interest in Separate'];
 
 export const clientStatus = (c) => {
@@ -137,23 +132,33 @@ export const clientStatus = (c) => {
   return { label: 'New', color: '#D6453E' };
 };
 
+// Updated LEAD_CATEGORY_LABELS with new keys
 export const LEAD_CATEGORY_LABELS = {
-  fresh: 'Fresh Leads',
-  callbackToday: 'Call Back Today',
-  late: 'Late Leads',
-  oldFresh: 'Old Fresh Leads',
-  cold: 'Cold Calls',
+  all:            'All Leads',
+  newFresh:       'New Fresh Leads',
+  contactedFresh: 'Contacted Fresh Leads',
+  callbackToday:  'Call Back Today',
+  late:           'Late Leads',
+  oldFresh:       'Old Fresh Leads',
+  cold:           'Cold Calls',
 };
 
 export const matchesLeadCategory = (c, category) => {
   const today = todayStr();
-  const sevenDaysAgoIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   switch (category) {
-    case 'fresh': return c.stage === 'new' && !c.ever_contacted && c.created_at >= sevenDaysAgoIso;
-    case 'oldFresh': return c.stage === 'new' && !c.ever_contacted && c.created_at < sevenDaysAgoIso;
-    case 'callbackToday': return c.next_follow_up === today;
-    case 'late': return !!c.next_follow_up && c.next_follow_up < today;
-    case 'cold': return COLD_RESULTS.includes(c.call_result);
-    default: return true;
+    case 'newFresh':
+      return c.stage_category === 'New Fresh Lead' && !c.ever_contacted;
+    case 'contactedFresh':
+      return c.stage_category === 'New Fresh Lead' && c.ever_contacted;
+    case 'callbackToday':
+      return c.next_follow_up === today;
+    case 'late':
+      return !!c.next_follow_up && c.next_follow_up < today;
+    case 'oldFresh':
+      return c.stage_category === 'Old Fresh Lead' || c.stage_category === 'Old Campaign';
+    case 'cold':
+      return c.stage_category === 'Cold Calls';
+    default:
+      return true;
   }
 };
