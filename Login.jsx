@@ -41,17 +41,16 @@ export default function Login() {
       className="min-h-screen flex items-center justify-center font-body px-4"
       style={{ backgroundColor: C.bg, color: C.text }}
     >
-      {/* Login Card */}
-      <div className="w-full max-w-sm p-6 rounded-2xl relative" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
+      <div className="w-full max-w-sm p-6 rounded-2xl" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
 
-        {/* RK Logo — top left inside card */}
-        <div className="mb-4">
-          <img src={rkLogo} alt="RK Real Estate" className="h-40 object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
+        {/* RK Logo — top left inside card, big */}
+        <div className="mb-2">
+          <img src={rkLogo} alt="RK Real Estate" style={{ height: '160px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
         </div>
 
-        {/* COVO Logo — centered */}
-        <div className="flex justify-center mb-4 mt-6">
-          <img src={covoLogo} alt="COVO CRM" className="h-52 object-contain" />
+        {/* COVO Logo — centered, pushed down */}
+        <div className="flex justify-center" style={{ marginTop: '24px', marginBottom: '24px' }}>
+          <img src={covoLogo} alt="COVO CRM" style={{ height: '200px', objectFit: 'contain' }} />
         </div>
 
         <p className="text-sm mb-6 text-center" style={{ color: C.muted }}>
