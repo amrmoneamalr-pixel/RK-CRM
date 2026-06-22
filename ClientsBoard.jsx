@@ -132,13 +132,11 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   const [editTarget, setEditTarget] = useState(null);
   const [showImport, setShowImport] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [page, setPageState] = useState(initialPage);
+  const [page, setPage] = useState(initialPage);
 
-  const setPage = (p) => {
-    const resolved = typeof p === 'function' ? p(page) : p;
-    setPageState(resolved);
-    if (onPageChange) onPageChange(resolved);
-  };
+  useEffect(() => {
+    if (onPageChange) onPageChange(page);
+  }, [page]);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkReassignTo, setBulkReassignTo] = useState('');
   const [bulkBusy, setBulkBusy] = useState(false);
