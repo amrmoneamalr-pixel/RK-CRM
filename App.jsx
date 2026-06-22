@@ -156,6 +156,7 @@ export default function App() {
           userId={session.user.id}
           isAdmin={isAdmin}
           hasTeamAccess={hasTeamAccess}
+          userTitle={profile.title}
           leadFilter={leadFilter}
           onClearLeadFilter={() => setLeadFilter(null)}
           initialPage={clientsPage}

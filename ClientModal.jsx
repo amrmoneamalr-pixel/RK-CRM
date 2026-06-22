@@ -74,8 +74,8 @@ function useMarketerNames(profilesList) {
   return names;
 }
 
-export default function ClientModal({ mode, userId, client, isAdmin, profilesList, autoFocusActivity, onClose, onSaved }) {
-  if (mode === 'add') return <AddForm userId={userId} isAdmin={isAdmin} profilesList={profilesList} onClose={onClose} onSaved={onSaved} />;
+export default function ClientModal({ mode, userId, client, isAdmin, userTitle, profilesList, autoFocusActivity, onClose, onSaved }) {
+  if (mode === 'add') return <AddForm userId={userId} isAdmin={isAdmin} userTitle={userTitle} profilesList={profilesList} onClose={onClose} onSaved={onSaved} />;
   if (mode === 'edit') return <EditForm userId={userId} client={client} profilesList={profilesList} onClose={onClose} onSaved={onSaved} />;
   return <DetailView userId={userId} client={client} isAdmin={isAdmin} profilesList={profilesList} autoFocusActivity={autoFocusActivity} onClose={onClose} onSaved={onSaved} />;
 }
@@ -110,13 +110,14 @@ function OriginFields({ form, setForm, marketerNames }) {
   );
 }
 
-function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
+function AddForm({ userId, isAdmin, profilesList, userTitle, onClose, onSaved }) {
   const marketerNames = useMarketerNames(profilesList);
   const [developers, setDevelopers] = useState([]);
   const [projectOptions, setProjectOptions] = useState([]);
+  const isManualUser = !isAdmin && !['top_management'].includes(userTitle);
   const [form, setForm] = useState({
     name: '', phone: '', secondary_phone: '', developer: '', project: '',
-    source: '', stage_category: '', lead_origin: '', origin_name: '', location: '', owner_id: '', potential: false,
+    source: '', stage_category: isManualUser ? 'Manual' : '', lead_origin: '', origin_name: '', location: '', owner_id: '', potential: false,
   });
   const [saving, setSaving] = useState(false);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -144,10 +145,12 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
       owner_id: form.owner_id || userId,
       name: form.name, phone: form.phone || null, secondary_phone: form.secondary_phone || null,
       developer: form.developer || null, project: form.project || null, source: form.source || null,
-      stage_category: form.stage_category || null, stage: stageCategoryToStage(form.stage_category),
-      lead_origin: form.lead_origin || null,
+      stage_category: isManualUser ? 'Manual' : (form.stage_category || null),
+      stage: 'new',
+      lead_origin: isManualUser ? 'Manual' : (form.lead_origin || null),
       origin_name: form.lead_origin === 'Marketing' || form.lead_origin === 'Top Management' ? (form.origin_name || null) : null,
       location: form.location || null, potential: form.potential,
+      is_manual: isManualUser,
     });
     setSaving(false);
     if (error) { alert('Error: ' + error.message); return; }
@@ -157,6 +160,11 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
   return (
     <Modal title="New Lead" onClose={onClose}>
       <div className="space-y-3">
+        {isManualUser && (
+          <div className="rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: '#D4A24E22', border: '1px solid #D4A24E', color: '#D4A24E' }}>
+            ⚠️ هذا الرقم Manual — لن يخضع لأي rotation تلقائي وسيظهر في Late فقط
+          </div>
+        )}
         <Field label="Full Name *"><input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} placeholder="Required" /></Field>
         <Field label="Mobile Number *"><input value={form.phone} onChange={set('phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" /></Field>
         <Field label="Secondary Number"><input value={form.secondary_phone} onChange={set('secondary_phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" /></Field>
@@ -186,46 +194,56 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
             {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </Field>
-        <Field label="Stage Category *">
-          <select value={form.stage_category || ''} onChange={set('stage_category')} className={inputClass} style={inputStyle}>
-            <option value="">— Select —</option>
-            <option value="New Fresh Lead">New Fresh Lead</option>
-            <option value="Old Fresh Lead">Old Fresh Lead</option>
-            <option value="Cold Calls">Cold Calls</option>
-            <option value="Old Campaign">Old Campaign</option>
-          </select>
-        </Field>
-        <Field label="Lead Origin">
-          <select value={form.lead_origin || ''} onChange={(e) => setForm((f) => ({ ...f, lead_origin: e.target.value, origin_name: '' }))} className={inputClass} style={inputStyle}>
-            <option value="">—</option>
-            {LEAD_ORIGINS.map((o) => <option key={o} value={o}>{o}</option>)}
-          </select>
-        </Field>
-        {form.lead_origin === 'Marketing' && (
-          <Field label="Marketer Name">
-            <select value={form.origin_name || ''} onChange={set('origin_name')} className={inputClass} style={inputStyle}>
-              <option value="">—</option>
-              {marketerNames.map((n) => <option key={n} value={n}>{n}</option>)}
-            </select>
+
+        {isManualUser ? (
+          <Field label="Stage Category">
+            <input value="Manual" disabled className={inputClass} style={{ ...inputStyle, opacity: 0.6 }} />
           </Field>
+        ) : (
+          <>
+            <Field label="Stage Category *">
+              <select value={form.stage_category || ''} onChange={set('stage_category')} className={inputClass} style={inputStyle}>
+                <option value="">— Select —</option>
+                <option value="New Fresh Lead">New Fresh Lead</option>
+                <option value="Old Fresh Lead">Old Fresh Lead</option>
+                <option value="Cold Calls">Cold Calls</option>
+                <option value="Old Campaign">Old Campaign</option>
+              </select>
+            </Field>
+            <Field label="Lead Origin">
+              <select value={form.lead_origin || ''} onChange={(e) => setForm((f) => ({ ...f, lead_origin: e.target.value, origin_name: '' }))} className={inputClass} style={inputStyle}>
+                <option value="">—</option>
+                {LEAD_ORIGINS.map((o) => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </Field>
+            {form.lead_origin === 'Marketing' && (
+              <Field label="Marketer Name">
+                <select value={form.origin_name || ''} onChange={set('origin_name')} className={inputClass} style={inputStyle}>
+                  <option value="">—</option>
+                  {marketerNames.map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </Field>
+            )}
+            {form.lead_origin === 'Top Management' && (
+              <Field label="Top Management Member">
+                <select value={form.origin_name || ''} onChange={set('origin_name')} className={inputClass} style={inputStyle}>
+                  <option value="">—</option>
+                  {TOP_MANAGEMENT_NAMES.map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </Field>
+            )}
+            {isAdmin && profilesList && profilesList.length > 0 && (
+              <Field label="Assigned To">
+                <select value={form.owner_id} onChange={set('owner_id')} className={inputClass} style={inputStyle}>
+                  {profilesList.filter((p) => !p.is_pool).map((p) => (
+                    <option key={p.id} value={p.id}>{p.full_name || p.username}</option>
+                  ))}
+                </select>
+              </Field>
+            )}
+          </>
         )}
-        {form.lead_origin === 'Top Management' && (
-          <Field label="Top Management Member">
-            <select value={form.origin_name || ''} onChange={set('origin_name')} className={inputClass} style={inputStyle}>
-              <option value="">—</option>
-              {TOP_MANAGEMENT_NAMES.map((n) => <option key={n} value={n}>{n}</option>)}
-            </select>
-          </Field>
-        )}
-        {isAdmin && profilesList && profilesList.length > 0 && (
-          <Field label="Assigned To">
-            <select value={form.owner_id} onChange={set('owner_id')} className={inputClass} style={inputStyle}>
-              {profilesList.filter((p) => !p.is_pool).map((p) => (
-                <option key={p.id} value={p.id}>{p.full_name || p.username}</option>
-              ))}
-            </select>
-          </Field>
-        )}
+
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={form.potential} onChange={(e) => setForm((f) => ({ ...f, potential: e.target.checked }))} />
           <span style={{ color: C.muted }}>Mark as high-potential lead</span>

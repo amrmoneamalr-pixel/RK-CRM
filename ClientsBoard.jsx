@@ -113,7 +113,7 @@ const selectClass = 'rounded-lg px-2.5 py-2 text-xs outline-none';
 const PAGE_SIZE = 30;
 const EXPORT_BATCH = 1000;
 
-export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilter, onClearLeadFilter, initialPage = 1, onPageChange }) {
+export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle, leadFilter, onClearLeadFilter, initialPage = 1, onPageChange }) {
   const [clients, setClients] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [activities, setActivities] = useState([]);
@@ -443,7 +443,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
             </button>
           )}
         </div>
-        {showAdd && <ClientModal mode="add" userId={userId} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setShowAdd(false)} onSaved={load} />}
+        {showAdd && <ClientModal mode="add" userId={userId} isAdmin={hasTeamAccess} userTitle={userTitle} profilesList={profilesList} onClose={() => setShowAdd(false)} onSaved={load} />}
         {showImport && <ImportModal userId={userId} onClose={() => setShowImport(false)} onDone={() => { setShowImport(false); load(); }} />}
       </div>
     );
@@ -663,7 +663,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
         </>
       )}
 
-      {showAdd && <ClientModal mode="add" userId={userId} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setShowAdd(false)} onSaved={load} />}
+      {showAdd && <ClientModal mode="add" userId={userId} isAdmin={hasTeamAccess} userTitle={userTitle} profilesList={profilesList} onClose={() => setShowAdd(false)} onSaved={load} />}
       {selected && <ClientModal mode="detail" userId={userId} client={selected} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setSelected(null)} onSaved={load} />}
       {editTarget && <ClientModal mode="edit" userId={userId} client={editTarget} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setEditTarget(null)} onSaved={load} />}
       {showImport && <ImportModal userId={userId} onClose={() => setShowImport(false)} onDone={() => { setShowImport(false); load(); }} />}
