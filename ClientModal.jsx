@@ -282,8 +282,8 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
       location: form.location || null, potential: form.potential, owner_id: form.owner_id,
     };
     if (ownerChanged) {
-      patch.previous_owners = [...(client.previous_owners || []), client.owner_id];
-      patch.no_answer_count = 0; patch.call_result = null;
+      patch.no_answer_count = 0;
+      patch.call_result = null;
     }
     await supabase.from('clients').update(patch).eq('id', client.id);
     setSaving(false); onSaved(); onClose();
