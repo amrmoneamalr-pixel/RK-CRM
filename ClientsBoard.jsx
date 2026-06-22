@@ -113,7 +113,7 @@ const selectClass = 'rounded-lg px-2.5 py-2 text-xs outline-none';
 const PAGE_SIZE = 30;
 const EXPORT_BATCH = 1000;
 
-export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle, leadFilter, onClearLeadFilter, initialPage = 1, onPageChange }) {
+export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle, leadFilter, onClearLeadFilter, initialPage = 1, onPageChange, onOpenMail }) {
   const [clients, setClients] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [activities, setActivities] = useState([]);
@@ -139,9 +139,20 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
   const [bulkBusy, setBulkBusy] = useState(false);
   const [actionTarget, setActionTarget] = useState(null);
 
+  const [unreadMail, setUnreadMail] = useState(0);
+
   useEffect(() => {
-    if (onPageChange) onPageChange(page);
-  }, [page]);
+    (async () => {
+      try {
+        const { count } = await supabase
+          .from('message_recipients')
+          .select('*', { count: 'exact', head: true })
+          .eq('recipient_id', userId)
+          .eq('is_read', false);
+        setUnreadMail(count || 0);
+      } catch (e) {}
+    })();
+  }, [userId]);
 
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput.trim()), 350);
@@ -506,9 +517,13 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
           </button>
 
           {/* Email icon */}
-          <button className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.muted }}
-            title="Email">
+          <button onClick={onOpenMail} className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0 relative" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.muted }}
+            title="Mail">
             <Mail size={15} />
+            {unreadMail > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center"
+                style={{ backgroundColor: '#D6453E', color: '#fff' }}>{unreadMail}</span>
+            )}
           </button>
         </div>
       </div>

@@ -162,6 +162,7 @@ export default function App() {
           onClearLeadFilter={() => setLeadFilter(null)}
           initialPage={clientsPage}
           onPageChange={setClientsPageAndHash}
+          onOpenMail={() => handleSetTab('mail')}
         />
       )}
       {tab === 'developers' && <DevelopersBoard isAdmin={isAdmin} />}
