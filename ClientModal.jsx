@@ -585,7 +585,12 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
             
             {/* Stage selector */}
             <Field label="Stage *">
-              <select value={leadStage} onChange={(e) => { setLeadStage(e.target.value); setCallResult(''); }} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }}>
+              <select value={leadStage} onChange={(e) => { 
+                const val = e.target.value;
+                setLeadStage(val); 
+                setCallResult('');
+                setNextFollowUp('');
+              }} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }}>
                 <option value="">— Select Stage —</option>
                 <option value="interested">Interested</option>
                 <option value="notInterested">Not Interested</option>
