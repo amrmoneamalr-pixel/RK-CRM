@@ -7,7 +7,8 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, mobileRo
   const [counts, setCounts] = useState({
     all: 0,
     newFresh: 0, contactedFresh: 0,
-    callbackToday: 0, late: 0, reRotation: 0,
+    callbackToday: 0, late: 0,
+    reRotation: 0, contactedReRotation: 0,
     oldFresh: 0, contactedOldFresh: 0,
     cold: 0, contactedCold: 0,
     warmLeads: 0, potential: 0,
@@ -29,7 +30,8 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, mobileRo
     const next = {
       all: clients.length,
       newFresh: 0, contactedFresh: 0,
-      callbackToday: 0, late: 0, reRotation: 0,
+      callbackToday: 0, late: 0,
+      reRotation: 0, contactedReRotation: 0,
       oldFresh: 0, contactedOldFresh: 0,
       cold: 0, contactedCold: 0,
       warmLeads: 0, potential: 0,
@@ -47,7 +49,8 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, mobileRo
 
       if (cat === 'New Fresh Lead' && !contacted)  next.newFresh++;
       if (cat === 'New Fresh Lead' && contacted)   next.contactedFresh++;
-      if (hasRotation)                             next.reRotation++;
+      if (hasRotation && !contacted)  next.reRotation++;
+      if (hasRotation && contacted)   next.contactedReRotation++;
       if ((cat === 'Old Fresh Lead' || cat === 'Old Campaign') && !contacted) next.oldFresh++;
       if ((cat === 'Old Fresh Lead' || cat === 'Old Campaign') && contacted)  next.contactedOldFresh++;
       if (cat === 'Cold Calls' && !contacted)      next.cold++;
@@ -67,6 +70,7 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, mobileRo
     { key: 'callbackToday',    icon: PhoneCall,    color: '#6E8CAE', label: 'Call Back Today' },
     { key: 'late',             icon: AlertTriangle,color: '#C9714F', label: 'Late Leads' },
     { key: 'reRotation',       icon: RefreshCw,    color: '#D4A24E', label: 'Re-rotation' },
+    { key: 'contactedReRotation', icon: UserCheck, color: '#E8A838', label: 'Contacted Re-rotation' },
     { key: 'oldFresh',         icon: Archive,      color: '#9B7EBD', label: 'Old Fresh Leads' },
     { key: 'contactedOldFresh',icon: UserCheck,    color: '#7B68EE', label: 'Contacted Old Fresh Leads' },
     { key: 'cold',             icon: Snowflake,    color: '#8B93A3', label: 'Cold Calls' },

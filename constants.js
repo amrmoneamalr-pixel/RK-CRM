@@ -144,6 +144,7 @@ export const LEAD_CATEGORY_LABELS = {
   callbackToday:     'Call Back Today',
   late:              'Late Leads',
   reRotation:        'Re-rotation',
+  contactedReRotation: 'Contacted Re-rotation',
   oldFresh:          'Old Fresh Leads',
   contactedOldFresh: 'Contacted Old Fresh Leads',
   cold:              'Cold Calls',
