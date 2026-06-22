@@ -20,7 +20,7 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, mobileRo
     setLoading(true);
     let q = supabase
       .from('clients')
-      .select('id, stage_category, ever_contacted, next_follow_up, previous_owners, potential');
+      .select('id, stage_category, ever_contacted, next_follow_up, previous_owners, potential, call_result');
     if (!isAdmin) q = q.eq('owner_id', userId);
     const { data } = await q;
     const clients = data || [];
