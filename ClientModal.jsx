@@ -423,7 +423,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
   const [activities, setActivities] = useState([]);
   const [ownerNames, setOwnerNames] = useState({});  // ← جديد
   const [nextFollowUp, setNextFollowUp] = useState('');
-  const [followUpTime, setFollowUpTime] = useState('09:00');
+  const [followUpTime, setFollowUpTime] = useState('');
   const [callResult, setCallResult] = useState('');
   const [savedCallResult, setSavedCallResult] = useState('');
   const [noAnswerCount, setNoAnswerCount] = useState(client.no_answer_count || 0);
@@ -508,7 +508,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
     setSavedCallResult(callResult);
     setSaving(false);
     setCallResult(''); setSavedCallResult(''); setCommentText('');
-    setNextFollowUp(''); setFollowUpTime('09:00'); setPlannedMeeting(false); setActualMeeting(false);
+    setNextFollowUp(''); setFollowUpTime(''); setPlannedMeeting(false); setActualMeeting(false);
     setLeadStage('');
     onSaved(); onClose();
   };
@@ -661,6 +661,8 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
               <div className="flex gap-2">
                 <input type="date" value={nextFollowUp} min={todayStr()} max={maxDate} onChange={(e) => setNextFollowUp(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface, flex: 2 }} />
                 <select value={followUpTime} onChange={(e) => setFollowUpTime(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface, flex: 1, color: followUpTime ? C.text : C.muted }}>
+                  <option value="">-- Time --</option>
+                  <option value="">— Time —</option>
                   {Array.from({ length: 24 }, (_, h) =>
                     ['00', '30'].map(m => {
                       const val = `${String(h).padStart(2,'0')}:${m}`;
