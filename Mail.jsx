@@ -1,33 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
 import { C, fmtDateTime } from './constants';
-import { Mail, Send, Inbox, FileText, Plus, X, ChevronLeft, Users, Check } from 'lucide-react';
+import { Mail, Send, Inbox, FileText, Plus, X, ChevronLeft, Check } from 'lucide-react';
 
 export default function MailPage({ userId, isAdmin }) {
-  const [view, setView] = useState('inbox'); // inbox | sent | drafts | compose | read
+  const [view, setView] = useState('inbox');
   const [messages, setMessages] = useState([]);
   const [selected, setSelected] = useState(null);
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Compose state
   const [recipients, setRecipients] = useState([]);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
-  const [selectAll, setSelectAll] = useState(false);
 
-  useEffect(() => {
-    loadProfiles();
-  }, []);
-
-  useEffect(() => {
-    if (view !== 'compose') load();
-  }, [view]);
+  useEffect(() => { loadProfiles(); }, []);
+  useEffect(() => { if (view !== 'compose') load(); }, [view]);
 
   const loadProfiles = async () => {
-    const { data } = await supabase.from('profiles').select('id, full_name, username, title').eq('is_pool', false).order('full_name');
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, full_name, username, title')
+      .eq('is_pool', false)
+      .order('full_name');
     setProfiles((data || []).filter(p => p.id !== userId));
   };
 
@@ -35,16 +32,16 @@ export default function MailPage({ userId, isAdmin }) {
     setLoading(true);
     try {
       if (view === 'inbox') {
-        // Step 1: get recipient records
         const { data: recData } = await supabase
           .from('message_recipients')
           .select('id, is_read, created_at, message_id')
           .eq('recipient_id', userId)
           .order('created_at', { ascending: false });
 
-        if (!recData || recData.length === 0) { setMessages([]); setUnreadCount(0); setLoading(false); return; }
+        if (!recData || recData.length === 0) {
+          setMessages([]); setUnreadCount(0); setLoading(false); return;
+        }
 
-        // Step 2: get messages
         const msgIds = recData.map(r => r.message_id);
         const { data: msgData } = await supabase
           .from('messages')
@@ -52,7 +49,6 @@ export default function MailPage({ userId, isAdmin }) {
           .in('id', msgIds)
           .eq('is_draft', false);
 
-        // Step 3: get sender profiles
         const senderIds = [...new Set((msgData || []).map(m => m.sender_id))];
         const { data: profileData } = await supabase
           .from('profiles')
@@ -61,7 +57,6 @@ export default function MailPage({ userId, isAdmin }) {
 
         const profileMap = {};
         (profileData || []).forEach(p => { profileMap[p.id] = p; });
-
         const msgMap = {};
         (msgData || []).forEach(m => { msgMap[m.id] = { ...m, sender: profileMap[m.sender_id] }; });
 
@@ -71,27 +66,34 @@ export default function MailPage({ userId, isAdmin }) {
 
         setMessages(combined);
         setUnreadCount(combined.filter(d => !d.is_read).length);
+
       } else if (view === 'sent') {
         const { data: msgData } = await supabase
           .from('messages')
-          .select('id, subject, body, created_at, is_draft')
+          .select('id, subject, body, created_at, sender_id, is_draft')
           .eq('sender_id', userId)
           .eq('is_draft', false)
           .order('created_at', { ascending: false });
 
         const msgIds = (msgData || []).map(m => m.id);
-        const { data: recData } = msgIds.length > 0 ? await supabase
-          .from('message_recipients')
-          .select('message_id, recipient_id, profiles(id, full_name, username)')
-          .in('message_id', msgIds) : { data: [] };
+        let recMap = {};
+        if (msgIds.length > 0) {
+          const { data: recData } = await supabase
+            .from('message_recipients')
+            .select('message_id, recipient_id')
+            .in('message_id', msgIds);
+          const recIds = [...new Set((recData || []).map(r => r.recipient_id))];
+          const { data: profData } = recIds.length > 0 ? await supabase
+            .from('profiles').select('id, full_name, username').in('id', recIds) : { data: [] };
+          const profMap = {};
+          (profData || []).forEach(p => { profMap[p.id] = p; });
+          (recData || []).forEach(r => {
+            if (!recMap[r.message_id]) recMap[r.message_id] = [];
+            recMap[r.message_id].push(profMap[r.recipient_id]);
+          });
+        }
+        setMessages((msgData || []).map(m => ({ ...m, recipientProfiles: recMap[m.id] || [] })));
 
-        const recMap = {};
-        (recData || []).forEach(r => {
-          if (!recMap[r.message_id]) recMap[r.message_id] = [];
-          recMap[r.message_id].push(r);
-        });
-
-        setMessages((msgData || []).map(m => ({ ...m, message_recipients: recMap[m.id] || [] })));
       } else if (view === 'drafts') {
         const { data } = await supabase
           .from('messages')
@@ -111,8 +113,7 @@ export default function MailPage({ userId, isAdmin }) {
   const openMessage = async (msg) => {
     setSelected(msg);
     setView('read');
-    // Mark as read
-    if (view === 'inbox' && !msg.is_read) {
+    if (!msg.is_read && msg.id) {
       await supabase.from('message_recipients').update({ is_read: true }).eq('id', msg.id);
       setUnreadCount(prev => Math.max(0, prev - 1));
     }
@@ -128,12 +129,13 @@ export default function MailPage({ userId, isAdmin }) {
     }).select().single();
 
     if (msg && recipients.length > 0) {
-      const recs = recipients.map(r => ({ message_id: msg.id, recipient_id: r }));
-      await supabase.from('message_recipients').insert(recs);
+      await supabase.from('message_recipients').insert(
+        recipients.map(r => ({ message_id: msg.id, recipient_id: r }))
+      );
     }
 
     setSending(false);
-    setSubject(''); setBody(''); setRecipients([]); setSelectAll(false);
+    setSubject(''); setBody(''); setRecipients([]);
     setView(isDraft ? 'drafts' : 'sent');
   };
 
@@ -141,21 +143,18 @@ export default function MailPage({ userId, isAdmin }) {
     setRecipients(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]);
   };
 
-  const toggleSelectAll = () => {
-    if (selectAll) { setRecipients([]); setSelectAll(false); }
-    else { setRecipients(profiles.map(p => p.id)); setSelectAll(true); }
-  };
-
   const deleteMessage = async (id) => {
-    if (view === 'drafts') await supabase.from('messages').delete().eq('id', id);
-    else if (view === 'inbox') await supabase.from('message_recipients').delete().eq('id', id);
-    load();
-    setView(view);
+    if (view === 'read') {
+      if (selected?.messages) await supabase.from('message_recipients').delete().eq('id', id);
+      else await supabase.from('messages').delete().eq('id', selected?.id || id);
+    }
+    setView(selected?.messages ? 'inbox' : 'sent');
     setSelected(null);
+    load();
   };
 
   const sidebarItems = [
-    { key: 'compose', icon: Plus, label: 'Compose', color: C.gold },
+    { key: 'compose', icon: Plus, label: 'Compose' },
     { key: 'inbox', icon: Inbox, label: 'Inbox', badge: unreadCount },
     { key: 'sent', icon: Send, label: 'Sent' },
     { key: 'drafts', icon: FileText, label: 'Drafts' },
@@ -165,12 +164,12 @@ export default function MailPage({ userId, isAdmin }) {
     <div className="flex gap-4 h-full min-h-[600px]">
       {/* Sidebar */}
       <div className="w-44 shrink-0 space-y-1">
-        {sidebarItems.map(({ key, icon: Icon, label, badge, color }) => (
+        {sidebarItems.map(({ key, icon: Icon, label, badge }) => (
           <button key={key} onClick={() => setView(key)}
             className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
             style={{ backgroundColor: view === key ? C.gold : C.surface, color: view === key ? '#14181F' : C.muted, border: `1px solid ${view === key ? C.gold : C.border}` }}>
             <div className="flex items-center gap-2">
-              <Icon size={14} style={{ color: view === key ? '#14181F' : (color || C.muted) }} />
+              <Icon size={14} />
               {label}
             </div>
             {badge > 0 && (
@@ -180,7 +179,7 @@ export default function MailPage({ userId, isAdmin }) {
         ))}
       </div>
 
-      {/* Main content */}
+      {/* Main */}
       <div className="flex-1 rounded-2xl overflow-hidden" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
 
         {/* Compose */}
@@ -188,38 +187,34 @@ export default function MailPage({ userId, isAdmin }) {
           <div className="p-5 space-y-4">
             <h3 className="font-bold text-base">New Message</h3>
 
-            {/* Recipients */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs" style={{ color: C.muted }}>To:</span>
-                <button onClick={toggleSelectAll} className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg"
-                  style={{ backgroundColor: selectAll ? `${C.gold}22` : C.bg, color: selectAll ? C.gold : C.muted, border: `1px solid ${C.border}` }}>
-                  <Users size={12} /> {selectAll ? 'Deselect All' : 'Select All'}
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-1.5 p-2 rounded-lg min-h-[40px]" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
+            <div className="space-y-1.5">
+              <span className="text-xs" style={{ color: C.muted }}>To:</span>
+              <select
+                multiple
+                value={recipients}
+                onChange={(e) => setRecipients(Array.from(e.target.selectedOptions, o => o.value))}
+                className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+                style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text, height: '120px' }}
+              >
                 {profiles.map(p => (
-                  <button key={p.id} onClick={() => toggleRecipient(p.id)}
-                    className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors"
-                    style={{ backgroundColor: recipients.includes(p.id) ? `${C.gold}33` : `${C.border}66`, color: recipients.includes(p.id) ? C.gold : C.muted, border: `1px solid ${recipients.includes(p.id) ? C.gold : C.border}` }}>
-                    {recipients.includes(p.id) && <Check size={10} />}
-                    {p.full_name || p.username}
-                  </button>
+                  <option key={p.id} value={p.id}
+                    style={{ padding: '4px 8px', backgroundColor: recipients.includes(p.id) ? `${C.gold}33` : 'transparent' }}>
+                    {p.full_name || p.username} {p.title ? `(${p.title})` : ''}
+                  </option>
                 ))}
-              </div>
-              {recipients.length > 0 && (
-                <p className="text-xs" style={{ color: C.muted }}>{recipients.length} recipient{recipients.length > 1 ? 's' : ''} selected</p>
-              )}
+              </select>
+              <p className="text-xs" style={{ color: C.muted }}>
+                {recipients.length === 0 ? 'Hold Ctrl/Cmd to select multiple' : `${recipients.length} selected`}
+              </p>
             </div>
 
-            <div className="space-y-2">
-              <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Subject..."
-                className="w-full rounded-lg px-3 py-2 text-sm outline-none"
-                style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text }} />
-              <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Write your message..."
-                rows={8} className="w-full rounded-lg px-3 py-2 text-sm outline-none resize-none"
-                style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text }} />
-            </div>
+            <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Subject..."
+              className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+              style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text }} />
+
+            <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Write your message..."
+              rows={8} className="w-full rounded-lg px-3 py-2 text-sm outline-none resize-none"
+              style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text }} />
 
             <div className="flex gap-2">
               <button onClick={() => sendMessage(false)}
@@ -251,32 +246,29 @@ export default function MailPage({ userId, isAdmin }) {
                 <p className="text-sm" style={{ color: C.muted }}>No messages</p>
               </div>
             ) : (
-              <div>
-                {messages.map((msg) => {
-                  const m = view === 'inbox' ? msg.messages : msg;
-                  const sender = view === 'inbox' ? msg.messages?.profiles : null;
-                  const isUnread = view === 'inbox' && !msg.is_read;
-                  const recipientNames = view === 'sent' ? (msg.message_recipients || []).map(r => r.profiles?.full_name || r.profiles?.username).filter(Boolean).join(', ') : '';
-                  return (
-                    <div key={msg.id} onClick={() => openMessage(msg)}
-                      className="flex items-start gap-3 px-4 py-3 cursor-pointer border-b transition-colors hover:opacity-80"
-                      style={{ borderColor: C.border, backgroundColor: isUnread ? `${C.gold}11` : 'transparent' }}>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2 mb-0.5">
-                          <span className={`text-sm ${isUnread ? 'font-bold' : 'font-medium'}`} style={{ color: C.text }}>
-                            {view === 'inbox' ? (sender?.full_name || sender?.username || 'Unknown') :
-                             view === 'sent' ? `To: ${recipientNames || '—'}` : 'Draft'}
-                          </span>
-                          <span className="text-xs shrink-0" style={{ color: C.muted }}>{fmtDateTime(m?.created_at)}</span>
-                        </div>
-                        <p className={`text-xs truncate ${isUnread ? 'font-semibold' : ''}`} style={{ color: isUnread ? C.text : C.muted }}>{m?.subject}</p>
-                        <p className="text-xs truncate mt-0.5" style={{ color: C.muted }}>{m?.body?.slice(0, 80)}</p>
+              messages.map((msg) => {
+                const m = view === 'inbox' ? msg.messages : msg;
+                const isUnread = view === 'inbox' && !msg.is_read;
+                const senderName = view === 'inbox' ? (m?.sender?.full_name || m?.sender?.username || '—') : 'Me';
+                const toNames = view === 'sent' ? (msg.recipientProfiles || []).map(p => p?.full_name || p?.username).filter(Boolean).join(', ') : '';
+                return (
+                  <div key={msg.id} onClick={() => openMessage(msg)}
+                    className="flex items-start gap-3 px-4 py-3 cursor-pointer border-b hover:opacity-80"
+                    style={{ borderColor: C.border, backgroundColor: isUnread ? `${C.gold}11` : 'transparent' }}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-0.5">
+                        <span className={`text-sm ${isUnread ? 'font-bold' : 'font-medium'}`} style={{ color: C.text }}>
+                          {view === 'inbox' ? `From: ${senderName}` : view === 'sent' ? `To: ${toNames || '—'}` : 'Draft'}
+                        </span>
+                        <span className="text-xs shrink-0" style={{ color: C.muted }}>{fmtDateTime(m?.created_at)}</span>
                       </div>
-                      {isUnread && <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: C.gold }} />}
+                      <p className={`text-xs truncate ${isUnread ? 'font-semibold' : ''}`} style={{ color: isUnread ? C.text : C.muted }}>{m?.subject}</p>
+                      <p className="text-xs truncate mt-0.5" style={{ color: C.muted }}>{m?.body?.slice(0, 80)}</p>
                     </div>
-                  );
-                })}
-              </div>
+                    {isUnread && <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: C.gold }} />}
+                  </div>
+                );
+              })
             )}
           </div>
         )}
@@ -284,23 +276,21 @@ export default function MailPage({ userId, isAdmin }) {
         {/* Read message */}
         {view === 'read' && selected && (() => {
           const m = selected.messages || selected;
-          const sender = selected.messages?.profiles;
+          const sender = m?.sender;
           return (
             <div className="p-5 space-y-4">
-              <button onClick={() => { setView(selected.messages ? 'inbox' : 'sent'); load(); }}
-                className="flex items-center gap-1.5 text-xs" style={{ color: C.muted }}>
-                <ChevronLeft size={14} /> Back
-              </button>
-              <div className="space-y-2">
-                <h3 className="font-bold text-base">{m?.subject}</h3>
-                <div className="flex items-center justify-between">
-                  <p className="text-xs" style={{ color: C.muted }}>
-                    From: <span style={{ color: C.text }}>{sender?.full_name || sender?.username || 'Me'}</span>
-                    {' · '}{fmtDateTime(m?.created_at)}
-                  </p>
-                  <button onClick={() => deleteMessage(selected.id)} className="text-xs" style={{ color: '#C9714F' }}>Delete</button>
-                </div>
+              <div className="flex items-center justify-between">
+                <button onClick={() => { setView(selected.messages ? 'inbox' : selected.sender_id === userId ? 'sent' : 'inbox'); load(); }}
+                  className="flex items-center gap-1.5 text-xs" style={{ color: C.muted }}>
+                  <ChevronLeft size={14} /> Back
+                </button>
+                <button onClick={() => deleteMessage(selected.id)} className="text-xs" style={{ color: '#C9714F' }}>Delete</button>
               </div>
+              <h3 className="font-bold text-base">{m?.subject}</h3>
+              <p className="text-xs" style={{ color: C.muted }}>
+                From: <span style={{ color: C.text }}>{sender?.full_name || sender?.username || 'Me'}</span>
+                {' · '}{fmtDateTime(m?.created_at)}
+              </p>
               <div className="rounded-lg p-4 text-sm whitespace-pre-wrap" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text, lineHeight: 1.7 }}>
                 {m?.body}
               </div>
