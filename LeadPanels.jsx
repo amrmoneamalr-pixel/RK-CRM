@@ -39,11 +39,14 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, mobileRo
       const cat = c.stage_category;
       const contacted = c.ever_contacted;
       const hasRotation = c.previous_owners && c.previous_owners.length > 0;
+      const isLate = c.next_follow_up && c.next_follow_up < today;
+      const isCallbackToday = c.next_follow_up === today;
+
+      if (isCallbackToday) next.callbackToday++;
+      if (isLate) { next.late++; return; } // late clients excluded from all other tabs
 
       if (cat === 'New Fresh Lead' && !contacted)  next.newFresh++;
       if (cat === 'New Fresh Lead' && contacted)   next.contactedFresh++;
-      if (c.next_follow_up === today)              next.callbackToday++;
-      if (c.next_follow_up && c.next_follow_up < today) next.late++;
       if (hasRotation)                             next.reRotation++;
       if ((cat === 'Old Fresh Lead' || cat === 'Old Campaign') && !contacted) next.oldFresh++;
       if ((cat === 'Old Fresh Lead' || cat === 'Old Campaign') && contacted)  next.contactedOldFresh++;
