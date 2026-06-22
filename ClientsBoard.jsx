@@ -433,7 +433,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   }
 
   const lastActivity = {};
-  activities.forEach((a) => { const cur = lastActivity[a.client_id]; if (!cur || a.date > cur.date) lastActivity[a.client_id] = a; });
+  activities.forEach((a) => { const cur = lastActivity[a.client_id]; if (!cur || a.created_at > cur.created_at) lastActivity[a.client_id] = a; });
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const rangeStart = totalCount === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
