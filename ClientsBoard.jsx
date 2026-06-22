@@ -3,7 +3,7 @@ import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { supabase } from './supabaseClient';
 import { C, STAGES, SOURCES, ACTIONS, LOCATIONS, LEAD_ORIGINS, COLD_RESULTS, fmtMoney, fmtDate, todayStr, stageOf, stageIdFromInput, LEAD_CATEGORY_LABELS, leadCategory, clientStatus } from './constants';
-import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight, X, Pencil, MessageSquarePlus, Loader2 } from 'lucide-react';
+import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X, Pencil, MessageSquarePlus, Loader2 } from 'lucide-react';
 import ClientModal from './ClientModal';
 import ImportModal from './ImportModal';
 import { SourceTag } from './BrandIcons';
@@ -440,11 +440,11 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
           <div className="flex items-center justify-between gap-3">
             <span className="text-xs" style={{ color: C.muted }}>{loading ? 'Loading...' : `${rangeStart}–${rangeEnd} of ${totalCount}`}</span>
             <div className="flex items-center gap-1">
-              <button onClick={() => setPage(1)} disabled={currentPage <= 1} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}><ChevronLeft size={15} /></button>
+              <button onClick={() => setPage(1)} disabled={currentPage <= 1} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} title="First"><ChevronsLeft size={15} /></button>
               <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage <= 1} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}><ChevronLeft size={16} /></button>
               <span className="text-xs font-medium px-2" style={{ color: C.muted }}>Page {currentPage} / {totalPages}</span>
               <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}><ChevronRight size={16} /></button>
-              <button onClick={() => setPage(totalPages)} disabled={currentPage >= totalPages} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}><ChevronRight size={15} /></button>
+              <button onClick={() => setPage(totalPages)} disabled={currentPage >= totalPages} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} title="Last"><ChevronsRight size={15} /></button>
             </div>
           </div>
 
@@ -542,11 +542,11 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
           <div className="flex items-center justify-between gap-3">
             <span className="text-xs" style={{ color: C.muted }}>{loading ? 'Loading...' : `${rangeStart}–${rangeEnd} of ${totalCount}`}</span>
             <div className="flex items-center gap-1">
-              <button onClick={() => setPage(1)} disabled={currentPage <= 1} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}><ChevronLeft size={15} /></button>
+              <button onClick={() => setPage(1)} disabled={currentPage <= 1} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} title="First"><ChevronsLeft size={15} /></button>
               <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage <= 1} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}><ChevronLeft size={16} /></button>
               <span className="text-xs font-medium px-2" style={{ color: C.muted }}>Page {currentPage} / {totalPages}</span>
               <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}><ChevronRight size={16} /></button>
-              <button onClick={() => setPage(totalPages)} disabled={currentPage >= totalPages} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}><ChevronRight size={15} /></button>
+              <button onClick={() => setPage(totalPages)} disabled={currentPage >= totalPages} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} title="Last"><ChevronsRight size={15} /></button>
             </div>
           </div>
         </>
