@@ -605,7 +605,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                       <td className="py-2.5 px-3 whitespace-nowrap">{c.project || '—'}</td>
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.location || '—'}</td>
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.call_result || '—'}</td>
-                      <td className="py-2.5 px-3 max-w-[200px] truncate" style={{ color: C.muted }}>{last?.notes ? last.notes.split('\n').find(l => !l.startsWith('Action: ') && l.trim()) || '—' : '—'}</td>
+                      <td className="py-2.5 px-3 max-w-[200px] truncate" style={{ color: C.muted }}>{last?.notes ? last.notes.split('\n').find(l => !l.startsWith('Action: ') && !l.startsWith('📅') && !l.startsWith('✅') && l.trim()) || '—' : '—'}</td>
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{last ? fmtDate(last.date) : '—'}</td>
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: c.next_follow_up && c.next_follow_up < todayStr() ? '#C9714F' : C.muted }}>{c.next_follow_up ? fmtDate(c.next_follow_up) : '—'}</td>
                       <td className="py-2.5 px-3">{c.potential ? <Pill color={C.gold}>Potential</Pill> : <span style={{ color: C.muted }}>—</span>}</td>
