@@ -14,25 +14,58 @@ import { C } from './constants';
 
 const VALID_TABS = ['dashboard', 'clients', 'developers', 'orgchart', 'reports', 'activity', 'team', 'settings'];
 
-const tabFromHash = () => {
-  const h = window.location.hash.replace('#', '');
-  return VALID_TABS.includes(h) ? h : 'dashboard';
+const parseHash = () => {
+  const raw = window.location.hash.replace('#', '');
+  const [tabPart, queryPart] = raw.split('?');
+  const tab = VALID_TABS.includes(tabPart) ? tabPart : 'dashboard';
+  const params = new URLSearchParams(queryPart || '');
+  const page = parseInt(params.get('page')) || 1;
+  const clientId = params.get('client') || null;
+  return { tab, page, clientId };
 };
 
 export default function App() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTabState] = useState(tabFromHash);
+  const [tab, setTabState] = useState(() => parseHash().tab);
   const [leadFilter, setLeadFilter] = useState(null);
+  const [clientsPage, setClientsPage] = useState(() => parseHash().page);
+  const [openClientId, setOpenClientId] = useState(() => parseHash().clientId);
+
+  const buildClientsHash = (page, clientId) => {
+    const params = new URLSearchParams();
+    if (page > 1) params.set('page', page);
+    if (clientId) params.set('client', clientId);
+    const qs = params.toString();
+    return qs ? `clients?${qs}` : 'clients';
+  };
 
   const setTab = (t) => {
     setTabState(t);
-    if (window.location.hash !== `#${t}`) window.location.hash = t;
+    const hash = t === 'clients' ? buildClientsHash(clientsPage, openClientId) : t;
+    if (window.location.hash !== `#${hash}`) window.location.hash = hash;
+  };
+
+  const setClientsPageAndHash = (p) => {
+    setClientsPage(p);
+    window.location.hash = buildClientsHash(p, openClientId);
+  };
+
+  const setOpenClientAndHash = (clientId) => {
+    setOpenClientId(clientId);
+    window.location.hash = buildClientsHash(clientsPage, clientId);
   };
 
   useEffect(() => {
-    const onHashChange = () => setTabState(tabFromHash());
+    const onHashChange = () => {
+      const { tab: newTab, page: newPage, clientId: newClientId } = parseHash();
+      setTabState(newTab);
+      if (newTab === 'clients') {
+        setClientsPage(newPage);
+        setOpenClientId(newClientId);
+      }
+    };
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
@@ -44,7 +77,10 @@ export default function App() {
 
   const selectLeadCategory = (category) => {
     setLeadFilter(category === 'all' ? null : category);
-    setTab('clients');
+    setClientsPage(1);
+    setOpenClientId(null);
+    setTabState('clients');
+    window.location.hash = 'clients';
   };
 
   useEffect(() => {
@@ -64,7 +100,6 @@ export default function App() {
     (async () => {
       setLoading(true);
       let { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-      // profile row is created by a DB trigger right after signup; retry once if it's not ready yet
       if (!data) {
         await new Promise((r) => setTimeout(r, 1200));
         ({ data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single());
@@ -79,7 +114,6 @@ export default function App() {
   useEffect(() => {
     if (!profile) return;
     let interval = null;
-
     (async () => {
       try {
         const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
@@ -110,10 +144,7 @@ export default function App() {
         console.warn('user_sessions not available:', e);
       }
     })();
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return () => { if (interval) clearInterval(interval); };
   }, [profile?.id]);
 
   const handleSignOut = async () => {
@@ -140,7 +171,20 @@ export default function App() {
   return (
     <Layout profile={profile} tab={tab} setTab={handleSetTab} onSelectCategory={selectLeadCategory} onSignOut={handleSignOut}>
       {tab === 'dashboard' && <Dashboard userId={session.user.id} />}
-      {tab === 'clients' && <ClientsBoard userId={session.user.id} isAdmin={isAdmin} hasTeamAccess={hasTeamAccess} leadFilter={leadFilter} onClearLeadFilter={() => setLeadFilter(null)} />}
+      {tab === 'clients' && (
+        <ClientsBoard
+          userId={session.user.id}
+          isAdmin={isAdmin}
+          hasTeamAccess={hasTeamAccess}
+          leadFilter={leadFilter}
+          onClearLeadFilter={() => setLeadFilter(null)}
+          initialPage={clientsPage}
+          onPageChange={setClientsPageAndHash}
+          initialClientId={openClientId}
+          onClientOpen={setOpenClientAndHash}
+          onClientClose={() => setOpenClientAndHash(null)}
+        />
+      )}
       {tab === 'developers' && <DevelopersBoard isAdmin={isAdmin} />}
       {tab === 'orgchart' && <OrgChart isAdmin={isAdmin} />}
       {tab === 'reports' && hasTeamAccess && <Reports />}

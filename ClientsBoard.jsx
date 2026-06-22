@@ -113,7 +113,7 @@ const selectClass = 'rounded-lg px-2.5 py-2 text-xs outline-none';
 const PAGE_SIZE = 30;
 const EXPORT_BATCH = 1000;
 
-export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilter, onClearLeadFilter }) {
+export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilter, onClearLeadFilter, initialPage = 1, onPageChange, initialClientId = null, onClientOpen, onClientClose }) {
   const [clients, setClients] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [activities, setActivities] = useState([]);
@@ -132,7 +132,13 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   const [editTarget, setEditTarget] = useState(null);
   const [showImport, setShowImport] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [page, setPage] = useState(1);
+  const [page, setPageState] = useState(initialPage);
+
+  const setPage = (p) => {
+    const resolved = typeof p === 'function' ? p(page) : p;
+    setPageState(resolved);
+    if (onPageChange) onPageChange(resolved);
+  };
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkReassignTo, setBulkReassignTo] = useState('');
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -291,7 +297,14 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [userId, page, search, stageFilter, leadFilter, colFilters]);
+  // Auto-open client from URL on mount
+  useEffect(() => {
+    if (!initialClientId) return;
+    (async () => {
+      const { data } = await supabase.from('clients').select('*').eq('id', initialClientId).single();
+      if (data) setSelected(data);
+    })();
+  }, []);
 
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -510,7 +523,12 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                   const stageColor = stageCatColors[rawCat] || cat.color;
                   const last = lastActivity[c.id];
                   return (
-                    <tr key={c.id} onClick={() => { if (isAdmin || hasTeamAccess || c.owner_id === userId) setSelected(c); }}
+                    <tr key={c.id} onClick={() => {
+                      if (isAdmin || hasTeamAccess || c.owner_id === userId) {
+                        setSelected(c);
+                        if (onClientOpen) onClientOpen(c.id);
+                      }
+                    }}
                       className="cursor-pointer transition-colors" style={{ borderTop: `1px solid ${C.border}` }}>
                       <td className="py-2.5 px-3" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={selectedIds.has(c.id)} onChange={() => toggleSelect(c.id)} /></td>
                       <td className="py-2.5 px-3" onClick={(e) => { e.stopPropagation(); if (isAdmin) setEditTarget(c); else if (c.owner_id === userId) setActionTarget(c); }}>
@@ -557,7 +575,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
       </button>
 
       {showAdd && <ClientModal mode="add" userId={userId} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setShowAdd(false)} onSaved={load} />}
-      {selected && <ClientModal mode="detail" userId={userId} client={selected} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setSelected(null)} onSaved={load} />}
+      {selected && <ClientModal mode="detail" userId={userId} client={selected} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => { setSelected(null); if (onClientClose) onClientClose(); }} onSaved={load} />}
       {editTarget && <ClientModal mode="edit" userId={userId} client={editTarget} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setEditTarget(null)} onSaved={load} />}
       {showImport && <ImportModal userId={userId} onClose={() => setShowImport(false)} onDone={() => { setShowImport(false); load(); }} />}
       {actionTarget && (() => {
