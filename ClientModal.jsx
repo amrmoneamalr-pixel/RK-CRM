@@ -660,7 +660,15 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
             <Field label="Next Follow-up Date & Time">
               <div className="flex gap-2">
                 <input type="date" value={nextFollowUp} min={todayStr()} max={maxDate} onChange={(e) => setNextFollowUp(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface, flex: 2 }} />
-                <input type="time" value={followUpTime} onChange={(e) => setFollowUpTime(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface, flex: 1 }} />
+                <select value={followUpTime} onChange={(e) => setFollowUpTime(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface, flex: 1, color: followUpTime ? C.text : C.muted }}>
+                  {Array.from({ length: 24 }, (_, h) =>
+                    ['00', '30'].map(m => {
+                      const val = `${String(h).padStart(2,'0')}:${m}`;
+                      const label = h === 0 ? `12:${m} AM` : h < 12 ? `${h}:${m} AM` : h === 12 ? `12:${m} PM` : `${h-12}:${m} PM`;
+                      return <option key={val} value={val}>{label}</option>;
+                    })
+                  )}
+                </select>
               </div>
             </Field>
           )}
