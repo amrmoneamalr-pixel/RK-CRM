@@ -342,23 +342,21 @@ export default function MailPage({ userId }) {
               const hasAttachments = (m?.attachments || []).length > 0;
               return (
                 <div key={msg.id} onClick={() => openMessage(msg)}
-                  className="flex items-start gap-3 px-4 py-3 cursor-pointer border-b hover:opacity-80"
+                  className="flex items-start justify-between gap-3 px-4 py-3 cursor-pointer border-b hover:opacity-80"
                   style={{ borderColor: C.border, backgroundColor: isUnread ? `${C.gold}11` : 'transparent' }}>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className={`text-sm ${isUnread ? 'font-bold' : 'font-medium'}`} style={{ color: C.text }}>
-                        {view === 'inbox' ? `From: ${senderName}` : view === 'sent' ? `To: ${toNames || '—'}` : 'Draft'}
-                      </span>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {hasAttachments && <Paperclip size={12} style={{ color: C.muted }} />}
-                        <span className="text-xs" style={{ color: C.muted }}>{fmtDateTime(m?.created_at)}</span>
-                      </div>
-                    </div>
-                    <p className={`text-xs mt-0.5 truncate ${isUnread ? 'font-semibold' : ''}`} style={{ color: isUnread ? C.text : C.muted }}>
-                      {m?.subject}
+                  <div className="flex-1 min-w-0 space-y-0.5">
+                    <p className={`text-sm ${isUnread ? 'font-bold' : 'font-medium'}`} style={{ color: C.text }}>
+                      {view === 'inbox' ? `From: ${senderName}` : view === 'sent' ? `To: ${toNames || '—'}` : 'Draft'}
+                    </p>
+                    <p className={`text-xs truncate ${isUnread ? 'font-semibold' : ''}`} style={{ color: C.muted }}>
+                      Subject: {m?.subject || '(no subject)'}
                     </p>
                   </div>
-                  {isUnread && <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: C.gold }} />}
+                  <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+                    {hasAttachments && <Paperclip size={12} style={{ color: C.muted }} />}
+                    <span className="text-xs" style={{ color: C.muted }}>{fmtDateTime(m?.created_at)}</span>
+                    {isUnread && <div className="w-2 h-2 rounded-full ml-1" style={{ backgroundColor: C.gold }} />}
+                  </div>
                 </div>
               );
             })}
