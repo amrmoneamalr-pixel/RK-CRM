@@ -484,6 +484,9 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
           )}
           {isAdmin && (
             <>
+              <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: C.gold, color: '#14181F' }}>
+                <Plus size={13} /> New Client
+              </button>
               <button onClick={exportCsv} disabled={exporting} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0 disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
                 {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} {exporting ? 'Exporting...' : 'Export'}
               </button>
@@ -644,10 +647,6 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
           </div>
         </>
       )}
-
-      <button onClick={() => setShowAdd(true)} className="fixed bottom-5 right-5 z-20 flex items-center gap-2 px-4 py-3 rounded-full font-bold text-sm shadow-lg" style={{ backgroundColor: C.gold, color: '#14181F' }}>
-        <Plus size={18} /> New Client
-      </button>
 
       {showAdd && <ClientModal mode="add" userId={userId} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setShowAdd(false)} onSaved={load} />}
       {selected && <ClientModal mode="detail" userId={userId} client={selected} isAdmin={hasTeamAccess} profilesList={profilesList} onClose={() => setSelected(null)} onSaved={load} />}
