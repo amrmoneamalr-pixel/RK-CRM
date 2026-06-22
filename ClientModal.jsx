@@ -450,7 +450,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
   const hasAction = callResult.length > 0 && leadStage.length > 0;
   const meetingNeedsComment = (plannedMeeting || actualMeeting) && !hasComment;
   const NO_FOLLOWUP_REQUIRED = ['Not Interested', 'Not Qualified'];
-  const followupRequired = !NO_FOLLOWUP_REQUIRED.includes(callResult);
+  const followupRequired = !(leadStage === 'notInterested' || NO_FOLLOWUP_REQUIRED.includes(callResult));
   const canSave = hasAction && hasComment && (hasDate || !followupRequired) && !saving;
 
   const handleSave = async () => {
