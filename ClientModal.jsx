@@ -411,6 +411,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
   const [previousOwners, setPreviousOwners] = useState(client.previous_owners || []);
   const [rotated, setRotated] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const [leadStage, setLeadStage] = useState('');
   const [plannedMeeting, setPlannedMeeting] = useState(false);
   const [actualMeeting, setActualMeeting] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -446,7 +447,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
 
   const hasComment = commentText.trim().length > 0;
   const hasDate = nextFollowUp.length > 0;
-  const hasAction = callResult.length > 0;
+  const hasAction = callResult.length > 0 && leadStage.length > 0;
   const meetingNeedsComment = (plannedMeeting || actualMeeting) && !hasComment;
   const NO_FOLLOWUP_REQUIRED = ['Not Interested', 'Not Qualified'];
   const followupRequired = !NO_FOLLOWUP_REQUIRED.includes(callResult);
@@ -488,6 +489,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
     setSaving(false);
     setCallResult(''); setSavedCallResult(''); setCommentText('');
     setNextFollowUp(''); setPlannedMeeting(false); setActualMeeting(false);
+    setLeadStage('');
     onSaved(); onClose();
   };
 
@@ -580,12 +582,43 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
 
         {canComment ? (
           <div ref={activityRef} className="rounded-lg p-3 space-y-3" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
-            <Field label="Action *">
-              <select value={callResult} onChange={(e) => setCallResult(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }}>
-                <option value="">— Select —</option>
-                {ACTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+            
+            {/* Stage selector */}
+            <Field label="Stage *">
+              <select value={leadStage} onChange={(e) => { setLeadStage(e.target.value); setCallResult(''); }} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }}>
+                <option value="">— Select Stage —</option>
+                <option value="interested">Interested</option>
+                <option value="notInterested">Not Interested</option>
               </select>
             </Field>
+
+            {/* Actions based on stage */}
+            {leadStage === 'interested' && (
+              <Field label="Action *">
+                <select value={callResult} onChange={(e) => setCallResult(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }}>
+                  <option value="">— Select —</option>
+                  <option value="Contacted">Contacted</option>
+                  <option value="No Answer">No Answer</option>
+                  <option value="Send WhatsApp">Send WhatsApp</option>
+                  <option value="Interest in Resale">Interest in Resale</option>
+                  <option value="Interest in Separate">Interest in Separate</option>
+                </select>
+              </Field>
+            )}
+
+            {leadStage === 'notInterested' && (
+              <Field label="Action *">
+                <select value={callResult} onChange={(e) => setCallResult(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }}>
+                  <option value="">— Select —</option>
+                  <option value="Not Interested">Not Interested in Real Estate</option>
+                  <option value="Not Qualified">Not Qualified</option>
+                  <option value="No Answer - Multiple Times">No Answer - Multiple Times</option>
+                  <option value="Interest in Resale">Interest in Resale</option>
+                  <option value="Interest in Separate">Interest in Separate</option>
+                </select>
+              </Field>
+            )}
+
             <textarea value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Write a comment about this lead..." className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }} rows={2} />
             <div className="space-y-2">
               <label className="flex items-center gap-2.5 text-sm cursor-pointer">
