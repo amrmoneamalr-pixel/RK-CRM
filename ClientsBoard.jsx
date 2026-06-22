@@ -113,7 +113,8 @@ const selectClass = 'rounded-lg px-2.5 py-2 text-xs outline-none';
 const PAGE_SIZE = 30;
 const EXPORT_BATCH = 1000;
 
-export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilter, onClearLeadFilter, initialPage = 1, onPageChange }) {
+
+export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilter, onClearLeadFilter }) {
   const [clients, setClients] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [activities, setActivities] = useState([]);
@@ -132,15 +133,12 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   const [editTarget, setEditTarget] = useState(null);
   const [showImport, setShowImport] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [page, setPage] = useState(initialPage);
-
-  useEffect(() => {
-    if (onPageChange) onPageChange(page);
-  }, [page]);
+  const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkReassignTo, setBulkReassignTo] = useState('');
   const [bulkBusy, setBulkBusy] = useState(false);
   const [actionTarget, setActionTarget] = useState(null);
+
 
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput.trim()), 350);
@@ -214,7 +212,8 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     if (colFilters.followup_to)   q = q.lte('next_follow_up', colFilters.followup_to);
     if (colFilters.countries && colFilters.countries.length > 0) {
       const PREFIXES = {
-        'Egypt':['201'],'Saudi Arabia':['966'],'UAE':['971'],'Kuwait':['965'],
+        'Egypt':['201'],
+        'Saudi Arabia':['966'],'UAE':['971'],'Kuwait':['965'],
         'Qatar':['974'],'Bahrain':['973'],'Oman':['968'],'Jordan':['962'],
         'Lebanon':['961'],'Iraq':['964'],'Syria':['963'],'Yemen':['967'],
         'Palestine':['970'],'Libya':['218'],'Tunisia':['216'],'Algeria':['213'],
@@ -239,45 +238,18 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
         if (allPfx.length > 0) q = q.or(allPfx.map(p => `phone.ilike.${p}%`).join(','));
       }
     }
-
-    // ✅ UPDATED leadFilter logic
     if (leadFilter) {
       const today = todayStr();
+      const sevenDaysAgoIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       switch (leadFilter) {
-        case 'newFresh':
-          q = q.eq('stage_category', 'New Fresh Lead').eq('ever_contacted', false);
-          break;
-        case 'contactedFresh':
-          q = q.eq('stage_category', 'New Fresh Lead').eq('ever_contacted', true);
-          break;
-        case 'callbackToday':
-          q = q.eq('next_follow_up', today);
-          break;
-        case 'late':
-          q = q.not('next_follow_up', 'is', null).lt('next_follow_up', today);
-          break;
-        case 'reRotation':
-          q = q.not('previous_owners', 'is', null).neq('previous_owners', '[]');
-          break;
-        case 'oldFresh':
-          q = q.in('stage_category', ['Old Fresh Lead', 'Old Campaign']).eq('ever_contacted', false);
-          break;
-        case 'contactedOldFresh':
-          q = q.in('stage_category', ['Old Fresh Lead', 'Old Campaign']).eq('ever_contacted', true);
-          break;
-        case 'cold':
-          q = q.eq('stage_category', 'Cold Calls').eq('ever_contacted', false);
-          break;
-        case 'contactedCold':
-          q = q.eq('stage_category', 'Cold Calls').eq('ever_contacted', true);
-          break;
-        case 'potential':
-          q = q.eq('potential', true);
-          break;
+        case 'fresh':         q = q.eq('stage','new').eq('ever_contacted',false).gte('created_at',sevenDaysAgoIso); break;
+        case 'oldFresh':      q = q.eq('stage','new').eq('ever_contacted',false).lt('created_at',sevenDaysAgoIso); break;
+        case 'callbackToday': q = q.eq('next_follow_up', today); break;
+        case 'late':          q = q.not('next_follow_up','is',null).lt('next_follow_up', today); break;
+        case 'cold':          q = q.in('call_result', COLD_RESULTS); break;
         default: break;
       }
     }
-
     return q;
   };
 
@@ -294,6 +266,9 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     } else { setActivities([]); }
     setLoading(false);
   };
+
+
+  useEffect(() => { load(); }, [userId, page, search, stageFilter, leadFilter, colFilters]);
 
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -335,6 +310,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     const a = document.createElement('a'); a.href = url; a.download = `rk-crm-clients-${todayStr()}.csv`; a.click();
     URL.revokeObjectURL(url); setExporting(false);
   };
+
 
   const reloadActivities = async () => {
     if (clients.length === 0) return;
@@ -442,11 +418,11 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
           <div className="flex items-center justify-between gap-3">
             <span className="text-xs" style={{ color: C.muted }}>{loading ? 'Loading...' : `${rangeStart}–${rangeEnd} of ${totalCount}`}</span>
             <div className="flex items-center gap-1">
-              <button onClick={() => setPage(1)} disabled={currentPage <= 1} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} title="First"><ChevronsLeft size={15} /></button>
+              <button onClick={() => setPage(1)} disabled={currentPage <= 1} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} title="First page"><ChevronsLeft size={15} /></button>
               <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage <= 1} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}><ChevronLeft size={16} /></button>
               <span className="text-xs font-medium px-2" style={{ color: C.muted }}>Page {currentPage} / {totalPages}</span>
               <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}><ChevronRight size={16} /></button>
-              <button onClick={() => setPage(totalPages)} disabled={currentPage >= totalPages} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} title="Last"><ChevronsRight size={15} /></button>
+              <button onClick={() => setPage(totalPages)} disabled={currentPage >= totalPages} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} title="Last page"><ChevronsRight size={15} /></button>
             </div>
           </div>
 
@@ -544,11 +520,11 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
           <div className="flex items-center justify-between gap-3">
             <span className="text-xs" style={{ color: C.muted }}>{loading ? 'Loading...' : `${rangeStart}–${rangeEnd} of ${totalCount}`}</span>
             <div className="flex items-center gap-1">
-              <button onClick={() => setPage(1)} disabled={currentPage <= 1} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} title="First"><ChevronsLeft size={15} /></button>
+              <button onClick={() => setPage(1)} disabled={currentPage <= 1} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} title="First page"><ChevronsLeft size={15} /></button>
               <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage <= 1} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}><ChevronLeft size={16} /></button>
               <span className="text-xs font-medium px-2" style={{ color: C.muted }}>Page {currentPage} / {totalPages}</span>
               <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}><ChevronRight size={16} /></button>
-              <button onClick={() => setPage(totalPages)} disabled={currentPage >= totalPages} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} title="Last"><ChevronsRight size={15} /></button>
+              <button onClick={() => setPage(totalPages)} disabled={currentPage >= totalPages} className="flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-40" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} title="Last page"><ChevronsRight size={15} /></button>
             </div>
           </div>
         </>
