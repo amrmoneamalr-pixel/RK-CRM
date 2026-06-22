@@ -38,7 +38,7 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, mobileRo
     clients.forEach((c) => {
       const cat = c.stage_category;
       const contacted = c.ever_contacted;
-      const hasRotation = c.previous_owners && c.previous_owners.length > 0;
+      const hasRotation = c.previous_owners && Array.isArray(c.previous_owners) && c.previous_owners.length > 0;
       const isLate = c.next_follow_up && c.next_follow_up < today;
       const isCallbackToday = c.next_follow_up === today;
 
