@@ -272,6 +272,24 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     setLoading(true);
     const from = (page - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
+
+    if (leadFilter === 'reRotation') {
+      const { data: allData } = await supabase.rpc('get_rerotation_clients', {
+        p_user_id: userId,
+        p_is_admin: isAdmin || hasTeamAccess,
+      });
+      const all = allData || [];
+      setTotalCount(all.length);
+      const paged = all.slice(from, to + 1);
+      setClients(paged);
+      if (paged.length > 0) {
+        const { data: a } = await supabase.from('activities').select('*').in('client_id', paged.map((x) => x.id)).order('date', { ascending: false });
+        setActivities(a || []);
+      } else { setActivities([]); }
+      setLoading(false);
+      return;
+    }
+
     const { data: c, count } = await buildQuery().order('last_contacted_at', { ascending: true, nullsFirst: true }).range(from, to);
     setClients(c || []);
     setTotalCount(count || 0);
