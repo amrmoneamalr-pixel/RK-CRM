@@ -15,7 +15,6 @@ const stageCategoryToStage = (cat) => {
 
 const extractComment = (notes) => {
   if (!notes) return '';
-  // Remove leading 'Action: X\n' line if present, return the rest
   const lines = notes.split('\n').filter(l => !l.startsWith('Action: ') && !l.startsWith('\u{1F4C5}') && !l.startsWith('\u2705'));
   return lines.join('\n').trim();
 };
@@ -59,7 +58,6 @@ function Modal({ title, children, onClose }) {
   );
 }
 
-// Marketer names = profiles whose title is 'marketing'
 function useMarketerNames(profilesList) {
   const fromList = (profilesList || [])
     .filter((p) => p.title === 'marketing' && !p.is_pool)
@@ -82,7 +80,6 @@ export default function ClientModal({ mode, userId, client, isAdmin, profilesLis
   return <DetailView userId={userId} client={client} isAdmin={isAdmin} profilesList={profilesList} autoFocusActivity={autoFocusActivity} onClose={onClose} onSaved={onSaved} />;
 }
 
-// ---- Origin sub-form shared by Add + Edit ----
 function OriginFields({ form, setForm, marketerNames }) {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   return (
@@ -118,18 +115,8 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
   const [developers, setDevelopers] = useState([]);
   const [projectOptions, setProjectOptions] = useState([]);
   const [form, setForm] = useState({
-    name: '',
-    phone: '',
-    secondary_phone: '',
-    developer: '',
-    project: '',
-    source: '',
-    stage_category: '',
-    lead_origin: '',
-    origin_name: '',
-    location: '',
-    owner_id: '',
-    potential: false,
+    name: '', phone: '', secondary_phone: '', developer: '', project: '',
+    source: '', stage_category: '', lead_origin: '', origin_name: '', location: '', owner_id: '', potential: false,
   });
   const [saving, setSaving] = useState(false);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -155,39 +142,24 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
     setSaving(true);
     const { error } = await supabase.from('clients').insert({
       owner_id: form.owner_id || userId,
-      name: form.name,
-      phone: form.phone || null,
-      secondary_phone: form.secondary_phone || null,
-      developer: form.developer || null,
-      project: form.project || null,
-      source: form.source || null,
-      stage_category: form.stage_category || null,
-      stage: stageCategoryToStage(form.stage_category),
+      name: form.name, phone: form.phone || null, secondary_phone: form.secondary_phone || null,
+      developer: form.developer || null, project: form.project || null, source: form.source || null,
+      stage_category: form.stage_category || null, stage: stageCategoryToStage(form.stage_category),
       lead_origin: form.lead_origin || null,
       origin_name: form.lead_origin === 'Marketing' || form.lead_origin === 'Top Management' ? (form.origin_name || null) : null,
-      location: form.location || null,
-      potential: form.potential,
+      location: form.location || null, potential: form.potential,
     });
     setSaving(false);
     if (error) { alert('Error: ' + error.message); return; }
-    onSaved();
-    onClose();
+    onSaved(); onClose();
   };
-
-  const required = form.name.trim().length > 0;
 
   return (
     <Modal title="New Lead" onClose={onClose}>
       <div className="space-y-3">
-        <Field label="Full Name *">
-          <input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} placeholder="Required" />
-        </Field>
-        <Field label="Mobile Number *">
-          <input value={form.phone} onChange={set('phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
-        </Field>
-        <Field label="Secondary Number">
-          <input value={form.secondary_phone} onChange={set('secondary_phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
-        </Field>
+        <Field label="Full Name *"><input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} placeholder="Required" /></Field>
+        <Field label="Mobile Number *"><input value={form.phone} onChange={set('phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" /></Field>
+        <Field label="Secondary Number"><input value={form.secondary_phone} onChange={set('secondary_phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" /></Field>
         <Field label="Developer *">
           <select value={form.developer} onChange={(e) => setForm((f) => ({ ...f, developer: e.target.value, project: '' }))} className={inputClass} style={inputStyle}>
             <option value="">— Select Developer —</option>
@@ -195,15 +167,15 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
           </select>
         </Field>
         <Field label="Project Name *">
-          <select value={form.project} onChange={async (e) => { 
-              const name = e.target.value; 
-              const proj = projectOptions.find((p) => p.name === name); 
-              if (proj && !proj.location) {
-                const { data } = await supabase.from('developer_projects').select('location').eq('id', proj.id).single();
-                proj.location = data?.location || null;
-              }
-              setForm((f) => ({ ...f, project: name, location: proj?.location || null })); 
-            }} className={inputClass} style={inputStyle} disabled={!form.developer}>
+          <select value={form.project} onChange={async (e) => {
+            const name = e.target.value;
+            const proj = projectOptions.find((p) => p.name === name);
+            if (proj && !proj.location) {
+              const { data } = await supabase.from('developer_projects').select('location').eq('id', proj.id).single();
+              proj.location = data?.location || null;
+            }
+            setForm((f) => ({ ...f, project: name, location: proj?.location || null }));
+          }} className={inputClass} style={inputStyle} disabled={!form.developer}>
             <option value="">— Select Project —</option>
             {projectOptions.map((p) => <option key={p.id} value={p.name}>{p.name}{p.location ? ` — ${p.location}` : ''}</option>)}
           </select>
@@ -259,43 +231,28 @@ function AddForm({ userId, isAdmin, profilesList, onClose, onSaved }) {
           <span style={{ color: C.muted }}>Mark as high-potential lead</span>
         </label>
       </div>
-      <button
-        disabled={!required || saving}
-        onClick={save}
-        className="w-full mt-5 py-2.5 rounded-lg font-bold text-sm disabled:opacity-40"
-        style={{ backgroundColor: C.gold, color: '#14181F' }}
-      >
+      <button disabled={!form.name.trim() || saving} onClick={save} className="w-full mt-5 py-2.5 rounded-lg font-bold text-sm disabled:opacity-40" style={{ backgroundColor: C.gold, color: '#14181F' }}>
         {saving ? '...' : 'Save Lead'}
       </button>
     </Modal>
   );
 }
 
-
-// ---- Admin-only full EDIT form (the pencil button) ----
 function EditForm({ userId, client, profilesList, onClose, onSaved }) {
   const marketerNames = useMarketerNames(profilesList);
   const [developers, setDevelopers] = useState([]);
   const [projectOptions, setProjectOptions] = useState([]);
   const [form, setForm] = useState({
-    name: client.name || '',
-    phone: client.phone || '',
-    developer: client.developer || '',
-    project: client.project || '',
-    source: client.source || '',
-    stage_category: client.stage_category || '',
-    lead_origin: client.lead_origin || '',
-    origin_name: client.origin_name || '',
-    location: client.location || '',
-    owner_id: client.owner_id,
-    potential: client.potential || false,
+    name: client.name || '', phone: client.phone || '', developer: client.developer || '',
+    project: client.project || '', source: client.source || '', stage_category: client.stage_category || '',
+    lead_origin: client.lead_origin || '', origin_name: client.origin_name || '',
+    location: client.location || '', owner_id: client.owner_id, potential: client.potential || false,
     secondary_phone: client.secondary_phone || '',
   });
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  // Load developers list
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from('developers').select('id, name').order('name');
@@ -303,7 +260,6 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
     })();
   }, []);
 
-  // Load projects when developer changes
   useEffect(() => {
     if (!form.developer) { setProjectOptions([]); return; }
     (async () => {
@@ -318,67 +274,48 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
     setSaving(true);
     const ownerChanged = form.owner_id !== client.owner_id;
     const patch = {
-      name: form.name,
-      phone: form.phone || null,
-      secondary_phone: form.secondary_phone || null,
-      developer: form.developer || null,
-      project: form.project || null,
-      source: form.source || null,
-      stage_category: form.stage_category || null,
-      stage: stageCategoryToStage(form.stage_category),
+      name: form.name, phone: form.phone || null, secondary_phone: form.secondary_phone || null,
+      developer: form.developer || null, project: form.project || null, source: form.source || null,
+      stage_category: form.stage_category || null, stage: stageCategoryToStage(form.stage_category),
       lead_origin: form.lead_origin || null,
       origin_name: form.lead_origin === 'Marketing' || form.lead_origin === 'Top Management' ? (form.origin_name || null) : null,
-      location: form.location || null,
-      potential: form.potential,
-      owner_id: form.owner_id,
+      location: form.location || null, potential: form.potential, owner_id: form.owner_id,
     };
     if (ownerChanged) {
       patch.previous_owners = [...(client.previous_owners || []), client.owner_id];
-      patch.no_answer_count = 0;
-      patch.call_result = null;
+      patch.no_answer_count = 0; patch.call_result = null;
     }
     await supabase.from('clients').update(patch).eq('id', client.id);
-    setSaving(false);
-    onSaved();
-    onClose();
+    setSaving(false); onSaved(); onClose();
   };
 
   const remove = async () => {
     await supabase.from('clients').delete().eq('id', client.id);
-    onSaved();
-    onClose();
+    onSaved(); onClose();
   };
-
-  const required = form.name.trim().length > 0;
 
   return (
     <Modal title="Edit Lead" onClose={onClose}>
       <div className="space-y-3">
-        <Field label="Full Name *">
-          <input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} placeholder="Required" />
-        </Field>
-        <Field label="Mobile Number *">
-          <input value={form.phone} onChange={set('phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
-        </Field>
-        <Field label="Secondary Number">
-          <input value={form.secondary_phone} onChange={set('secondary_phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" />
-        </Field>
+        <Field label="Full Name *"><input value={form.name} onChange={set('name')} className={inputClass} style={inputStyle} placeholder="Required" /></Field>
+        <Field label="Mobile Number *"><input value={form.phone} onChange={set('phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" /></Field>
+        <Field label="Secondary Number"><input value={form.secondary_phone} onChange={set('secondary_phone')} className={inputClass} style={inputStyle} placeholder="01xxxxxxxxx" /></Field>
         <Field label="Developer *">
-          <select value={form.developer} onChange={(e) => { set('developer')(e); setForm((f) => ({ ...f, developer: e.target.value, project: '' })); }} className={inputClass} style={inputStyle}>
+          <select value={form.developer} onChange={(e) => { setForm((f) => ({ ...f, developer: e.target.value, project: '' })); }} className={inputClass} style={inputStyle}>
             <option value="">— Select Developer —</option>
             {developers.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
           </select>
         </Field>
         <Field label="Project Name *">
-          <select value={form.project} onChange={async (e) => { 
-              const name = e.target.value; 
-              const proj = projectOptions.find((p) => p.name === name); 
-              if (proj && !proj.location) {
-                const { data } = await supabase.from('developer_projects').select('location').eq('id', proj.id).single();
-                proj.location = data?.location || null;
-              }
-              setForm((f) => ({ ...f, project: name, location: proj?.location || null })); 
-            }} className={inputClass} style={inputStyle} disabled={!form.developer}>
+          <select value={form.project} onChange={async (e) => {
+            const name = e.target.value;
+            const proj = projectOptions.find((p) => p.name === name);
+            if (proj && !proj.location) {
+              const { data } = await supabase.from('developer_projects').select('location').eq('id', proj.id).single();
+              proj.location = data?.location || null;
+            }
+            setForm((f) => ({ ...f, project: name, location: proj?.location || null }));
+          }} className={inputClass} style={inputStyle} disabled={!form.developer}>
             <option value="">— Select Project —</option>
             {projectOptions.map((p) => <option key={p.id} value={p.name}>{p.name}{p.location ? ` — ${p.location}` : ''}</option>)}
           </select>
@@ -399,7 +336,7 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
           </select>
         </Field>
         <Field label="Lead Origin">
-          <select value={form.lead_origin || ''} onChange={(e) => { set('lead_origin')(e); setForm((f) => ({ ...f, lead_origin: e.target.value, origin_name: '' })); }} className={inputClass} style={inputStyle}>
+          <select value={form.lead_origin || ''} onChange={(e) => setForm((f) => ({ ...f, lead_origin: e.target.value, origin_name: '' }))} className={inputClass} style={inputStyle}>
             <option value="">—</option>
             {LEAD_ORIGINS.map((o) => <option key={o} value={o}>{o}</option>)}
           </select>
@@ -434,16 +371,9 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
           <span style={{ color: C.muted }}>Mark as high-potential lead</span>
         </label>
       </div>
-
-      <button
-        disabled={!required || saving}
-        onClick={save}
-        className="w-full mt-5 py-2.5 rounded-lg font-bold text-sm disabled:opacity-40"
-        style={{ backgroundColor: C.gold, color: '#14181F' }}
-      >
+      <button disabled={!form.name.trim() || saving} onClick={save} className="w-full mt-5 py-2.5 rounded-lg font-bold text-sm disabled:opacity-40" style={{ backgroundColor: C.gold, color: '#14181F' }}>
         {saving ? '...' : 'Save Changes'}
       </button>
-
       <div className="pt-4 mt-4" style={{ borderTop: `1px solid ${C.border}` }}>
         {!confirmDelete ? (
           <button onClick={() => setConfirmDelete(true)} className="flex items-center gap-1.5 text-sm" style={{ color: '#C9714F' }}>
@@ -462,8 +392,6 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
   );
 }
 
-
-// ---- Read-only detail + Action/Comment (everyone, the comment button) ----
 function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, onClose, onSaved, onNext }) {
   const isOwner = client.owner_id === userId;
   const canComment = isOwner || isAdmin;
@@ -472,10 +400,10 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
   const [secPhone, setSecPhone] = useState(client.secondary_phone || '');
   const saveName = async () => {
     await supabase.from('clients').update({ name: nameVal, secondary_phone: secPhone || null }).eq('id', client.id);
-    setEditName(false);
-    onSaved();
-  }; // assigned rep or admin can add comments
+    setEditName(false); onSaved();
+  };
   const [activities, setActivities] = useState([]);
+  const [ownerNames, setOwnerNames] = useState({});  // ← جديد
   const [nextFollowUp, setNextFollowUp] = useState('');
   const [callResult, setCallResult] = useState('');
   const [savedCallResult, setSavedCallResult] = useState('');
@@ -504,7 +432,16 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
 
   const loadActivities = async () => {
     const { data } = await supabase.from('activities').select('*').eq('client_id', client.id).order('created_at', { ascending: false });
-    setActivities((data || []).filter((a) => a.type !== 'system'));
+    const acts = (data || []).filter((a) => a.type !== 'system');
+    setActivities(acts);
+    // Load owner names for activities ← جديد
+    const ownerIds = [...new Set(acts.map(a => a.owner_id).filter(Boolean))];
+    if (ownerIds.length > 0) {
+      const { data: profiles } = await supabase.from('profiles').select('id, full_name, username').in('id', ownerIds);
+      const map = {};
+      (profiles || []).forEach(p => { map[p.id] = p.full_name || p.username || '—'; });
+      setOwnerNames(map);
+    }
   };
 
   const hasComment = commentText.trim().length > 0;
@@ -516,15 +453,13 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
   const handleSave = async () => {
     if (!canSave) return;
     setSaving(true);
-
     const patch = {};
     if (callResult !== savedCallResult) patch.call_result = callResult || null;
     if (nextFollowUp !== (client.next_follow_up || '')) patch.next_follow_up = nextFollowUp || null;
-    patch.last_contacted_at = new Date().toISOString(); // push to bottom of list
+    patch.last_contacted_at = new Date().toISOString();
     if (Object.keys(patch).length > 0) {
       await supabase.from('clients').update(patch).eq('id', client.id);
     }
-
     const hasMeeting = plannedMeeting || actualMeeting;
     const activityType = hasMeeting ? 'meeting' : 'call';
     const lines = [];
@@ -533,40 +468,25 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
     if (plannedMeeting) lines.push('📅 Planned Meeting – scheduled with client');
     if (actualMeeting) lines.push('✅ Actual Meeting – meeting happened today');
     const logText = lines.join('\n');
-
     if (logText) {
       await supabase.from('activities').insert({
-        client_id: client.id,
-        owner_id: userId,
-        type: activityType,
-        date: todayStr(),
-        notes: logText,
-        next_follow_up: nextFollowUp || null,
+        client_id: client.id, owner_id: userId, type: activityType,
+        date: todayStr(), notes: logText, next_follow_up: nextFollowUp || null,
       });
     }
-
     if (patch.call_result === 'No Answer') {
       const { data } = await supabase.from('clients').select('owner_id, no_answer_count, previous_owners').eq('id', client.id).maybeSingle();
       if (!data || data.owner_id !== client.owner_id) {
-        setSaving(false);
-        setRotated(true);
-        onSaved();
-        return;
+        setSaving(false); setRotated(true); onSaved(); return;
       }
       setNoAnswerCount(data.no_answer_count || 0);
       setPreviousOwners(data.previous_owners || []);
     }
-
     setSavedCallResult(callResult);
     setSaving(false);
-    setCallResult('');
-    setSavedCallResult('');
-    setCommentText('');
-    setNextFollowUp('');
-    setPlannedMeeting(false);
-    setActualMeeting(false);
-    onSaved();
-    onClose();
+    setCallResult(''); setSavedCallResult(''); setCommentText('');
+    setNextFollowUp(''); setPlannedMeeting(false); setActualMeeting(false);
+    onSaved(); onClose();
   };
 
   const st = stageOf(client.stage);
@@ -579,9 +499,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
           <p className="text-sm mb-4" style={{ color: C.muted }}>
             This lead had 3 consecutive "No Answer" results and has been automatically reassigned to another sales rep.
           </p>
-          <button onClick={() => { onSaved(); onClose(); }} className="px-4 py-2 rounded-lg font-bold text-sm" style={{ backgroundColor: C.gold, color: '#14181F' }}>
-            OK
-          </button>
+          <button onClick={() => { onSaved(); onClose(); }} className="px-4 py-2 rounded-lg font-bold text-sm" style={{ backgroundColor: C.gold, color: '#14181F' }}>OK</button>
         </div>
       </Modal>
     );
@@ -599,18 +517,17 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
       <span className="flex flex-col gap-0.5">
         <span className="text-xs font-normal" style={{ color: C.muted, letterSpacing: '0.05em' }}>CLIENT CARD</span>
         {editName ? (
-        <div className="flex items-center gap-2 flex-1">
-          <input value={nameVal} onChange={(e) => setNameVal(e.target.value)} className="flex-1 rounded px-2 py-1 text-sm outline-none" style={{ backgroundColor: C.bg, border: `1px solid ${C.gold}`, color: C.text }} />
-          <button onClick={saveName} className="px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: C.gold, color: '#14181F' }}>Save</button>
-          <button onClick={() => setEditName(false)} className="text-xs" style={{ color: C.muted }}>Cancel</button>
-        </div>
-      ) : (
-        <span className="flex items-center gap-2">
-          {client.name}
-          {(isOwner || isAdmin) && <button onClick={() => setEditName(true)}><Pencil size={13} style={{ color: C.muted }} /></button>}
-        </span>
-      )
-      }
+          <div className="flex items-center gap-2 flex-1">
+            <input value={nameVal} onChange={(e) => setNameVal(e.target.value)} className="flex-1 rounded px-2 py-1 text-sm outline-none" style={{ backgroundColor: C.bg, border: `1px solid ${C.gold}`, color: C.text }} />
+            <button onClick={saveName} className="px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: C.gold, color: '#14181F' }}>Save</button>
+            <button onClick={() => setEditName(false)} className="text-xs" style={{ color: C.muted }}>Cancel</button>
+          </div>
+        ) : (
+          <span className="flex items-center gap-2">
+            {client.name}
+            {(isOwner || isAdmin) && <button onClick={() => setEditName(true)}><Pencil size={13} style={{ color: C.muted }} /></button>}
+          </span>
+        )}
       </span>
     } onClose={onClose}>
       <div className="space-y-4">
@@ -659,57 +576,34 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
           {client.budget ? <RO label="Budget" value={`${fmtMoney(client.budget)} EGP`} /> : null}
         </div>
 
-        {/* ---- The save block — only for the assigned rep ---- */}
         {canComment ? (
-        <div ref={activityRef} className="rounded-lg p-3 space-y-3" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
-          <Field label="Action *">
-            <select
-              value={callResult}
-              onChange={(e) => setCallResult(e.target.value)}
-              className={inputClass}
-              style={{ ...inputStyle, backgroundColor: C.surface }}
-            >
-              <option value="">— Select —</option>
-              {ACTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </Field>
-
-          <textarea
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-            placeholder="Write a comment about this lead..."
-            className={inputClass}
-            style={{ ...inputStyle, backgroundColor: C.surface }}
-            rows={2}
-          />
-
-          <div className="space-y-2">
-            <label className="flex items-center gap-2.5 text-sm cursor-pointer">
-              <input type="checkbox" checked={plannedMeeting} onChange={(e) => setPlannedMeeting(e.target.checked)} className="w-4 h-4" />
-              <span style={{ color: C.muted }}>📅 Planned Meeting – scheduled with client</span>
-            </label>
-            <label className="flex items-center gap-2.5 text-sm cursor-pointer">
-              <input type="checkbox" checked={actualMeeting} onChange={(e) => setActualMeeting(e.target.checked)} className="w-4 h-4" />
-              <span style={{ color: C.muted }}>✅ Actual Meeting – meeting happened today</span>
-            </label>
-            {meetingNeedsComment && (
-              <p className="text-xs" style={{ color: '#C9714F' }}>A comment is required to log a meeting</p>
-            )}
+          <div ref={activityRef} className="rounded-lg p-3 space-y-3" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
+            <Field label="Action *">
+              <select value={callResult} onChange={(e) => setCallResult(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }}>
+                <option value="">— Select —</option>
+                {ACTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </Field>
+            <textarea value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Write a comment about this lead..." className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }} rows={2} />
+            <div className="space-y-2">
+              <label className="flex items-center gap-2.5 text-sm cursor-pointer">
+                <input type="checkbox" checked={plannedMeeting} onChange={(e) => setPlannedMeeting(e.target.checked)} className="w-4 h-4" />
+                <span style={{ color: C.muted }}>📅 Planned Meeting – scheduled with client</span>
+              </label>
+              <label className="flex items-center gap-2.5 text-sm cursor-pointer">
+                <input type="checkbox" checked={actualMeeting} onChange={(e) => setActualMeeting(e.target.checked)} className="w-4 h-4" />
+                <span style={{ color: C.muted }}>✅ Actual Meeting – meeting happened today</span>
+              </label>
+              {meetingNeedsComment && <p className="text-xs" style={{ color: '#C9714F' }}>A comment is required to log a meeting</p>}
+            </div>
+            <Field label="Next Follow-up Date">
+              <input type="date" value={nextFollowUp} min={todayStr()} max={maxDate} onChange={(e) => setNextFollowUp(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }} />
+            </Field>
+            <button onClick={handleSave} disabled={!canSave} className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-40 transition-colors"
+              style={{ backgroundColor: canSave ? C.gold : C.surface, color: canSave ? '#14181F' : C.muted, border: canSave ? 'none' : `1px solid ${C.border}` }}>
+              {saving ? 'Saving...' : '+ Add Comment'}
+            </button>
           </div>
-
-          <Field label="Next Follow-up Date">
-            <input type="date" value={nextFollowUp} min={todayStr()} max={maxDate} onChange={(e) => setNextFollowUp(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }} />
-          </Field>
-
-          <button
-            onClick={handleSave}
-            disabled={!canSave}
-            className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-40 transition-colors"
-            style={{ backgroundColor: canSave ? C.gold : C.surface, color: canSave ? '#14181F' : C.muted, border: canSave ? 'none' : `1px solid ${C.border}` }}
-          >
-            {saving ? 'Saving...' : '+ Add Comment'}
-          </button>
-        </div>
         ) : (
           <div className="rounded-lg p-3 text-center" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
             <p className="text-xs" style={{ color: C.muted }}>This lead is assigned to another rep. You can view comments but cannot add new ones.</p>
@@ -717,12 +611,10 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
         )}
 
         {noAnswerCount > 0 && (
-          <p className="text-xs" style={{ color: noAnswerCount >= 3 ? '#C9714F' : C.muted }}>
-            No-answer streak: {noAnswerCount}/3
-          </p>
+          <p className="text-xs" style={{ color: noAnswerCount >= 3 ? '#C9714F' : C.muted }}>No-answer streak: {noAnswerCount}/3</p>
         )}
 
-        {/* History */}
+        {/* History — مع اسم الـ user ← جديد */}
         {activities.length > 0 && (
           <div className="space-y-1.5">
             {activities.map((a) => (
@@ -733,9 +625,14 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
                     <span className="text-xs" style={{ color: C.gold }}>📅 Next Follow-up: {fmtDate(a.next_follow_up)}</span>
                   )}
                 </div>
-                <span className="text-[11px] shrink-0 ml-2" style={{ color: C.muted }}>
-                  {fmtDate(a.date)}{a.created_at ? ` · ${fmtTime(a.created_at)}` : ''}
-                </span>
+                <div className="flex flex-col items-end gap-0.5 shrink-0 ml-2">
+                  {ownerNames[a.owner_id] && (
+                    <span className="text-[11px] font-medium" style={{ color: C.gold }}>{ownerNames[a.owner_id]}</span>
+                  )}
+                  <span className="text-[11px]" style={{ color: C.muted }}>
+                    {fmtDate(a.date)}{a.created_at ? ` · ${fmtTime(a.created_at)}` : ''}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
