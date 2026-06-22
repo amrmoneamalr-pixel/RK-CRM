@@ -14,57 +14,40 @@ import { C } from './constants';
 
 const VALID_TABS = ['dashboard', 'clients', 'developers', 'orgchart', 'reports', 'activity', 'team', 'settings'];
 
-const parseHash = () => {
-  const raw = window.location.hash.replace('#', '');
-  const [tabPart, queryPart] = raw.split('?');
-  const tab = VALID_TABS.includes(tabPart) ? tabPart : 'dashboard';
-  const params = new URLSearchParams(queryPart || '');
-  const page = parseInt(params.get('page')) || 1;
-  const clientId = params.get('client') || null;
-  return { tab, page, clientId };
+const tabFromHash = () => {
+  const h = window.location.hash.replace('#', '').split('?')[0];
+  return VALID_TABS.includes(h) ? h : 'dashboard';
+};
+
+const pageFromHash = () => {
+  const qs = window.location.hash.split('?')[1] || '';
+  return parseInt(new URLSearchParams(qs).get('page')) || 1;
 };
 
 export default function App() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTabState] = useState(() => parseHash().tab);
+  const [tab, setTabState] = useState(tabFromHash);
   const [leadFilter, setLeadFilter] = useState(null);
-  const [clientsPage, setClientsPage] = useState(() => parseHash().page);
-  const [openClientId, setOpenClientId] = useState(() => parseHash().clientId);
-
-  const buildClientsHash = (page, clientId) => {
-    const params = new URLSearchParams();
-    if (page > 1) params.set('page', page);
-    if (clientId) params.set('client', clientId);
-    const qs = params.toString();
-    return qs ? `clients?${qs}` : 'clients';
-  };
+  const [clientsPage, setClientsPage] = useState(pageFromHash);
 
   const setTab = (t) => {
     setTabState(t);
-    const hash = t === 'clients' ? buildClientsHash(clientsPage, openClientId) : t;
+    const hash = t === 'clients' && clientsPage > 1 ? `clients?page=${clientsPage}` : t;
     if (window.location.hash !== `#${hash}`) window.location.hash = hash;
   };
 
   const setClientsPageAndHash = (p) => {
     setClientsPage(p);
-    window.location.hash = buildClientsHash(p, openClientId);
-  };
-
-  const setOpenClientAndHash = (clientId) => {
-    setOpenClientId(clientId);
-    window.location.hash = buildClientsHash(clientsPage, clientId);
+    window.location.hash = p > 1 ? `clients?page=${p}` : 'clients';
   };
 
   useEffect(() => {
     const onHashChange = () => {
-      const { tab: newTab, page: newPage, clientId: newClientId } = parseHash();
+      const newTab = tabFromHash();
       setTabState(newTab);
-      if (newTab === 'clients') {
-        setClientsPage(newPage);
-        setOpenClientId(newClientId);
-      }
+      if (newTab === 'clients') setClientsPage(pageFromHash());
     };
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
@@ -78,7 +61,6 @@ export default function App() {
   const selectLeadCategory = (category) => {
     setLeadFilter(category === 'all' ? null : category);
     setClientsPage(1);
-    setOpenClientId(null);
     setTabState('clients');
     window.location.hash = 'clients';
   };
@@ -126,7 +108,6 @@ export default function App() {
           .order('last_seen_at', { ascending: false })
           .limit(1)
           .maybeSingle();
-
         if (existing) {
           sessionIdRef.current = existing.id;
           await supabase.from('user_sessions').update({ last_seen_at: new Date().toISOString() }).eq('id', existing.id);
@@ -134,7 +115,6 @@ export default function App() {
           const { data } = await supabase.from('user_sessions').insert({ user_id: profile.id }).select().single();
           if (data) sessionIdRef.current = data.id;
         }
-
         interval = setInterval(() => {
           if (sessionIdRef.current) {
             supabase.from('user_sessions').update({ last_seen_at: new Date().toISOString() }).eq('id', sessionIdRef.current);
@@ -180,9 +160,6 @@ export default function App() {
           onClearLeadFilter={() => setLeadFilter(null)}
           initialPage={clientsPage}
           onPageChange={setClientsPageAndHash}
-          initialClientId={openClientId}
-          onClientOpen={setOpenClientAndHash}
-          onClientClose={() => setOpenClientAndHash(null)}
         />
       )}
       {tab === 'developers' && <DevelopersBoard isAdmin={isAdmin} />}
