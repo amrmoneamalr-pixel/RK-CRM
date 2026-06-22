@@ -598,9 +598,11 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
               </label>
               {meetingNeedsComment && <p className="text-xs" style={{ color: '#C9714F' }}>A comment is required to log a meeting</p>}
             </div>
+            {followupRequired && (
             <Field label="Next Follow-up Date">
               <input type="date" value={nextFollowUp} min={todayStr()} max={maxDate} onChange={(e) => setNextFollowUp(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }} />
             </Field>
+          )}
             <button onClick={handleSave} disabled={!canSave} className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-40 transition-colors"
               style={{ backgroundColor: canSave ? C.gold : C.surface, color: canSave ? '#14181F' : C.muted, border: canSave ? 'none' : `1px solid ${C.border}` }}>
               {saving ? 'Saving...' : '+ Add Comment'}
