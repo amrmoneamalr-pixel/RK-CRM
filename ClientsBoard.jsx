@@ -483,11 +483,13 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
               <X size={13} /> Clear
             </button>
           )}
+          {/* New Client - visible to all */}
+          <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: C.gold, color: '#14181F' }}>
+            <Plus size={13} /> New Client
+          </button>
+
           {isAdmin && (
             <>
-              <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: C.gold, color: '#14181F' }}>
-                <Plus size={13} /> New Client
-              </button>
               <button onClick={exportCsv} disabled={exporting} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium shrink-0 disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
                 {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} {exporting ? 'Exporting...' : 'Export'}
               </button>
