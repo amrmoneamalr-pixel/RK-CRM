@@ -3,7 +3,7 @@ import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { supabase } from './supabaseClient';
 import { C, STAGES, SOURCES, ACTIONS, LOCATIONS, LEAD_ORIGINS, COLD_RESULTS, fmtMoney, fmtDate, todayStr, stageOf, stageIdFromInput, LEAD_CATEGORY_LABELS, leadCategory, clientStatus } from './constants';
-import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X, Pencil, MessageSquarePlus, Loader2 } from 'lucide-react';
+import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X, Pencil, MessageSquarePlus, Loader2, Bell, Mail } from 'lucide-react';
 import ClientModal from './ClientModal';
 import ImportModal from './ImportModal';
 import { SourceTag } from './BrandIcons';
@@ -465,36 +465,49 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
         </div>
       )}
       <div className="space-y-2">
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: C.muted }} />
-          <input value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search by name, phone, project, developer, location..."
-            className="rounded-lg pl-9 pr-3 py-2 text-sm outline-none w-full"
-            style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text }} />
-        </div>
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          <span className="flex-1" />
-          <button onClick={applyColFilters} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: C.gold, color: '#14181F' }}>
+        <div className="flex items-center justify-end gap-2">
+          {/* Search box - smaller, on the right */}
+          <div className="relative">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: C.muted }} />
+            <input value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search..."
+              className="rounded-lg pl-8 pr-3 py-1.5 text-xs outline-none"
+              style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text, width: '200px' }} />
+          </div>
+
+          <button onClick={applyColFilters} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: C.gold, color: '#14181F' }}>
             <Search size={13} /> Search
           </button>
           {(hasColFilters || hasPendingFilters) && (
-            <button onClick={clearColFilters} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.muted }}>
+            <button onClick={clearColFilters} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium shrink-0" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.muted }}>
               <X size={13} /> Clear
             </button>
           )}
           {isAdmin && (
             <>
-              <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: C.gold, color: '#14181F' }}>
+              <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: C.gold, color: '#14181F' }}>
                 <Plus size={13} /> New Client
               </button>
-              <button onClick={exportCsv} disabled={exporting} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0 disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
+              <button onClick={exportCsv} disabled={exporting} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium shrink-0 disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
                 {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} {exporting ? 'Exporting...' : 'Export'}
               </button>
-              <button onClick={() => setShowImport(true)} className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
+              <button onClick={() => setShowImport(true)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium shrink-0" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
                 <Upload size={14} /> Import
               </button>
             </>
           )}
+
+          {/* Notification icon */}
+          <button className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0 relative" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.muted }}
+            title="Notifications">
+            <Bell size={15} />
+          </button>
+
+          {/* Email icon */}
+          <button className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.muted }}
+            title="Email">
+            <Mail size={15} />
+          </button>
         </div>
       </div>
 
