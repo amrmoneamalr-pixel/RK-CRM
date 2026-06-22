@@ -423,6 +423,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
   const [activities, setActivities] = useState([]);
   const [ownerNames, setOwnerNames] = useState({});  // ← جديد
   const [nextFollowUp, setNextFollowUp] = useState('');
+  const [followUpTime, setFollowUpTime] = useState('09:00');
   const [callResult, setCallResult] = useState('');
   const [savedCallResult, setSavedCallResult] = useState('');
   const [noAnswerCount, setNoAnswerCount] = useState(client.no_answer_count || 0);
@@ -486,6 +487,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
     const lines = [];
     if (callResult) lines.push('Action: ' + callResult);
     if (commentText.trim()) lines.push(commentText.trim());
+    if (nextFollowUp) lines.push(`📅 Follow-up: ${nextFollowUp} ${followUpTime}`);
     if (plannedMeeting) lines.push('📅 Planned Meeting – scheduled with client');
     if (actualMeeting) lines.push('✅ Actual Meeting – meeting happened today');
     const logText = lines.join('\n');
@@ -506,7 +508,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
     setSavedCallResult(callResult);
     setSaving(false);
     setCallResult(''); setSavedCallResult(''); setCommentText('');
-    setNextFollowUp(''); setPlannedMeeting(false); setActualMeeting(false);
+    setNextFollowUp(''); setFollowUpTime('09:00'); setPlannedMeeting(false); setActualMeeting(false);
     setLeadStage('');
     onSaved(); onClose();
   };
@@ -655,8 +657,11 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
               {meetingNeedsComment && <p className="text-xs" style={{ color: '#C9714F' }}>A comment is required to log a meeting</p>}
             </div>
             {followupRequired && (
-            <Field label="Next Follow-up Date">
-              <input type="date" value={nextFollowUp} min={todayStr()} max={maxDate} onChange={(e) => setNextFollowUp(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }} />
+            <Field label="Next Follow-up Date & Time">
+              <div className="flex gap-2">
+                <input type="date" value={nextFollowUp} min={todayStr()} max={maxDate} onChange={(e) => setNextFollowUp(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface, flex: 2 }} />
+                <input type="time" value={followUpTime} onChange={(e) => setFollowUpTime(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface, flex: 1 }} />
+              </div>
             </Field>
           )}
             <button onClick={handleSave} disabled={!canSave} className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-40 transition-colors"
@@ -682,7 +687,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
                 <div className="flex flex-col gap-1 flex-1">
                   <span className="text-xs whitespace-pre-wrap" style={{ color: C.text }}>{a.notes}</span>
                   {a.next_follow_up && (
-                    <span className="text-xs" style={{ color: C.gold }}>📅 Next Follow-up: {fmtDate(a.next_follow_up)}</span>
+                    <span className="text-xs" style={{ color: C.gold }}>📅 Next Follow-up: {fmtDate(a.next_follow_up)}{a.notes?.match(/Follow-up: \S+ (\d{2}:\d{2})/)?.[1] ? ` · ${a.notes.match(/Follow-up: \S+ (\d{2}:\d{2})/)[1]}` : ''}</span>
                   )}
                 </div>
                 <div className="flex flex-col items-end gap-0.5 shrink-0 ml-2">
