@@ -135,6 +135,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   const [page, setPage] = useState(initialPage);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkReassignTo, setBulkReassignTo] = useState('');
+  const [bulkReassignStatus, setBulkReassignStatus] = useState('reRotation');
   const [bulkBusy, setBulkBusy] = useState(false);
   const [actionTarget, setActionTarget] = useState(null);
 
@@ -316,8 +317,54 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
   const bulkReassign = async () => {
     if (!bulkReassignTo || selectedIds.size === 0) return;
     setBulkBusy(true);
-    await supabase.from('clients').update({ owner_id: bulkReassignTo, call_result: null, no_answer_count: 0 }).in('id', Array.from(selectedIds));
-    setBulkBusy(false); setSelectedIds(new Set()); setBulkReassignTo(''); load();
+
+    const patch = { owner_id: bulkReassignTo, no_answer_count: 0 };
+
+    switch (bulkReassignStatus) {
+      case 'new':
+        patch.call_result = null;
+        patch.ever_contacted = false;
+        patch.previous_owners = [];
+        break;
+      case 'reRotation':
+        patch.call_result = null;
+        // previous_owners updated per client below
+        break;
+      case 'contacted':
+        patch.call_result = 'Contacted';
+        patch.ever_contacted = true;
+        break;
+      case 'notInterested':
+        patch.call_result = 'Not Interested';
+        patch.ever_contacted = true;
+        break;
+      case 'notQualified':
+        patch.call_result = 'Not Qualified';
+        patch.ever_contacted = true;
+        break;
+      default:
+        patch.call_result = null;
+    }
+
+    if (bulkReassignStatus === 'reRotation') {
+      // Update each client individually to add to previous_owners
+      for (const id of Array.from(selectedIds)) {
+        const client = clients.find(c => c.id === id);
+        const prev = Array.isArray(client?.previous_owners) ? client.previous_owners : [];
+        await supabase.from('clients').update({
+          ...patch,
+          previous_owners: [...prev, client?.owner_id].filter(Boolean),
+        }).eq('id', id);
+      }
+    } else {
+      await supabase.from('clients').update(patch).in('id', Array.from(selectedIds));
+    }
+
+    setBulkBusy(false);
+    setSelectedIds(new Set());
+    setBulkReassignTo('');
+    setBulkReassignStatus('reRotation');
+    load();
   };
   const bulkDelete = async () => {
     if (selectedIds.size === 0) return;
@@ -430,6 +477,13 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
               <select value={bulkReassignTo} onChange={(e) => setBulkReassignTo(e.target.value)} className={selectClass} style={selectStyle}>
                 <option value="">Reassign to...</option>
                 {profilesList.map((p) => (<option key={p.id} value={p.id}>{p.is_pool ? 'Unassigned Pool' : (p.full_name || p.username || p.id)}</option>))}
+              </select>
+              <select value={bulkReassignStatus} onChange={(e) => setBulkReassignStatus(e.target.value)} className={selectClass} style={selectStyle}>
+                <option value="reRotation">Re-rotation</option>
+                <option value="new">New</option>
+                <option value="contacted">Contacted</option>
+                <option value="notInterested">Not Interested</option>
+                <option value="notQualified">Not Qualified</option>
               </select>
               <button onClick={bulkReassign} disabled={!bulkReassignTo || bulkBusy} className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-40" style={{ backgroundColor: C.gold, color: '#14181F' }}>Reassign</button>
             </>
