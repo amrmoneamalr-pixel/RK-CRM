@@ -114,7 +114,7 @@ function AddForm({ userId, isAdmin, profilesList, userTitle, onClose, onSaved })
   const marketerNames = useMarketerNames(profilesList);
   const [developers, setDevelopers] = useState([]);
   const [projectOptions, setProjectOptions] = useState([]);
-  const isManualUser = !isAdmin && !['top_management'].includes(userTitle);
+  const isManualUser = !isAdmin && ['sales', 'team_leader', 'sales_manager'].includes(userTitle);
   const [form, setForm] = useState({
     name: '', phone: '', secondary_phone: '', developer: '', project: '',
     source: '', stage_category: isManualUser ? 'Manual' : '', lead_origin: '', origin_name: '', location: '', owner_id: '', potential: false,
