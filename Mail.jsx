@@ -33,31 +33,77 @@ export default function MailPage({ userId, isAdmin }) {
 
   const load = async () => {
     setLoading(true);
-    if (view === 'inbox') {
-      const { data, error } = await supabase
-        .from('message_recipients')
-        .select('id, is_read, created_at, message_id, messages(id, subject, body, created_at, sender_id, is_draft, profiles(id, full_name, username))')
-        .eq('recipient_id', userId)
-        .order('created_at', { ascending: false });
-      const filtered = (data || []).filter(d => d.messages && !d.messages.is_draft);
-      setMessages(filtered);
-      setUnreadCount(filtered.filter(d => !d.is_read).length);
-    } else if (view === 'sent') {
-      const { data } = await supabase
-        .from('messages')
-        .select('id, subject, body, created_at, is_draft, message_recipients(id, recipient_id, profiles(id, full_name, username))')
-        .eq('sender_id', userId)
-        .eq('is_draft', false)
-        .order('created_at', { ascending: false });
-      setMessages(data || []);
-    } else if (view === 'drafts') {
-      const { data } = await supabase
-        .from('messages')
-        .select('id, subject, body, created_at, is_draft, message_recipients(id, recipient_id, profiles(id, full_name, username))')
-        .eq('sender_id', userId)
-        .eq('is_draft', true)
-        .order('created_at', { ascending: false });
-      setMessages(data || []);
+    try {
+      if (view === 'inbox') {
+        // Step 1: get recipient records
+        const { data: recData } = await supabase
+          .from('message_recipients')
+          .select('id, is_read, created_at, message_id')
+          .eq('recipient_id', userId)
+          .order('created_at', { ascending: false });
+
+        if (!recData || recData.length === 0) { setMessages([]); setUnreadCount(0); setLoading(false); return; }
+
+        // Step 2: get messages
+        const msgIds = recData.map(r => r.message_id);
+        const { data: msgData } = await supabase
+          .from('messages')
+          .select('id, subject, body, created_at, sender_id, is_draft')
+          .in('id', msgIds)
+          .eq('is_draft', false);
+
+        // Step 3: get sender profiles
+        const senderIds = [...new Set((msgData || []).map(m => m.sender_id))];
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('id, full_name, username')
+          .in('id', senderIds);
+
+        const profileMap = {};
+        (profileData || []).forEach(p => { profileMap[p.id] = p; });
+
+        const msgMap = {};
+        (msgData || []).forEach(m => { msgMap[m.id] = { ...m, sender: profileMap[m.sender_id] }; });
+
+        const combined = recData
+          .filter(r => msgMap[r.message_id])
+          .map(r => ({ ...r, messages: msgMap[r.message_id] }));
+
+        setMessages(combined);
+        setUnreadCount(combined.filter(d => !d.is_read).length);
+      } else if (view === 'sent') {
+        const { data: msgData } = await supabase
+          .from('messages')
+          .select('id, subject, body, created_at, is_draft')
+          .eq('sender_id', userId)
+          .eq('is_draft', false)
+          .order('created_at', { ascending: false });
+
+        const msgIds = (msgData || []).map(m => m.id);
+        const { data: recData } = msgIds.length > 0 ? await supabase
+          .from('message_recipients')
+          .select('message_id, recipient_id, profiles(id, full_name, username)')
+          .in('message_id', msgIds) : { data: [] };
+
+        const recMap = {};
+        (recData || []).forEach(r => {
+          if (!recMap[r.message_id]) recMap[r.message_id] = [];
+          recMap[r.message_id].push(r);
+        });
+
+        setMessages((msgData || []).map(m => ({ ...m, message_recipients: recMap[m.id] || [] })));
+      } else if (view === 'drafts') {
+        const { data } = await supabase
+          .from('messages')
+          .select('id, subject, body, created_at, is_draft')
+          .eq('sender_id', userId)
+          .eq('is_draft', true)
+          .order('created_at', { ascending: false });
+        setMessages(data || []);
+      }
+    } catch (e) {
+      console.warn('Mail load error:', e);
+      setMessages([]);
     }
     setLoading(false);
   };
