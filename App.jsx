@@ -10,9 +10,10 @@ import DevelopersBoard from './DevelopersBoard';
 import TeamPage from './TeamPage';
 import Activity from './Activity';
 import Settings from './Settings';
+import Mail from './Mail';
 import { C } from './constants';
 
-const VALID_TABS = ['dashboard', 'clients', 'developers', 'orgchart', 'reports', 'activity', 'team', 'settings'];
+const VALID_TABS = ['dashboard', 'clients', 'developers', 'orgchart', 'reports', 'activity', 'team', 'settings', 'mail'];
 
 const tabFromHash = () => {
   const h = window.location.hash.replace('#', '').split('?')[0];
@@ -169,6 +170,7 @@ export default function App() {
       {tab === 'team' && isAdmin && <TeamPage currentUserId={session.user.id} currentUserTitle={profile.title} />}
       {tab === 'activity' && hasTeamAccess && <Activity isAdmin={isAdmin} currentUserTitle={profile.title} />}
       {tab === 'settings' && isAdmin && <Settings />}
+      {tab === 'mail' && <Mail userId={session.user.id} isAdmin={isAdmin} />}
     </Layout>
   );
 }

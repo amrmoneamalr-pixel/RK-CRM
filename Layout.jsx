@@ -2,7 +2,7 @@ import React from 'react';
 import { C } from './constants';
 import rkLogo from './rk-logo.png.png';
 import covoSidebar from './covo-only.png';
-import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, Activity as ActivityIcon, Settings as SettingsIcon, Building2 } from 'lucide-react';
+import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, Activity as ActivityIcon, Settings as SettingsIcon, Building2, Mail } from 'lucide-react';
 import LeadPanels from './LeadPanels';
 
 export default function Layout({ profile, tab, setTab, onSelectCategory, onSignOut, children }) {
@@ -15,9 +15,10 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
   const isAdmin = profile.role === 'admin';
   const hasTeamAccess = isAdmin || ['sales_manager', 'team_leader', 'top_management'].includes(profile.title);
   if (hasTeamAccess) {
-    tabs.push({ id: 'reports', label: 'Reports', icon: Briefcase });
     tabs.push({ id: 'activity', label: 'Activity', icon: ActivityIcon });
+    tabs.push({ id: 'reports', label: 'Reports', icon: Briefcase });
   }
+  tabs.push({ id: 'mail', label: 'Mail', icon: Mail });
   if (isAdmin) {
     tabs.push({ id: 'team', label: 'Users', icon: UserCog });
     tabs.push({ id: 'settings', label: 'Settings', icon: SettingsIcon });
@@ -116,6 +117,7 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
             reports: 'Reports',
             activity: 'Activity',
             settings: 'Settings',
+            mail: 'Mail',
           }[tab] && (
             <h1 className="font-display font-bold text-2xl mb-5" style={{ color: C.text }}>
               {{
@@ -126,6 +128,7 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
                 reports: 'Reports',
                 activity: 'Activity',
                 settings: 'Settings',
+                mail: 'Mail',
               }[tab]}
             </h1>
           )}
