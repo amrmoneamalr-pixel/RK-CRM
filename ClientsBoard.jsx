@@ -297,22 +297,17 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     setLoading(false);
   };
 
-  // Auto-open client from URL after load
-  const initialClientIdRef = useRef(initialClientId);
+  // Auto-open client from URL - runs once after first successful load
+  const autoOpenDone = useRef(false);
   useEffect(() => {
-    if (!initialClientIdRef.current) return;
+    if (autoOpenDone.current) return;
     if (loading) return;
-    const clientInPage = clients.find(c => c.id === initialClientIdRef.current);
-    if (clientInPage) {
-      setSelected(clientInPage);
-    } else {
-      // Client not in current page, fetch directly
-      (async () => {
-        const { data } = await supabase.from('clients').select('*').eq('id', initialClientIdRef.current).single();
-        if (data) setSelected(data);
-      })();
-    }
-    initialClientIdRef.current = null; // only run once
+    if (!initialClientId) { autoOpenDone.current = true; return; }
+    autoOpenDone.current = true;
+    (async () => {
+      const { data } = await supabase.from('clients').select('*').eq('id', initialClientId).single();
+      if (data) setSelected(data);
+    })();
   }, [loading]);
 
   useEffect(() => {
