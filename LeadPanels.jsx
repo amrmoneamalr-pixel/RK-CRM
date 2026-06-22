@@ -10,7 +10,7 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, mobileRo
     callbackToday: 0, late: 0, reRotation: 0,
     oldFresh: 0, contactedOldFresh: 0,
     cold: 0, contactedCold: 0,
-    potential: 0,
+    warmLeads: 0, potential: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -32,7 +32,7 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, mobileRo
       callbackToday: 0, late: 0, reRotation: 0,
       oldFresh: 0, contactedOldFresh: 0,
       cold: 0, contactedCold: 0,
-      potential: 0,
+      warmLeads: 0, potential: 0,
     };
 
     clients.forEach((c) => {
@@ -52,6 +52,7 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, mobileRo
       if ((cat === 'Old Fresh Lead' || cat === 'Old Campaign') && contacted)  next.contactedOldFresh++;
       if (cat === 'Cold Calls' && !contacted)      next.cold++;
       if (cat === 'Cold Calls' && contacted)       next.contactedCold++;
+      if (['Interest in Resale', 'Interest in Separate'].includes(c.call_result)) next.warmLeads++;
       if (c.potential)                             next.potential++;
     });
 
@@ -70,6 +71,7 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, mobileRo
     { key: 'contactedOldFresh',icon: UserCheck,    color: '#7B68EE', label: 'Contacted Old Fresh Leads' },
     { key: 'cold',             icon: Snowflake,    color: '#8B93A3', label: 'Cold Calls' },
     { key: 'contactedCold',    icon: PhoneMissed,  color: '#5F9EA0', label: 'Contacted Cold Calls' },
+    { key: 'warmLeads',        icon: Sparkles,     color: '#f59e0b', label: 'Warm Leads' },
     { key: 'potential',        icon: Sparkles,     color: C.gold,    label: 'Potential Clients' },
   ];
 

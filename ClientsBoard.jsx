@@ -200,12 +200,20 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     if (colFilters.call_result) q = q.eq('call_result', colFilters.call_result);
     if (colFilters.status) {
       switch (colFilters.status) {
-        case 'New':            q = q.eq('ever_contacted', false).neq('stage', 'won'); break;
-        case 'Contacted':      q = q.eq('ever_contacted', true).neq('stage', 'won'); break;
-        case 'Re-rotation':    q = q.not('previous_owners', 'is', null).neq('stage', 'won'); break;
+        case 'Interested':     q = q.in('call_result', ['Contacted', 'Send WhatsApp', 'Call Again']); break;
+        case 'Not Reachable':  q = q.in('call_result', ['No Answer', 'Switched Off', 'No Answer - Multiple Times']); break;
+        case 'Warm Lead':      q = q.in('call_result', ['Interest in Resale', 'Interest in Separate']); break;
+        case 'Re-rotation':    q = q.not('previous_owners', 'is', null).neq('previous_owners', '[]'); break;
         case 'Not Interested': q = q.eq('call_result', 'Not Interested'); break;
         case 'Not Qualified':  q = q.eq('call_result', 'Not Qualified'); break;
         case 'Deal':           q = q.eq('stage', 'won'); break;
+        default: break;
+      }
+    }
+    if (colFilters.contactStatus) {
+      switch (colFilters.contactStatus) {
+        case 'New':       q = q.eq('ever_contacted', false).neq('stage', 'won'); break;
+        case 'Contacted': q = q.eq('ever_contacted', true).neq('stage', 'won'); break;
         default: break;
       }
     }
@@ -261,6 +269,8 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
           q = q.eq('stage_category', 'Cold Calls').eq('ever_contacted', false); break;
         case 'contactedCold':
           q = q.eq('stage_category', 'Cold Calls').eq('ever_contacted', true); break;
+        case 'warmLeads':
+          q = q.in('call_result', ['Interest in Resale', 'Interest in Separate']); break;
         case 'potential':
           q = q.eq('potential', true); break;
         default: break;
@@ -515,7 +525,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
             <div id="top-scroll-inner" style={{ height: '1px' }} />
           </div>
           <div className="rounded-xl overflow-x-auto" id="main-table-scroll" style={{ border: `1px solid ${C.border}` }}>
-            <table className="text-sm" style={{ minWidth: hasTeamAccess ? "1800px" : "1500px", width: "100%" }}>
+            <table className="text-sm" style={{ minWidth: hasTeamAccess ? "1950px" : "1650px", width: "100%" }}>
               <thead>
                 <tr style={{ backgroundColor: C.surface, color: C.muted }} className="text-left text-xs">
                   <th className="py-2.5 px-3 font-medium w-8"><input type="checkbox" checked={clients.length > 0 && clients.every((c) => selectedIds.has(c.id))} onChange={() => toggleSelectAllOnPage(clients.map((c) => c.id), clients.length > 0 && clients.every((c) => selectedIds.has(c.id)))} /></th>
@@ -523,7 +533,8 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                   <th className="py-2.5 px-3 font-medium">Full Name</th>
                   <th className="py-2.5 px-3 font-medium">Country</th>
                   <th className="py-2.5 px-3 font-medium">Mobile Phone</th>
-                  <th className="py-2.5 px-3 font-medium">Stage Category</th>
+                  <th className="py-2.5 px-3 font-medium">Category</th>
+                  <th className="py-2.5 px-3 font-medium">Stage</th>
                   <th className="py-2.5 px-3 font-medium">Status</th>
                   {hasTeamAccess && <th className="py-2.5 px-3 font-medium">Assigned To</th>}
                   {hasTeamAccess && <th className="py-2.5 px-3 font-medium">Lead Origin</th>}
@@ -546,8 +557,9 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                   <td className="py-1.5 px-2"><input value={pendingCols.name||''} onChange={setCol('name')} placeholder="Name..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
                   <td className="py-1.5 px-2"><CountryFilter value={pendingCols.countries} onChange={(v) => setPendingCols((p) => ({ ...p, countries: v }))} /></td>
                   <td className="py-1.5 px-2"><input value={pendingCols.phone||''} onChange={setCol('phone')} placeholder="Phone..." className="w-full rounded px-2 py-1 text-xs outline-none" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }} /></td>
-                  <td className="py-1.5 px-2"><FilterSelect value={pendingCols.stage_category} onChange={(v) => setPendingCols((p) => ({ ...p, stage_category: v }))} options={['New Fresh Lead','Old Fresh Lead','Cold Calls','Old Campaign']} placeholder="All Stages" /></td>
-                  <td className="py-1.5 px-2"><FilterSelect value={pendingCols.status} onChange={(v) => setPendingCols((p) => ({ ...p, status: v }))} options={['New','Contacted','Re-rotation','Not Interested','Not Qualified','Deal']} placeholder="All Statuses" /></td>
+                  <td className="py-1.5 px-2"><FilterSelect value={pendingCols.stage_category} onChange={(v) => setPendingCols((p) => ({ ...p, stage_category: v }))} options={['New Fresh Lead','Old Fresh Lead','Cold Calls','Old Campaign']} placeholder="All Categories" /></td>
+                  <td className="py-1.5 px-2"><FilterSelect value={pendingCols.status} onChange={(v) => setPendingCols((p) => ({ ...p, status: v }))} options={['Interested','Not Reachable','Warm Lead','Re-rotation','Not Interested','Not Qualified','Deal']} placeholder="All Stages" /></td>
+                  <td className="py-1.5 px-2"><FilterSelect value={pendingCols.contactStatus} onChange={(v) => setPendingCols((p) => ({ ...p, contactStatus: v }))} options={['New','Contacted']} placeholder="All Statuses" /></td>
                   {hasTeamAccess && <td className="py-1.5 px-2"><FilterSelect value={pendingCols.assigned_to} onChange={(v) => setPendingCols((p) => ({ ...p, assigned_to: v }))} options={profilesList.filter((p) => !p.is_pool).map((p) => p.full_name || p.username)} placeholder="All Users" /></td>}
                   {hasTeamAccess && <td className="py-1.5 px-2"><FilterSelect value={pendingCols.lead_origin} onChange={(v) => setPendingCols((p) => ({ ...p, lead_origin: v }))} options={LEAD_ORIGINS} placeholder="All Origins" /></td>}
                   <td className="py-1.5 px-2"><FilterSelect value={pendingCols.source} onChange={(v) => setPendingCols((p) => ({ ...p, source: v }))} options={SOURCES} placeholder="All Sources" /></td>
@@ -584,6 +596,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.phone || '—'}</td>
                       <td className="py-2.5 px-3"><Pill color={stageColor}>{rawCat}</Pill></td>
                       <td className="py-2.5 px-3"><Pill color={stat.color === '#FFFFFF' ? C.text : stat.color}>{stat.label}</Pill></td>
+                      <td className="py-2.5 px-3"><Pill color={c.ever_contacted ? '#7FA887' : '#D6453E'}>{c.ever_contacted ? 'Contacted' : 'New'}</Pill></td>
                       {hasTeamAccess && <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{owners[c.owner_id] || '—'}</td>}
                       {hasTeamAccess && <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{[c.lead_origin, c.origin_name].filter(Boolean).join(" · ") || "—"}</td>}
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}><SourceTag source={c.source} size={15} /></td>
