@@ -297,14 +297,23 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, leadFilte
     setLoading(false);
   };
 
-  // Auto-open client from URL on mount
+  // Auto-open client from URL after load
+  const initialClientIdRef = useRef(initialClientId);
   useEffect(() => {
-    if (!initialClientId) return;
-    (async () => {
-      const { data } = await supabase.from('clients').select('*').eq('id', initialClientId).single();
-      if (data) setSelected(data);
-    })();
-  }, []);
+    if (!initialClientIdRef.current) return;
+    if (loading) return;
+    const clientInPage = clients.find(c => c.id === initialClientIdRef.current);
+    if (clientInPage) {
+      setSelected(clientInPage);
+    } else {
+      // Client not in current page, fetch directly
+      (async () => {
+        const { data } = await supabase.from('clients').select('*').eq('id', initialClientIdRef.current).single();
+        if (data) setSelected(data);
+      })();
+    }
+    initialClientIdRef.current = null; // only run once
+  }, [loading]);
 
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
