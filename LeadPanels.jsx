@@ -111,7 +111,7 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, inSideba
     { key: 'cold',                icon: Snowflake,     color: '#8B93A3', label: 'Cold Calls' },
     { key: 'contactedCold',       icon: PhoneCall,     color: '#8B93A3', label: 'Contacted Cold Calls' },
     { key: 'warmLeads',           icon: Flame,         color: '#F4B860', label: 'Warm Leads' },
-    { key: 'potential',           icon: Star,          color: C.gold,    label: 'Potential' },
+    { key: 'potential',           icon: Star,          color: C.gold,    label: 'Potential Leads' },
   ];
 
   return (

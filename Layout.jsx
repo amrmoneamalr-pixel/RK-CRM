@@ -32,6 +32,7 @@ import TeamChat from './TeamChat';
       {/* COVO */}
       <span
         className={`${s.word} font-black italic text-white leading-none tracking-wider`}
+        style={{ fontFamily: "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif" }}
       >
         COVO
       </span>
