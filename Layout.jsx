@@ -5,25 +5,123 @@ import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, A
 import LeadPanels from './LeadPanels';
 import TeamChat from './TeamChat';
 
-// COVO CRM logo — inline SVG, matches covoprojects style (white card + colored bars + red subtitle)
-function CovoLogo({ height = 56 }) {
-  // viewBox: 200 x 80 → aspect ratio 2.5:1
+// COVO CRM Logo
+function CovoLogo({ size = "md" }) {
+  const sizes = {
+    sm: {
+      height: 42,
+      word: 22,
+      barW: 18,
+      barH: 2.5,
+      subtitle: 7,
+      spacing: 3,
+      tracking: 3,
+    },
+    md: {
+      height: 50,
+      word: 30,
+      barW: 28,
+      barH: 3,
+      subtitle: 9,
+      spacing: 3,
+      tracking: 4,
+    },
+    lg: {
+      height: 70,
+      word: 42,
+      barW: 40,
+      barH: 4,
+      subtitle: 12,
+      spacing: 3,
+      tracking: 6,
+    },
+  };
+
+  const s = sizes[size] || sizes.md;
+
+  const totalBars = s.barW * 4 + s.spacing * 3;
+  const startX = (220 - totalBars) / 2;
+
   return (
-    <svg viewBox="0 0 200 80" style={{ height, width: 'auto', display: 'block' }} xmlns="http://www.w3.org/2000/svg">
-      {/* White rounded background card */}
-      <rect x="0" y="0" width="200" height="80" rx="12" fill="#FFFFFF" />
-      <text x="100" y="42" textAnchor="middle" fill="#14181F"
-        style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif', fontWeight: 800, fontSize: '40px', letterSpacing: '-1px' }}>
+    <svg
+      viewBox="0 0 220 90"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{
+        height: s.height,
+        width: "auto",
+        display: "block",
+      }}
+    >
+      {/* COVO */}
+      <text
+        x="110"
+        y="34"
+        textAnchor="middle"
+        fill="#FFFFFF"
+        style={{
+          fontFamily:
+            'Inter, system-ui, -apple-system, "Segoe UI", sans-serif',
+          fontWeight: 900,
+          fontStyle: "italic",
+          fontSize: `${s.word}px`,
+          letterSpacing: "2px",
+        }}
+      >
         COVO
       </text>
-      {/* Colored bars */}
-      <rect x="42"  y="52" width="24" height="3.5" fill="#E63946" rx="1" />
-      <rect x="73"  y="52" width="24" height="3.5" fill="#F4B860" rx="1" />
-      <rect x="104" y="52" width="24" height="3.5" fill="#2EC4B6" rx="1" />
-      <rect x="135" y="52" width="24" height="3.5" fill="#7FA887" rx="1" />
-      {/* Subtitle */}
-      <text x="100" y="71" textAnchor="middle" fill="#E63946"
-        style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif', fontWeight: 700, fontSize: '10px', letterSpacing: '6px' }}>
+
+      {/* Brand Bars */}
+      <rect
+        x={startX}
+        y="47"
+        width={s.barW}
+        height={s.barH}
+        rx={10}
+        fill="#5BE0EF"
+      />
+
+      <rect
+        x={startX + s.barW + s.spacing}
+        y="47"
+        width={s.barW}
+        height={s.barH}
+        rx={10}
+        fill="#E8196A"
+      />
+
+      <rect
+        x={startX + (s.barW + s.spacing) * 2}
+        y="47"
+        width={s.barW}
+        height={s.barH}
+        rx={10}
+        fill="#F0A500"
+      />
+
+      <rect
+        x={startX + (s.barW + s.spacing) * 3}
+        y="47"
+        width={s.barW}
+        height={s.barH}
+        rx={10}
+        fill="#00C9A7"
+      />
+
+      {/* CRM */}
+      <text
+        x="110"
+        y="68"
+        textAnchor="middle"
+        fill="#9CA3AF"
+        style={{
+          fontFamily:
+            'Inter, system-ui, -apple-system, "Segoe UI", sans-serif',
+          fontWeight: 500,
+          fontSize: `${s.subtitle}px`,
+          letterSpacing: `${s.tracking}px`,
+          textTransform: "uppercase",
+        }}
+      >
         CRM
       </text>
     </svg>
