@@ -6,30 +6,30 @@ import LeadPanels from './LeadPanels';
 import TeamChat from './TeamChat';
 
 // COVO CRM Logo
- function CovoLogo({ size = 'md' }) {
+function CovoLogo({ size = "md" }) {
   const sizes = {
     sm: {
-      word: 'text-xl',
-      bar: 'w-[20px] h-[3px]',
-      sub: 'text-[8px]',
-      gap: 'gap-[4px]',
-      margin: 'my-[6px]',
+      word: "text-lg",
+      bar: "w-[18px] h-[2.5px]",
+      sub: "text-[7px]",
+      gap: "gap-[3px]",
+      margin: "my-[5px]",
     },
 
     md: {
-      word: 'text-3xl',
-      bar: 'w-[32px] h-[3px]',
-      sub: 'text-[10px]',
-      gap: 'gap-[4px]',
-      margin: 'my-[6px]',
+      word: "text-2xl",
+      bar: "w-[28px] h-[3px]",
+      sub: "text-[9px]",
+      gap: "gap-[3px]",
+      margin: "my-[5px]",
     },
 
     lg: {
-      word: 'text-5xl',
-      bar: 'w-[46px] h-[4px]',
-      sub: 'text-[13px]',
-      gap: 'gap-[5px]',
-      margin: 'my-[7px]',
+      word: "text-4xl",
+      bar: "w-[40px] h-[4px]",
+      sub: "text-[11px]",
+      gap: "gap-[4px]",
+      margin: "my-[6px]",
     },
   };
 
@@ -37,13 +37,9 @@ import TeamChat from './TeamChat';
 
   return (
     <div className="flex flex-col items-start select-none leading-none">
-
       {/* COVO */}
       <span
         className={`${s.word} font-black italic text-white tracking-wider leading-none`}
-        style={{
-          fontFamily: 'Inter, system-ui, sans-serif',
-        }}
       >
         COVO
       </span>
@@ -52,38 +48,32 @@ import TeamChat from './TeamChat';
       <div className={`flex ${s.gap} ${s.margin}`}>
         <span
           className={`${s.bar} rounded-full`}
-          style={{ background: '#5BE0EF' }}
+          style={{ background: "#5BE0EF" }}
         />
-
         <span
           className={`${s.bar} rounded-full`}
-          style={{ background: '#E8196A' }}
+          style={{ background: "#E8196A" }}
         />
-
         <span
           className={`${s.bar} rounded-full`}
-          style={{ background: '#F0A500' }}
+          style={{ background: "#F0A500" }}
         />
-
         <span
           className={`${s.bar} rounded-full`}
-          style={{ background: '#00C9A7' }}
+          style={{ background: "#00C9A7" }}
         />
       </div>
 
       {/* CRM */}
       <span
-        className={`${s.sub} uppercase font-medium`}
+        className={`${s.sub} uppercase font-medium text-white`}
         style={{
-          color: '#8DBDFF',
-          fontFamily: 'Inter, system-ui, sans-serif',
-          letterSpacing: '0.45em',
-          marginLeft: '1px',
+          letterSpacing: "0.42em",
+          marginLeft: "1px",
         }}
       >
         CRM
       </span>
-
     </div>
   );
 }
