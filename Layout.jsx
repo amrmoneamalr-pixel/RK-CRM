@@ -9,31 +9,31 @@ import TeamChat from './TeamChat';
 function CovoLogo({ size = "md" }) {
   const sizes = {
     sm: {
-      height: 50,
-      word: 28,
-      barW: 20,
+      height: 54,
+      word: 30,
+      barW: 18,
       barH: 3,
+      gap: 4,
       subtitle: 8,
-      spacing: 4,
-      tracking: 4,
+      tracking: 7,
     },
     md: {
-      height: 62,
-      word: 38,
-      barW: 32,
-      barH: 4,
-      subtitle: 10,
-      spacing: 4,
-      tracking: 5,
+      height: 66,
+      word: 40,
+      barW: 26,
+      barH: 3.5,
+      gap: 5,
+      subtitle: 9,
+      tracking: 8,
     },
     lg: {
-      height: 80,
+      height: 82,
       word: 52,
-      barW: 44,
-      barH: 5,
-      subtitle: 13,
-      spacing: 4,
-      tracking: 7,
+      barW: 34,
+      barH: 4,
+      gap: 6,
+      subtitle: 11,
+      tracking: 10,
     },
   };
 
@@ -41,19 +41,19 @@ function CovoLogo({ size = "md" }) {
 
   return (
     <svg
-      viewBox="0 0 240 95"
+      viewBox="0 0 190 78"
       xmlns="http://www.w3.org/2000/svg"
       style={{
         height: s.height,
         width: "auto",
         display: "block",
+        overflow: "visible",
       }}
     >
       {/* COVO */}
       <text
         x="0"
-        y="38"
-        textAnchor="start"
+        y="28"
         fill="#FFFFFF"
         style={{
           fontFamily:
@@ -61,7 +61,7 @@ function CovoLogo({ size = "md" }) {
           fontWeight: 900,
           fontStyle: "italic",
           fontSize: `${s.word}px`,
-          letterSpacing: "2px",
+          letterSpacing: "-1px",
         }}
       >
         COVO
@@ -70,52 +70,52 @@ function CovoLogo({ size = "md" }) {
       {/* Brand Bars */}
       <rect
         x="2"
-        y="50"
+        y="39"
         width={s.barW}
         height={s.barH}
-        rx="10"
+        rx="20"
         fill="#5BE0EF"
       />
 
       <rect
-        x={2 + s.barW + s.spacing}
-        y="50"
+        x={2 + s.barW + s.gap}
+        y="39"
         width={s.barW}
         height={s.barH}
-        rx="10"
+        rx="20"
         fill="#E8196A"
       />
 
       <rect
-        x={2 + (s.barW + s.spacing) * 2}
-        y="50"
+        x={2 + (s.barW + s.gap) * 2}
+        y="39"
         width={s.barW}
         height={s.barH}
-        rx="10"
+        rx="20"
         fill="#F0A500"
       />
 
       <rect
-        x={2 + (s.barW + s.spacing) * 3}
-        y="50"
+        x={2 + (s.barW + s.gap) * 3}
+        y="39"
         width={s.barW}
         height={s.barH}
-        rx="10"
+        rx="20"
         fill="#00C9A7"
       />
 
       {/* CRM */}
       <text
-        x="2"
-        y="72"
-        textAnchor="start"
-        fill="#5BE0EF"
+        x="0"
+        y="60"
+        fill="#8DBDFF"
         style={{
           fontFamily:
             'Inter, system-ui, -apple-system, "Segoe UI", sans-serif',
-          fontWeight: 600,
+          fontWeight: 500,
           fontSize: `${s.subtitle}px`,
           letterSpacing: `${s.tracking}px`,
+          textTransform: "uppercase",
         }}
       >
         CRM
