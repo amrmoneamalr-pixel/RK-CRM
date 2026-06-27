@@ -15,19 +15,14 @@ function normalizePhone(raw) {
   if (!raw) return '';
   let d = String(raw).trim().replace(/[\s\-\(\)\.]/g, '');
   if (!d) return '';
-
   // Remove leading +
   if (d.startsWith('+')) d = d.slice(1);
-
   // Already has 00 prefix → remove it to get country code
   if (d.startsWith('00')) d = d.slice(2);
-
   // Egyptian local format: 01xxxxxxxxx → 201xxxxxxxxx
   if (/^01[0125]\d{8}$/.test(d)) return '2' + d;
-
   // Egyptian with country code already: 201xxxxxxxxx → keep
   if (/^201[0125]\d{8}$/.test(d)) return d;
-
   // All other international numbers → store as-is (already has country code)
   return d;
 }
@@ -48,7 +43,6 @@ export default function ImportModal({ userId, onClose, onDone }) {
   const [projectOptions, setProjectOptions] = useState([]);
   const [marketerProfiles, setMarketerProfiles] = useState([]);
   const [tmProfiles, setTmProfiles] = useState([]);
-
   const [settings, setSettings] = useState({
     stage_category: '',
     lead_origin: '',
@@ -60,7 +54,6 @@ export default function ImportModal({ userId, onClose, onDone }) {
     assigned_to: '',
   });
   const [profiles, setProfiles] = useState([]);
-
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState([]);
   const [importing, setImporting] = useState(false);
@@ -109,7 +102,6 @@ export default function ImportModal({ userId, onClose, onDone }) {
     if (!f) return;
     setFile(f);
     setResult(null);
-
     const ext = f.name.split('.').pop().toLowerCase();
     if (ext === 'csv') {
       Papa.parse(f, {
@@ -156,6 +148,7 @@ export default function ImportModal({ userId, onClose, onDone }) {
     }
 
     const owner_id = settings.assigned_to || userId;
+
     const records = rows
       .map(r => {
         const rawPhone = r.Phone || r.phone || r['Mobile'] || r['Mobile Phone'] || r['رقم الموبايل'] || '';
@@ -185,15 +178,23 @@ export default function ImportModal({ userId, onClose, onDone }) {
       return;
     }
 
+    // ---- Bulk insert via RPC (one transaction, ONE summary notification) ----
+    // For very large files we chunk into 1000-record batches so the HTTP payload
+    // stays reasonable. Each chunk gets its own summary notification.
+    const CHUNK = 1000;
     let inserted = 0;
-    for (let i = 0; i < records.length; i += 300) {
-      const { error } = await supabase.from('clients').insert(records.slice(i, i + 300));
+    for (let i = 0; i < records.length; i += CHUNK) {
+      const batch = records.slice(i, i + CHUNK);
+      const { data, error } = await supabase.rpc('bulk_import_clients', {
+        p_records: batch,
+        p_owner_id: owner_id,
+      });
       if (error) {
         setResult({ error: `Error after ${inserted} rows: ${error.message}` });
         setImporting(false);
         return;
       }
-      inserted += Math.min(300, records.length - i);
+      inserted += (data || 0);
     }
 
     setResult({ success: inserted });
@@ -208,13 +209,11 @@ export default function ImportModal({ userId, onClose, onDone }) {
       ['Ahmed Mohamed', '201012345678', ''],
       ['Sara Ali', '966501234567', ''],
     ]);
-
     // Set Phone and Secondary Phone columns as Text format
     if (!ws['!cols']) ws['!cols'] = [];
     ws['!cols'][0] = { wch: 25 };
     ws['!cols'][1] = { wch: 20 };
     ws['!cols'][2] = { wch: 20 };
-
     // Force Phone cells to be text type
     ['B2', 'B3', 'C2', 'C3'].forEach(cell => {
       if (ws[cell]) {
@@ -222,11 +221,9 @@ export default function ImportModal({ userId, onClose, onDone }) {
         ws[cell].z = '@'; // text format
       }
     });
-
     // Set column format for entire Phone columns
     ws['!cols'][1] = { wch: 20, z: '@' };
     ws['!cols'][2] = { wch: 20, z: '@' };
-
     XLSX.utils.book_append_sheet(wb, ws, 'Clients');
     XLSX.writeFile(wb, 'rk-import-template.xlsx');
   };
@@ -252,30 +249,35 @@ export default function ImportModal({ userId, onClose, onDone }) {
                 {['New Fresh Lead','Old Fresh Lead','Cold Calls','Old Campaign'].map(v => <option key={v} value={v}>{v}</option>)}
               </select>
             </Field>
+
             <Field label="Lead Source" required>
               <select value={settings.source} onChange={set('source')} className={inputClass} style={inputStyle}>
                 <option value="">— Select —</option>
                 {SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </Field>
+
             <Field label="Developer" required>
               <select value={settings.developer} onChange={set('developer')} className={inputClass} style={inputStyle}>
                 <option value="">— Select —</option>
                 {developers.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
               </select>
             </Field>
+
             <Field label="Project" required>
               <select value={settings.project} onChange={set('project')} className={inputClass} style={inputStyle} disabled={!settings.developer}>
                 <option value="">— Select —</option>
                 {projectOptions.map(p => <option key={p.id} value={p.name}>{p.name}{p.location ? ` — ${p.location}` : ''}</option>)}
               </select>
             </Field>
+
             <Field label="Lead Origin">
               <select value={settings.lead_origin} onChange={set('lead_origin')} className={inputClass} style={inputStyle}>
                 <option value="">—</option>
                 {LEAD_ORIGINS.map(o => <option key={o} value={o}>{o}</option>)}
               </select>
             </Field>
+
             {settings.lead_origin === 'Marketing' && (
               <Field label="Marketer">
                 <select value={settings.origin_name} onChange={set('origin_name')} className={inputClass} style={inputStyle}>
@@ -284,6 +286,7 @@ export default function ImportModal({ userId, onClose, onDone }) {
                 </select>
               </Field>
             )}
+
             {settings.lead_origin === 'Top Management' && (
               <Field label="TM Member">
                 <select value={settings.origin_name} onChange={set('origin_name')} className={inputClass} style={inputStyle}>
@@ -292,6 +295,7 @@ export default function ImportModal({ userId, onClose, onDone }) {
                 </select>
               </Field>
             )}
+
             <Field label="Assign To">
               <select value={settings.assigned_to} onChange={set('assigned_to')} className={inputClass} style={inputStyle}>
                 <option value="">— My account —</option>
@@ -340,6 +344,7 @@ export default function ImportModal({ userId, onClose, onDone }) {
               <Check size={14} /> Imported {result.success} leads successfully!
             </div>
           )}
+
           {result?.error && (
             <div className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm" style={{ backgroundColor: '#C9714F22', color: '#C9714F' }}>
               <AlertCircle size={14} /> {result.error}

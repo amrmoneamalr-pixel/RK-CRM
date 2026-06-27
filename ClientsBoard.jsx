@@ -3,9 +3,10 @@ import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { supabase } from './supabaseClient';
 import { C, STAGES, SOURCES, ACTIONS, LOCATIONS, LEAD_ORIGINS, COLD_RESULTS, fmtMoney, fmtDate, todayStr, stageOf, stageIdFromInput, LEAD_CATEGORY_LABELS, leadCategory, clientStatus } from './constants';
-import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X, Pencil, MessageSquarePlus, Loader2, Bell, Mail } from 'lucide-react';
+import { Plus, Search, Users, Download, Upload, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X, Pencil, MessageSquarePlus, Loader2, Mail } from 'lucide-react';
 import ClientModal from './ClientModal';
 import ImportModal from './ImportModal';
+import Notifications from './Notifications';
 import { SourceTag } from './BrandIcons';
 import PhoneFlag, { detectCountry } from './PhoneFlag';
 import DateRangePicker from './DateRangePicker';
@@ -114,7 +115,7 @@ const selectClass = 'rounded-lg px-2.5 py-2 text-xs outline-none';
 const PAGE_SIZE = 30;
 const EXPORT_BATCH = 1000;
 
-export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle, leadFilter, onClearLeadFilter, initialPage = 1, onPageChange, onOpenMail }) {
+export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle, leadFilter, onClearLeadFilter, initialPage = 1, onPageChange, onOpenMail, onSelectCategory }) {
   const [clients, setClients] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [activities, setActivities] = useState([]);
@@ -354,45 +355,18 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
   const bulkReassign = async () => {
     if (!bulkReassignTo || selectedIds.size === 0) return;
     setBulkBusy(true);
-    const patch = { owner_id: bulkReassignTo, no_answer_count: 0 };
-    switch (bulkReassignStatus) {
-      case 'new':
-        patch.call_result = null;
-        patch.ever_contacted = false;
-        patch.previous_owners = [];
-        break;
-      case 'reRotation':
-        patch.call_result = null;
-        patch.ever_contacted = false;
-        patch.next_follow_up = null;
-        patch.last_contacted_at = null;
-        break;
-      case 'contacted':
-        patch.call_result = 'Contacted';
-        patch.ever_contacted = true;
-        break;
-      case 'notInterested':
-        patch.call_result = 'Not Interested';
-        patch.ever_contacted = true;
-        break;
-      case 'notQualified':
-        patch.call_result = 'Not Qualified';
-        patch.ever_contacted = true;
-        break;
-      default:
-        patch.call_result = null;
-    }
-    if (bulkReassignStatus === 'reRotation') {
-      for (const id of Array.from(selectedIds)) {
-        const client = clients.find(c => c.id === id);
-        const prev = Array.isArray(client?.previous_owners) ? client.previous_owners : [];
-        await supabase.from('clients').update({
-          ...patch,
-          previous_owners: [...prev, client?.owner_id].filter(Boolean),
-        }).eq('id', id);
+    try {
+      const { error } = await supabase.rpc('bulk_reassign_clients', {
+        p_client_ids: Array.from(selectedIds),
+        p_new_owner: bulkReassignTo,
+        p_status: bulkReassignStatus,
+      });
+      if (error) {
+        console.warn('Bulk reassign failed:', error);
+        alert('Bulk reassign failed: ' + error.message);
       }
-    } else {
-      await supabase.from('clients').update(patch).in('id', Array.from(selectedIds));
+    } catch (e) {
+      console.warn('Bulk reassign exception:', e);
     }
     setBulkBusy(false);
     setSelectedIds(new Set());
@@ -489,11 +463,8 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
               </button>
             </>
           )}
-          {/* Notification icon */}
-          <button className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0 relative" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.muted }}
-            title="Notifications">
-            <Bell size={15} />
-          </button>
+          {/* Notifications */}
+          <Notifications userId={userId} onSelectCategory={onSelectCategory} />
           {/* Mail icon */}
           <button onClick={onOpenMail} className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0 relative" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.muted }}
             title="Mail">
