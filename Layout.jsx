@@ -9,42 +9,39 @@ import TeamChat from './TeamChat';
 function CovoLogo({ size = "md" }) {
   const sizes = {
     sm: {
-      height: 42,
-      word: 22,
-      barW: 18,
-      barH: 2.5,
-      subtitle: 7,
-      spacing: 3,
-      tracking: 3,
-    },
-    md: {
       height: 50,
-      word: 30,
-      barW: 28,
+      word: 28,
+      barW: 20,
       barH: 3,
-      subtitle: 9,
-      spacing: 3,
+      subtitle: 8,
+      spacing: 4,
       tracking: 4,
     },
-    lg: {
-      height: 70,
-      word: 42,
-      barW: 40,
+    md: {
+      height: 62,
+      word: 38,
+      barW: 32,
       barH: 4,
-      subtitle: 12,
-      spacing: 3,
-      tracking: 6,
+      subtitle: 10,
+      spacing: 4,
+      tracking: 5,
+    },
+    lg: {
+      height: 80,
+      word: 52,
+      barW: 44,
+      barH: 5,
+      subtitle: 13,
+      spacing: 4,
+      tracking: 7,
     },
   };
 
   const s = sizes[size] || sizes.md;
 
-  const totalBars = s.barW * 4 + s.spacing * 3;
-  const startX = (220 - totalBars) / 2;
-
   return (
     <svg
-      viewBox="0 0 220 90"
+      viewBox="0 0 240 95"
       xmlns="http://www.w3.org/2000/svg"
       style={{
         height: s.height,
@@ -54,9 +51,9 @@ function CovoLogo({ size = "md" }) {
     >
       {/* COVO */}
       <text
-        x="110"
-        y="34"
-        textAnchor="middle"
+        x="0"
+        y="38"
+        textAnchor="start"
         fill="#FFFFFF"
         style={{
           fontFamily:
@@ -72,54 +69,53 @@ function CovoLogo({ size = "md" }) {
 
       {/* Brand Bars */}
       <rect
-        x={startX}
-        y="47"
+        x="2"
+        y="50"
         width={s.barW}
         height={s.barH}
-        rx={10}
+        rx="10"
         fill="#5BE0EF"
       />
 
       <rect
-        x={startX + s.barW + s.spacing}
-        y="47"
+        x={2 + s.barW + s.spacing}
+        y="50"
         width={s.barW}
         height={s.barH}
-        rx={10}
+        rx="10"
         fill="#E8196A"
       />
 
       <rect
-        x={startX + (s.barW + s.spacing) * 2}
-        y="47"
+        x={2 + (s.barW + s.spacing) * 2}
+        y="50"
         width={s.barW}
         height={s.barH}
-        rx={10}
+        rx="10"
         fill="#F0A500"
       />
 
       <rect
-        x={startX + (s.barW + s.spacing) * 3}
-        y="47"
+        x={2 + (s.barW + s.spacing) * 3}
+        y="50"
         width={s.barW}
         height={s.barH}
-        rx={10}
+        rx="10"
         fill="#00C9A7"
       />
 
       {/* CRM */}
       <text
-        x="110"
-        y="68"
-        textAnchor="middle"
-        fill="#9CA3AF"
+        x="2"
+        y="72"
+        textAnchor="start"
+        fill="#5BE0EF"
         style={{
           fontFamily:
             'Inter, system-ui, -apple-system, "Segoe UI", sans-serif',
-          fontWeight: 500,
+          fontWeight: 600,
           fontSize: `${s.subtitle}px`,
           letterSpacing: `${s.tracking}px`,
-          textTransform: "uppercase",
         }}
       >
         CRM
@@ -127,7 +123,6 @@ function CovoLogo({ size = "md" }) {
     </svg>
   );
 }
-
 export default function Layout({ profile, tab, setTab, onSelectCategory, onSignOut, children }) {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
