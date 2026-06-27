@@ -497,12 +497,99 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
 
   return (
     <div className="space-y-4">
-      {leadFilter && (
-        <div className="flex items-center justify-between gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: C.surface, border: `1px solid ${C.gold}` }}>
-          <span className="text-sm font-medium">Showing: <span style={{ color: C.gold }}>{LEAD_CATEGORY_LABELS[leadFilter]}</span> ({totalCount})</span>
-          <button onClick={onClearLeadFilter} className="flex items-center gap-1 text-xs font-medium" style={{ color: C.muted }}><X size={14} /> Clear</button>
-        </div>
-      )}
+      {(() => {
+        const chips = [];
+
+        // 1) Sidebar lead filter
+        if (leadFilter) {
+          let label = LEAD_CATEGORY_LABELS[leadFilter];
+          if (!label && leadFilter.startsWith('pool_')) {
+            const pid = poolMap[leadFilter.slice(5)];
+            label = pid ? owners[pid] : 'Pool';
+          }
+          chips.push({
+            label: 'View: ' + (label || leadFilter),
+            color: '#5BE0EF',
+            onRemove: onClearLeadFilter,
+          });
+        }
+
+        // 2) Search
+        if (search) {
+          chips.push({
+            label: `Search: "${search}"`,
+            onRemove: () => { setSearch(''); setSearchInput(''); },
+          });
+        }
+
+        // 3) Column filters
+        const removeCol = (...keys) => () => {
+          setColFilters((p) => { const n = { ...p }; keys.forEach(k => { delete n[k]; }); return n; });
+          setPendingCols((p) => { const n = { ...p }; keys.forEach(k => { delete n[k]; }); return n; });
+        };
+
+        if (colFilters.name)            chips.push({ label: `Name: ${colFilters.name}`,                onRemove: removeCol('name') });
+        if (colFilters.phone)           chips.push({ label: `Phone: ${colFilters.phone}`,              onRemove: removeCol('phone') });
+        if (colFilters.stage_category)  chips.push({ label: `Category: ${colFilters.stage_category}`,  onRemove: removeCol('stage_category') });
+        if (colFilters.status)          chips.push({ label: `Stage: ${colFilters.status}`,             onRemove: removeCol('status') });
+        if (colFilters.contactStatus)   chips.push({ label: `Status: ${colFilters.contactStatus}`,     onRemove: removeCol('contactStatus') });
+        if (colFilters.assigned_to)     chips.push({ label: `Assigned: ${colFilters.assigned_to}`,     onRemove: removeCol('assigned_to') });
+        if (colFilters.lead_origin)     chips.push({ label: `Origin: ${colFilters.lead_origin}`,       onRemove: removeCol('lead_origin') });
+        if (colFilters.source)          chips.push({ label: `Source: ${colFilters.source}`,            onRemove: removeCol('source') });
+        if (colFilters.developer)       chips.push({ label: `Developer: ${colFilters.developer}`,      onRemove: removeCol('developer') });
+        if (colFilters.project)         chips.push({ label: `Project: ${colFilters.project}`,          onRemove: removeCol('project') });
+        if (colFilters.location)        chips.push({ label: `Location: ${colFilters.location}`,        onRemove: removeCol('location') });
+        if (colFilters.call_result)     chips.push({ label: `Action: ${colFilters.call_result}`,       onRemove: removeCol('call_result') });
+
+        if (colFilters.created_from || colFilters.created_to) {
+          const f = colFilters.created_from || '...';
+          const t = colFilters.created_to || '...';
+          chips.push({ label: `Created: ${f} → ${t}`, onRemove: removeCol('created_from', 'created_to') });
+        }
+        if (colFilters.followup_from || colFilters.followup_to) {
+          const f = colFilters.followup_from || '...';
+          const t = colFilters.followup_to || '...';
+          chips.push({ label: `Follow-up: ${f} → ${t}`, onRemove: removeCol('followup_from', 'followup_to') });
+        }
+        if (colFilters.countries && colFilters.countries.length > 0) {
+          chips.push({
+            label: `Country: ${colFilters.countries.join(', ')}`,
+            onRemove: () => {
+              setColFilters((p) => { const n = { ...p }; delete n.countries; return n; });
+              setPendingCols((p) => ({ ...p, countries: [] }));
+            },
+          });
+        }
+
+        if (chips.length === 0) return null;
+
+        return (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
+            <span className="text-xs font-bold" style={{ color: C.muted }}>Active filters:</span>
+            {chips.map((chip, i) => (
+              <span key={i} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full" style={{ backgroundColor: `${chip.color || C.gold}22`, color: chip.color || C.gold, fontWeight: 600 }}>
+                {chip.label}
+                <button onClick={chip.onRemove} className="flex items-center hover:opacity-70" style={{ marginLeft: 2 }}>
+                  <X size={12} />
+                </button>
+              </span>
+            ))}
+            {chips.length > 1 && (
+              <button
+                onClick={() => {
+                  clearColFilters();
+                  if (leadFilter) onClearLeadFilter && onClearLeadFilter();
+                  setSearch(''); setSearchInput('');
+                }}
+                className="ml-1 text-xs font-bold underline"
+                style={{ color: C.muted }}
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+        );
+      })()}
 
       <div className="space-y-2">
         {/* Row 1 (top): Export, Import, Notification, Mail */}
