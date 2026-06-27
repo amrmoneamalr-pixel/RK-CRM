@@ -213,30 +213,51 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
           <>
             <div style={{ height: '50%', display: 'flex', flexDirection: 'column' }}>
               {showPoolsTab && (
-                <div className="flex gap-1 p-2 shrink-0" style={{ borderBottom: `1px solid ${C.border}` }}>
-                  <button
-                    onClick={() => setSidebarTab('sales')}
-                    className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors"
-                    style={{
-                      backgroundColor: sidebarTab === 'sales' ? C.gold : C.surface,
-                      color: sidebarTab === 'sales' ? '#14181F' : C.muted,
-                      border: `1px solid ${C.border}`,
-                    }}
-                  >
-                    Sales
-                  </button>
-                  <button
-                    onClick={() => setSidebarTab('pools')}
-                    className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors"
-                    style={{
-                      backgroundColor: sidebarTab === 'pools' ? C.gold : C.surface,
-                      color: sidebarTab === 'pools' ? '#14181F' : C.muted,
-                      border: `1px solid ${C.border}`,
-                    }}
-                  >
-                    Pools
-                  </button>
-                </div>
+                <>
+                  <div className="flex justify-center p-2 shrink-0" style={{ borderBottom: `1px solid ${C.border}` }}>
+                    <button
+                      onClick={() => {
+                        if (onSelectCategory) onSelectCategory(null);
+                        window.dispatchEvent(new CustomEvent('rk-clear-all-filters'));
+                      }}
+                      className="px-6 py-1.5 rounded-lg text-xs font-bold transition-all"
+                      style={{
+                        backgroundColor: 'transparent',
+                        color: '#5BE0EF',
+                        border: '1px solid #5BE0EF',
+                        textShadow: '0 0 6px rgba(91, 224, 239, 0.6)',
+                        boxShadow: '0 0 8px rgba(91, 224, 239, 0.25), inset 0 0 6px rgba(91, 224, 239, 0.1)',
+                      }}
+                      title="Show all leads (clear all filters)"
+                    >
+                      All
+                    </button>
+                  </div>
+                  <div className="flex gap-1 p-2 shrink-0" style={{ borderBottom: `1px solid ${C.border}` }}>
+                    <button
+                      onClick={() => setSidebarTab('sales')}
+                      className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                      style={{
+                        backgroundColor: sidebarTab === 'sales' ? C.gold : C.surface,
+                        color: sidebarTab === 'sales' ? '#14181F' : C.muted,
+                        border: `1px solid ${C.border}`,
+                      }}
+                    >
+                      Sales
+                    </button>
+                    <button
+                      onClick={() => setSidebarTab('pools')}
+                      className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                      style={{
+                        backgroundColor: sidebarTab === 'pools' ? C.gold : C.surface,
+                        color: sidebarTab === 'pools' ? '#14181F' : C.muted,
+                        border: `1px solid ${C.border}`,
+                      }}
+                    >
+                      Pools
+                    </button>
+                  </div>
+                </>
               )}
               <div className="overflow-y-auto flex-1">
                 {showPoolsTab && sidebarTab === 'pools' ? (

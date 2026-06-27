@@ -180,6 +180,18 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
     return () => clearTimeout(t);
   }, [searchInput]);
 
+  // Global "Clear all filters" event from the All button in Layout
+  useEffect(() => {
+    const handler = () => {
+      setColFilters({});
+      setPendingCols({});
+      setSearch('');
+      setSearchInput('');
+    };
+    window.addEventListener('rk-clear-all-filters', handler);
+    return () => window.removeEventListener('rk-clear-all-filters', handler);
+  }, []);
+
   useEffect(() => {
     const top = document.getElementById('top-scroll-mirror');
     const main = document.getElementById('main-table-scroll');
@@ -843,7 +855,21 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
                       <td className="py-2.5 px-3"><Pill color={stageColor}>{rawCat}</Pill></td>
                       <td className="py-2.5 px-3"><Pill color={stat.color === '#FFFFFF' ? C.text : stat.color}>{stat.label}</Pill></td>
                       <td className="py-2.5 px-3"><Pill color={c.ever_contacted ? '#7FA887' : '#D6453E'}>{c.ever_contacted ? 'Contacted' : 'New'}</Pill></td>
-                      {hasTeamAccess && <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: poolIds.includes(c.owner_id) ? '#5BE0EF' : C.muted, fontWeight: poolIds.includes(c.owner_id) ? 600 : 400 }}>{owners[c.owner_id] || '—'}</td>}
+                      {hasTeamAccess && (() => {
+                        const isPool = poolIds.includes(c.owner_id);
+                        return (
+                          <td className="py-2.5 px-3 whitespace-nowrap"
+                            style={{
+                              color: isPool ? '#5BE0EF' : C.muted,
+                              fontWeight: isPool ? 700 : 400,
+                              textShadow: isPool
+                                ? '0 0 4px rgba(91,224,239,0.9), 0 0 8px rgba(91,224,239,0.6), 0 0 14px rgba(91,224,239,0.35)'
+                                : 'none',
+                            }}>
+                            {owners[c.owner_id] || '—'}
+                          </td>
+                        );
+                      })()}
                       {hasTeamAccess && <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{[c.lead_origin, c.origin_name].filter(Boolean).join(" · ") || "—"}</td>}
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}><SourceTag source={c.source} size={15} /></td>
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.created_at ? new Date(c.created_at).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
