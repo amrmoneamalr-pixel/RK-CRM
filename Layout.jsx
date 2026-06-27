@@ -1,23 +1,29 @@
 import React from 'react';
 import { C } from './constants';
-import logo from './logo.png';
-import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, Activity as ActivityIcon, Settings as SettingsIcon, Building2 } from 'lucide-react';
+import covoLogo from './covo-logo.png.png';
+import rkLogo from './rk-logo.png.png';
+import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, Activity as ActivityIcon, Settings as SettingsIcon, Building2, Mail as MailIcon } from 'lucide-react';
 import LeadPanels from './LeadPanels';
 import TeamChat from './TeamChat';
 
 export default function Layout({ profile, tab, setTab, onSelectCategory, onSignOut, children }) {
   const tabs = [
-    { id: 'dashboard',  label: 'Dashboard',         icon: BarChart3 },
-    { id: 'clients',    label: 'Clients',            icon: Users },
-    { id: 'developers', label: 'Developers',         icon: Building2 },
-    { id: 'orgchart',   label: 'Company Structure',  icon: Network },
+    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: 'clients', label: 'Clients', icon: Users },
+    { id: 'developers', label: 'Developers', icon: Building2 },
+    { id: 'orgchart', label: 'Company Structure', icon: Network },
   ];
+
   const isAdmin = profile.role === 'admin';
   const hasTeamAccess = isAdmin || ['sales_manager', 'team_leader', 'top_management'].includes(profile.title);
+
   if (hasTeamAccess) {
     tabs.push({ id: 'reports', label: 'Reports', icon: Briefcase });
     tabs.push({ id: 'activity', label: 'Activity', icon: ActivityIcon });
   }
+
+  tabs.push({ id: 'mail', label: 'Mail', icon: MailIcon });
+
   if (isAdmin) {
     tabs.push({ id: 'team', label: 'Users', icon: UserCog });
     tabs.push({ id: 'settings', label: 'Settings', icon: SettingsIcon });
@@ -27,16 +33,15 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
     <div dir="ltr" lang="en" className="min-h-screen font-body sm:flex" style={{ backgroundColor: C.bg, color: C.text }}>
       {/* Sidebar (desktop) */}
       <aside className="hidden sm:flex flex-col w-60 shrink-0 border-r sticky top-0 h-screen p-4" style={{ borderColor: C.border }}>
-        <div className="flex items-center gap-2.5 mb-6">
-          <img src={logo} alt="RK Real Estate" className="h-9" />
-          <div>
-            <h1 className="font-display text-xl font-extrabold tracking-tight" style={{ color: C.gold }}>RK CRM</h1>
-            <p className="text-xs mt-0.5" style={{ color: C.muted }}>
-              {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
-            </p>
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <img src={covoLogo} alt="COVO CRM" className="h-12" />
+            <img src={rkLogo} alt="RK Real Estate" className="h-10" />
           </div>
+          <p className="text-xs mt-1" style={{ color: C.muted }}>
+            {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
+          </p>
         </div>
-
         <nav className="flex flex-col gap-1 flex-1">
           {tabs.map((t) => {
             const Icon = t.icon;
@@ -54,7 +59,6 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
             );
           })}
         </nav>
-
         <button onClick={onSignOut} className="flex items-center gap-2 text-sm mt-4 px-3 py-2" style={{ color: C.muted }}>
           <LogOut size={15} /> Sign out
         </button>
@@ -64,20 +68,19 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
       <header className="sm:hidden sticky top-0 z-20 border-b" style={{ backgroundColor: C.bg, borderColor: C.border }}>
         <div className="px-4 pt-4 pb-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <img src={logo} alt="RK Real Estate" className="h-9" />
-              <div>
-                <h1 className="font-display text-xl font-extrabold tracking-tight" style={{ color: C.gold }}>RK CRM</h1>
-                <p className="text-xs mt-0.5" style={{ color: C.muted }}>
-                  {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
-                </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <img src={covoLogo} alt="COVO CRM" className="h-10" />
+                <img src={rkLogo} alt="RK Real Estate" className="h-9" />
               </div>
+              <p className="text-xs mt-1" style={{ color: C.muted }}>
+                {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
+              </p>
             </div>
             <button onClick={onSignOut} className="flex items-center gap-1 text-xs" style={{ color: C.muted }}>
               <LogOut size={14} /> Sign out
             </button>
           </div>
-
           <nav className="flex gap-1 mt-4 overflow-x-auto -mx-1 px-1 pb-1">
             {tabs.map((t) => {
               const Icon = t.icon;
@@ -109,6 +112,7 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
             reports: 'Reports',
             activity: 'Activity',
             settings: 'Settings',
+            mail: 'Mail',
           }[tab] && (
             <h1 className="font-display font-bold text-2xl mb-5" style={{ color: C.text }}>
               {{
@@ -119,6 +123,7 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
                 reports: 'Reports',
                 activity: 'Activity',
                 settings: 'Settings',
+                mail: 'Mail',
               }[tab]}
             </h1>
           )}
