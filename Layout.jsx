@@ -6,7 +6,7 @@ import LeadPanels from './LeadPanels';
 import TeamChat from './TeamChat';
 
 // COVO CRM Logo
-export default function CovoLogo({ size = 'md' }) {
+ function CovoLogo({ size = 'md' }) {
   const sizes = {
     sm: {
       word: 'text-xl',
