@@ -15,7 +15,7 @@ import TeamChat from './TeamChat';
     },
     md: {
       word: "text-xl",
-      bar: "w-[14px] h-[3px]",
+      bar: "w-[18px] h-[3px]",
       sub: "text-[8px] tracking-[4px]",
     },
     lg: {
