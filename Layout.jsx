@@ -5,47 +5,39 @@ import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, A
 import LeadPanels from './LeadPanels';
 import TeamChat from './TeamChat';
 
-// COVO CRM Logo
-function CovoLogo({ size = "md" }) {
+// COVO CRM logo — identical to COVO Projects
+export default function CovoLogo({ size = "md" }) {
   const sizes = {
     sm: {
       word: "text-lg",
       bar: "w-[18px] h-[2.5px]",
-      sub: "text-[7px]",
-      gap: "gap-[3px]",
-      margin: "my-[5px]",
+      sub: "text-[7px] tracking-[3px]",
     },
-
     md: {
       word: "text-2xl",
       bar: "w-[28px] h-[3px]",
-      sub: "text-[9px]",
-      gap: "gap-[3px]",
-      margin: "my-[5px]",
+      sub: "text-[9px] tracking-[4px]",
     },
-
     lg: {
       word: "text-4xl",
       bar: "w-[40px] h-[4px]",
-      sub: "text-[11px]",
-      gap: "gap-[4px]",
-      margin: "my-[6px]",
+      sub: "text-xs tracking-[6px]",
     },
   };
 
   const s = sizes[size] || sizes.md;
 
   return (
-    <div className="flex flex-col items-start select-none leading-none">
+    <div className="flex flex-col items-start select-none">
       {/* COVO */}
       <span
-        className={`${s.word} font-black italic text-white tracking-wider leading-none`}
+        className={`${s.word} font-black italic text-white leading-none tracking-wider`}
       >
         COVO
       </span>
 
       {/* Brand Bars */}
-      <div className={`flex ${s.gap} ${s.margin}`}>
+      <div className="flex gap-[3px] my-[5px]">
         <span
           className={`${s.bar} rounded-full`}
           style={{ background: "#5BE0EF" }}
@@ -68,8 +60,7 @@ function CovoLogo({ size = "md" }) {
       <span
         className={`${s.sub} uppercase font-medium text-white`}
         style={{
-          letterSpacing: "0.42em",
-          marginLeft: "1px",
+          letterSpacing: "0.4em",
         }}
       >
         CRM
