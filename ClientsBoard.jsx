@@ -114,6 +114,10 @@ const selectClass = 'rounded-lg px-2.5 py-2 text-xs outline-none';
 
 const PAGE_SIZE = 30;
 const EXPORT_BATCH = 1000;
+const TITLE_ORDER = ['top_management','sales_manager','team_leader','sales','marketing','operation'];
+const sortByTitleThenName = (a, b) =>
+  (TITLE_ORDER.indexOf(a.title) - TITLE_ORDER.indexOf(b.title)) ||
+  (a.full_name || '').localeCompare(b.full_name || '');
 
 export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle, leadFilter, onClearLeadFilter, initialPage = 1, onPageChange, onOpenMail, onSelectCategory }) {
   const [clients, setClients] = useState([]);
@@ -227,7 +231,14 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
       const map = {};
       (p || []).forEach((row) => { map[row.id] = row.full_name || row.username || (row.is_pool ? 'Pool' : '—'); });
       setOwners(map);
-      setProfilesList(p || []);
+      // Sort: pools at the end, non-pools by title order then name
+      const sortedProfiles = [...(p || [])].sort((a, b) => {
+        if (a.is_pool && !b.is_pool) return 1;
+        if (!a.is_pool && b.is_pool) return -1;
+        if (a.is_pool && b.is_pool) return (a.full_name || '').localeCompare(b.full_name || '');
+        return sortByTitleThenName(a, b);
+      });
+      setProfilesList(sortedProfiles);
       const { data: devs } = await supabase.from('developers').select('id, name').order('name');
       setDeveloperList(devs || []);
       const { data: projs } = await supabase.from('developer_projects').select('id, name, location, developer_id').order('name');

@@ -8,6 +8,11 @@ import { Upload, Download, X, Check, AlertCircle } from 'lucide-react';
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
 const inputClass = 'rounded-lg px-3 py-2 text-sm outline-none w-full';
 
+const TITLE_ORDER = ['top_management','sales_manager','team_leader','sales','marketing','operation'];
+const sortByTitleThenName = (a, b) =>
+  (TITLE_ORDER.indexOf(a.title) - TITLE_ORDER.indexOf(b.title)) ||
+  (a.full_name || '').localeCompare(b.full_name || '');
+
 // Normalize phone number:
 // - Egyptian numbers (01x) → 201x
 // - International numbers → add 00 if not already present
@@ -67,9 +72,10 @@ export default function ImportModal({ userId, onClose, onDone }) {
         supabase.from('profiles').select('id, full_name, username, title, is_pool').eq('is_pool', false).order('full_name'),
       ]);
       setDevelopers(devs || []);
-      setProfiles(profs || []);
-      setMarketerProfiles((profs || []).filter(p => p.title === 'marketing'));
-      setTmProfiles((profs || []).filter(p => p.title === 'top_management'));
+      const sortedProfs = [...(profs || [])].sort(sortByTitleThenName);
+      setProfiles(sortedProfs);
+      setMarketerProfiles(sortedProfs.filter(p => p.title === 'marketing'));
+      setTmProfiles(sortedProfs.filter(p => p.title === 'top_management'));
     })();
   }, []);
 
