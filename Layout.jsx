@@ -5,29 +5,28 @@ import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, A
 import LeadPanels from './LeadPanels';
 import TeamChat from './TeamChat';
 
-// COVO CRM logo — inline SVG, matches covoprojects style (white card + colored bars + red subtitle)
-function CovoLogo({ height = 56 }) {
-  // viewBox: 200 x 80 → aspect ratio 2.5:1
+// COVO CRM logo — wordmark + 4 brand bars + "CRM"
+export default function Logo({ size = 'md' }) {
+  const sizes = {
+    sm: { word: 'text-lg',  bar: 'w-[18px] h-[2.5px]', sub: 'text-[7px] tracking-[3px]' },
+    md: { word: 'text-2xl', bar: 'w-[28px] h-[3px]',   sub: 'text-[9px] tracking-[4px]' },
+    lg: { word: 'text-4xl', bar: 'w-[40px] h-[4px]',   sub: 'text-xs tracking-[6px]' },
+  }
+  const s = sizes[size] || sizes.md
   return (
-    <svg viewBox="0 0 200 80" style={{ height, width: 'auto', display: 'block' }} xmlns="http://www.w3.org/2000/svg">
-      {/* White rounded background card */}
-      <rect x="0" y="0" width="200" height="80" rx="12" fill="#FFFFFF" />
-      <text x="100" y="42" textAnchor="middle" fill="#14181F"
-        style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif', fontWeight: 800, fontSize: '40px', letterSpacing: '-1px' }}>
+    <div className="flex flex-col items-start select-none">
+      <span className={`${s.word} font-black italic text-white leading-none tracking-wider`}>
         COVO
-      </text>
-      {/* Colored bars */}
-      <rect x="42"  y="52" width="24" height="3.5" fill="#E63946" rx="1" />
-      <rect x="73"  y="52" width="24" height="3.5" fill="#F4B860" rx="1" />
-      <rect x="104" y="52" width="24" height="3.5" fill="#2EC4B6" rx="1" />
-      <rect x="135" y="52" width="24" height="3.5" fill="#7FA887" rx="1" />
-      {/* Subtitle */}
-      <text x="100" y="71" textAnchor="middle" fill="#E63946"
-        style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif', fontWeight: 700, fontSize: '10px', letterSpacing: '6px' }}>
-        CRM
-      </text>
-    </svg>
-  );
+      </span>
+      <div className="flex gap-[3px] my-[5px]">
+        <span className={`${s.bar} rounded-full`} style={{ background: '#5BE0EF' }} />
+        <span className={`${s.bar} rounded-full`} style={{ background: '#E8196A' }} />
+        <span className={`${s.bar} rounded-full`} style={{ background: '#F0A500' }} />
+        <span className={`${s.bar} rounded-full`} style={{ background: '#00C9A7' }} />
+      </div>
+      <span className={`${s.sub} uppercase text-ink-muted font-medium`}>Projects</span>
+    </div>
+  )
 }
 
 export default function Layout({ profile, tab, setTab, onSelectCategory, onSignOut, children }) {
