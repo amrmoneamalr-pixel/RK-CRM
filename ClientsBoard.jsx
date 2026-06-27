@@ -110,6 +110,7 @@ function Pill({ color, children }) {
 
 const selectStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
 const selectClass = 'rounded-lg px-2.5 py-2 text-xs outline-none';
+
 const PAGE_SIZE = 30;
 const EXPORT_BATCH = 1000;
 
@@ -138,7 +139,6 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
   const [bulkReassignStatus, setBulkReassignStatus] = useState('reRotation');
   const [bulkBusy, setBulkBusy] = useState(false);
   const [actionTarget, setActionTarget] = useState(null);
-
   const [unreadMail, setUnreadMail] = useState(0);
 
   useEffect(() => {
@@ -196,42 +196,42 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
       const esc = search.replace(/[%,]/g, '');
       q = q.or(`name.ilike.%${esc}%,phone.ilike.%${esc}%,project.ilike.%${esc}%,developer.ilike.%${esc}%,location.ilike.%${esc}%`);
     }
-    if (colFilters.name)        q = q.ilike('name', `%${colFilters.name}%`);
-    if (colFilters.phone)       q = q.ilike('phone', `%${colFilters.phone}%`);
+    if (colFilters.name) q = q.ilike('name', `%${colFilters.name}%`);
+    if (colFilters.phone) q = q.ilike('phone', `%${colFilters.phone}%`);
     if (colFilters.stage_category) q = q.eq('stage_category', colFilters.stage_category);
-    if (colFilters.source)      q = q.eq('source', colFilters.source);
+    if (colFilters.source) q = q.eq('source', colFilters.source);
     if (colFilters.assigned_to) {
       const matchedId = Object.entries(owners).find(([, name]) => name === colFilters.assigned_to)?.[0];
       if (matchedId) q = q.eq('owner_id', matchedId);
     }
     if (colFilters.lead_origin) q = q.eq('lead_origin', colFilters.lead_origin);
-    if (colFilters.developer)   q = q.ilike('developer', `%${colFilters.developer}%`);
-    if (colFilters.project)     q = q.ilike('project', `%${colFilters.project}%`);
-    if (colFilters.location)    q = q.eq('location', colFilters.location);
+    if (colFilters.developer) q = q.ilike('developer', `%${colFilters.developer}%`);
+    if (colFilters.project) q = q.ilike('project', `%${colFilters.project}%`);
+    if (colFilters.location) q = q.eq('location', colFilters.location);
     if (colFilters.call_result) q = q.eq('call_result', colFilters.call_result);
     if (colFilters.status) {
       switch (colFilters.status) {
-        case 'Interested':     q = q.in('call_result', ['Contacted', 'Send WhatsApp', 'Call Again']); break;
-        case 'Not Reachable':  q = q.in('call_result', ['No Answer', 'Switched Off', 'No Answer - Multiple Times']); break;
-        case 'Warm Lead':      q = q.in('call_result', ['Interest in Resale', 'Interest in Separate']); break;
-        case 'Re-rotation':    q = q.not('previous_owners', 'is', null).neq('previous_owners', '[]'); break;
+        case 'Interested': q = q.in('call_result', ['Contacted', 'Send WhatsApp', 'Call Again']); break;
+        case 'Not Reachable': q = q.in('call_result', ['No Answer', 'Switched Off', 'No Answer - Multiple Times']); break;
+        case 'Warm Lead': q = q.in('call_result', ['Interest in Resale', 'Interest in Separate']); break;
+        case 'Re-rotation': q = q.not('previous_owners', 'is', null).neq('previous_owners', '[]'); break;
         case 'Not Interested': q = q.eq('call_result', 'Not Interested'); break;
-        case 'Not Qualified':  q = q.eq('call_result', 'Not Qualified'); break;
-        case 'Deal':           q = q.eq('stage', 'won'); break;
+        case 'Not Qualified': q = q.eq('call_result', 'Not Qualified'); break;
+        case 'Deal': q = q.eq('stage', 'won'); break;
         default: break;
       }
     }
     if (colFilters.contactStatus) {
       switch (colFilters.contactStatus) {
-        case 'New':       q = q.eq('ever_contacted', false).neq('stage', 'won'); break;
+        case 'New': q = q.eq('ever_contacted', false).neq('stage', 'won'); break;
         case 'Contacted': q = q.eq('ever_contacted', true).neq('stage', 'won'); break;
         default: break;
       }
     }
-    if (colFilters.created_from)  q = q.gte('created_at', colFilters.created_from);
-    if (colFilters.created_to)    q = q.lte('created_at', colFilters.created_to + 'T23:59:59');
+    if (colFilters.created_from) q = q.gte('created_at', colFilters.created_from);
+    if (colFilters.created_to) q = q.lte('created_at', colFilters.created_to + 'T23:59:59');
     if (colFilters.followup_from) q = q.gte('next_follow_up', colFilters.followup_from);
-    if (colFilters.followup_to)   q = q.lte('next_follow_up', colFilters.followup_to);
+    if (colFilters.followup_to) q = q.lte('next_follow_up', colFilters.followup_to);
     if (colFilters.countries && colFilters.countries.length > 0) {
       const PREFIXES = {
         'Egypt':['201'],'Saudi Arabia':['966'],'UAE':['971'],'Kuwait':['965'],
@@ -294,7 +294,6 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
     setLoading(true);
     const from = (page - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
-
     if (leadFilter === 'reRotation') {
       const { data: allData } = await supabase.rpc('get_rerotation_clients', {
         p_user_id: userId,
@@ -311,7 +310,6 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
       setLoading(false);
       return;
     }
-
     if (leadFilter === 'contactedReRotation') {
       const { data: allData } = await supabase.rpc('get_rerotation_clients', {
         p_user_id: userId,
@@ -328,7 +326,6 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
       setLoading(false);
       return;
     }
-
     const { data: c, count } = await buildQuery().order('last_contacted_at', { ascending: true, nullsFirst: true }).range(from, to);
     setClients(c || []);
     setTotalCount(count || 0);
@@ -349,15 +346,15 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
   const toggleSelect = (id) => {
     setSelectedIds((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   };
+
   const toggleSelectAllOnPage = (ids, allSelected) => {
     setSelectedIds((prev) => { const next = new Set(prev); ids.forEach((id) => { if (allSelected) next.delete(id); else next.add(id); }); return next; });
   };
+
   const bulkReassign = async () => {
     if (!bulkReassignTo || selectedIds.size === 0) return;
     setBulkBusy(true);
-
     const patch = { owner_id: bulkReassignTo, no_answer_count: 0 };
-
     switch (bulkReassignStatus) {
       case 'new':
         patch.call_result = null;
@@ -366,7 +363,6 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
         break;
       case 'reRotation':
         patch.call_result = null;
-        // previous_owners updated per client below
         break;
       case 'contacted':
         patch.call_result = 'Contacted';
@@ -383,9 +379,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
       default:
         patch.call_result = null;
     }
-
     if (bulkReassignStatus === 'reRotation') {
-      // Update each client individually to add to previous_owners
       for (const id of Array.from(selectedIds)) {
         const client = clients.find(c => c.id === id);
         const prev = Array.isArray(client?.previous_owners) ? client.previous_owners : [];
@@ -397,19 +391,20 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
     } else {
       await supabase.from('clients').update(patch).in('id', Array.from(selectedIds));
     }
-
     setBulkBusy(false);
     setSelectedIds(new Set());
     setBulkReassignTo('');
     setBulkReassignStatus('reRotation');
     load();
   };
+
   const bulkDelete = async () => {
     if (selectedIds.size === 0) return;
     setBulkBusy(true);
     await supabase.from('clients').delete().in('id', Array.from(selectedIds));
     setBulkBusy(false); setSelectedIds(new Set()); load();
   };
+
   const exportCsv = async () => {
     setExporting(true);
     let allRows = []; let from = 0;
@@ -433,13 +428,14 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
     const { data: a } = await supabase.from('activities').select('*').in('client_id', clients.map((x) => x.id)).order('date', { ascending: false });
     setActivities(a || []);
   };
+
   const setCol = (key) => (e) => setPendingCols((p) => ({ ...p, [key]: e.target.value }));
   const applyColFilters = () => { setColFilters({ ...pendingCols }); setPage(1); };
   const clearColFilters = () => { setColFilters({}); setPendingCols({ countries: [] }); setPage(1); };
   const hasColFilters = Object.entries(colFilters).some(([k, v]) => k === 'countries' ? v?.length > 0 : Boolean(v));
   const hasPendingFilters = Object.entries(pendingCols).some(([k, v]) => k === 'countries' ? v?.length > 0 : Boolean(v));
-  const noFiltersActive = !search && !leadFilter && stageFilter === 'all' && !hasColFilters && !hasPendingFilters;
 
+  const noFiltersActive = !search && !leadFilter && stageFilter === 'all' && !hasColFilters && !hasPendingFilters;
   if (totalCount === 0 && !loading && noFiltersActive && !showAdd) {
     return (
       <div className="text-center py-16">
@@ -462,6 +458,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
 
   const lastActivity = {};
   activities.forEach((a) => { const cur = lastActivity[a.client_id]; if (!cur || a.created_at > cur.created_at) lastActivity[a.client_id] = a; });
+
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const rangeStart = totalCount === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
@@ -475,30 +472,10 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
           <button onClick={onClearLeadFilter} className="flex items-center gap-1 text-xs font-medium" style={{ color: C.muted }}><X size={14} /> Clear</button>
         </div>
       )}
+
       <div className="space-y-2">
+        {/* Row 1 (top): Export, Import, Notification, Mail */}
         <div className="flex items-center justify-end gap-2">
-          {/* Search box - smaller, on the right */}
-          <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: C.muted }} />
-            <input value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search..."
-              className="rounded-lg pl-8 pr-3 py-1.5 text-xs outline-none"
-              style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text, width: '200px' }} />
-          </div>
-
-          <button onClick={applyColFilters} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: C.gold, color: '#14181F' }}>
-            <Search size={13} /> Search
-          </button>
-          {(hasColFilters || hasPendingFilters) && (
-            <button onClick={clearColFilters} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium shrink-0" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.muted }}>
-              <X size={13} /> Clear
-            </button>
-          )}
-          {/* New Client - visible to all */}
-          <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: C.gold, color: '#14181F' }}>
-            <Plus size={13} /> New Client
-          </button>
-
           {isAdmin && (
             <>
               <button onClick={exportCsv} disabled={exporting} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium shrink-0 disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
@@ -509,14 +486,12 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
               </button>
             </>
           )}
-
           {/* Notification icon */}
           <button className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0 relative" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.muted }}
             title="Notifications">
             <Bell size={15} />
           </button>
-
-          {/* Email icon */}
+          {/* Mail icon */}
           <button onClick={onOpenMail} className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0 relative" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.muted }}
             title="Mail">
             <Mail size={15} />
@@ -524,6 +499,28 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center"
                 style={{ backgroundColor: '#D6453E', color: '#fff' }}>{unreadMail}</span>
             )}
+          </button>
+        </div>
+
+        {/* Row 2 (below): Search box + Search + Clear + New Client */}
+        <div className="flex items-center justify-end gap-2">
+          <div className="relative">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: C.muted }} />
+            <input value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search..."
+              className="rounded-lg pl-8 pr-3 py-1.5 text-xs outline-none"
+              style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text, width: '200px' }} />
+          </div>
+          <button onClick={applyColFilters} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: C.gold, color: '#14181F' }}>
+            <Search size={13} /> Search
+          </button>
+          {(hasColFilters || hasPendingFilters) && (
+            <button onClick={clearColFilters} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium shrink-0" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.muted }}>
+              <X size={13} /> Clear
+            </button>
+          )}
+          <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: C.gold, color: '#14181F' }}>
+            <Plus size={13} /> New Client
           </button>
         </div>
       </div>
@@ -574,6 +571,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
           <div className="overflow-x-auto" id="top-scroll-mirror" style={{ height: '8px', borderRadius: '4px' }}>
             <div id="top-scroll-inner" style={{ height: '1px' }} />
           </div>
+
           <div className="rounded-xl overflow-x-auto" id="main-table-scroll" style={{ border: `1px solid ${C.border}` }}>
             <table className="text-sm" style={{ minWidth: hasTeamAccess ? "1950px" : "1650px", width: "100%" }}>
               <thead>
@@ -665,6 +663,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
               </tbody>
             </table>
           </div>
+
           <div className="flex items-center justify-between gap-3">
             <span className="text-xs" style={{ color: C.muted }}>{loading ? 'Loading...' : `${rangeStart}–${rangeEnd} of ${totalCount}`}</span>
             <div className="flex items-center gap-1">
