@@ -5,12 +5,10 @@ import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, A
 import LeadPanels from './LeadPanels';
 import TeamChat from './TeamChat';
 
-// COVO CRM logo — inline SVG, matches covoprojects style (white card + colored bars + red subtitle)
+// COVO CRM logo — inline SVG, matches covoprojects style (wordmark + 4 colored bars + White blue subtitle)
 function CovoLogo({ height = 56 }) {
   // viewBox: 200 x 80 → aspect ratio 2.5:1
   return (
-    <svg viewBox="0 0 200 80" style={{ height, width: 'auto', display: 'block' }} xmlns="http://www.w3.org/2000/svg">
-      {/* White rounded background card */}
       <rect x="0" y="0" width="200" height="80" rx="12" fill="#FFFFFF" />
       <text x="100" y="42" textAnchor="middle" fill="#14181F"
         style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif', fontWeight: 800, fontSize: '40px', letterSpacing: '-1px' }}>
