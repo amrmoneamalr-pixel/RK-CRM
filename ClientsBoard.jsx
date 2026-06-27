@@ -200,7 +200,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
     (async () => {
       const { data: p } = await supabase.from('profiles').select('id, full_name, username, is_pool, title').order('full_name');
       const map = {};
-      (p || []).forEach((row) => { map[row.id] = row.is_pool ? 'Unassigned Pool' : (row.full_name || row.username || '—'); });
+      (p || []).forEach((row) => { map[row.id] = row.full_name || row.username || (row.is_pool ? 'Pool' : '—'); });
       setOwners(map);
       setProfilesList(p || []);
       const { data: devs } = await supabase.from('developers').select('id, name').order('name');
@@ -756,7 +756,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
                       <td className="py-2.5 px-3"><Pill color={stageColor}>{rawCat}</Pill></td>
                       <td className="py-2.5 px-3"><Pill color={stat.color === '#FFFFFF' ? C.text : stat.color}>{stat.label}</Pill></td>
                       <td className="py-2.5 px-3"><Pill color={c.ever_contacted ? '#7FA887' : '#D6453E'}>{c.ever_contacted ? 'Contacted' : 'New'}</Pill></td>
-                      {hasTeamAccess && <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{owners[c.owner_id] || '—'}</td>}
+                      {hasTeamAccess && <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: poolIds.includes(c.owner_id) ? '#5BE0EF' : C.muted, fontWeight: poolIds.includes(c.owner_id) ? 600 : 400 }}>{owners[c.owner_id] || '—'}</td>}
                       {hasTeamAccess && <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{[c.lead_origin, c.origin_name].filter(Boolean).join(" · ") || "—"}</td>}
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}><SourceTag source={c.source} size={15} /></td>
                       <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: C.muted }}>{c.created_at ? new Date(c.created_at).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
