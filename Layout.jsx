@@ -20,7 +20,7 @@ import TeamChat from './TeamChat';
     },
     lg: {
       word: "text-4xl",
-      bar: "w-[30px] h-[4px]",
+      bar: "w-[10px] h-[4px]",
       sub: "text-xs tracking-[6px]",
     },
   };
