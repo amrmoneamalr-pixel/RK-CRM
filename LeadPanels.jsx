@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
 import { C, todayStr, COLD_RESULTS } from './constants';
-import { Sparkles, Archive, PhoneCall, AlertTriangle, Snowflake, ChevronRight, Users, UserCheck, RotateCw, Flame } from 'lucide-react';
+import { Sparkles, Archive, PhoneCall, AlertTriangle, Snowflake, ChevronRight, Users, UserCheck, RotateCw, Flame, Star } from 'lucide-react';
 
 export default function LeadPanels({ userId, isAdmin, onSelectCategory, inSidebar }) {
   const [counts, setCounts] = useState({
@@ -17,6 +17,7 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, inSideba
     cold: 0,
     contactedCold: 0,
     warmLeads: 0,
+    potential: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -26,7 +27,7 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, inSideba
     setLoading(true);
     let q = supabase
       .from('clients')
-      .select('id, stage, stage_category, ever_contacted, created_at, next_follow_up, call_result, last_contacted_at, previous_owners, is_manual')
+      .select('id, stage, stage_category, ever_contacted, created_at, next_follow_up, call_result, last_contacted_at, previous_owners, is_manual, potential')
       .order('created_at', { ascending: false });
     if (!isAdmin) q = q.eq('owner_id', userId);
     const { data } = await q;
@@ -47,6 +48,7 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, inSideba
       cold: 0,
       contactedCold: 0,
       warmLeads: 0,
+      potential: 0,
     };
 
     clients.forEach((c) => {
@@ -87,6 +89,9 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, inSideba
       if (c.call_result === 'Interest in Resale' || c.call_result === 'Interest in Separate') {
         next.warmLeads++;
       }
+
+      // Potential
+      if (c.potential) next.potential++;
     });
 
     setCounts(next);
@@ -106,6 +111,7 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, inSideba
     { key: 'cold',                icon: Snowflake,     color: '#8B93A3', label: 'Cold Calls' },
     { key: 'contactedCold',       icon: PhoneCall,     color: '#8B93A3', label: 'Contacted Cold Calls' },
     { key: 'warmLeads',           icon: Flame,         color: '#F4B860', label: 'Warm Leads' },
+    { key: 'potential',           icon: Star,          color: C.gold,    label: 'Potential' },
   ];
 
   return (

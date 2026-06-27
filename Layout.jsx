@@ -1,6 +1,6 @@
 import React from 'react';
 import { C } from './constants';
-import covoLogo from './covo-logo.png.png';
+import covoLogo from './covo-only.png';
 import rkLogo from './rk-logo.png.png';
 import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, Activity as ActivityIcon, Settings as SettingsIcon, Building2, Mail as MailIcon } from 'lucide-react';
 import LeadPanels from './LeadPanels';
@@ -35,8 +35,8 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
       <aside className="hidden sm:flex flex-col w-60 shrink-0 border-r sticky top-0 h-screen p-4" style={{ borderColor: C.border }}>
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-2">
-            <img src={covoLogo} alt="COVO CRM" className="h-12" />
-            <img src={rkLogo} alt="RK Real Estate" className="h-10" />
+            <img src={covoLogo} alt="COVO CRM" className="h-16" />
+            <img src={rkLogo} alt="RK Real Estate" className="h-14" />
           </div>
           <p className="text-xs mt-1" style={{ color: C.muted }}>
             {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
@@ -70,8 +70,8 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <img src={covoLogo} alt="COVO CRM" className="h-10" />
-                <img src={rkLogo} alt="RK Real Estate" className="h-9" />
+                <img src={covoLogo} alt="COVO CRM" className="h-12" />
+                <img src={rkLogo} alt="RK Real Estate" className="h-11" />
               </div>
               <p className="text-xs mt-1" style={{ color: C.muted }}>
                 {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
