@@ -181,16 +181,29 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
   }, [searchInput]);
 
   // Global "Clear all filters" event from the All button in Layout
+  const [showAllIncludingPools, setShowAllIncludingPools] = useState(false);
   useEffect(() => {
     const handler = () => {
       setColFilters({});
       setPendingCols({});
       setSearch('');
       setSearchInput('');
+      setShowAllIncludingPools(true);
     };
     window.addEventListener('rk-clear-all-filters', handler);
     return () => window.removeEventListener('rk-clear-all-filters', handler);
   }, []);
+
+  // Turn off "show all" whenever a real filter becomes active
+  useEffect(() => {
+    if (!showAllIncludingPools) return;
+    const hasAnyFilter = leadFilter || search || Object.keys(colFilters).some(k => {
+      const v = colFilters[k];
+      if (Array.isArray(v)) return v.length > 0;
+      return Boolean(v);
+    });
+    if (hasAnyFilter) setShowAllIncludingPools(false);
+  }, [leadFilter, search, colFilters, showAllIncludingPools]);
 
   useEffect(() => {
     const top = document.getElementById('top-scroll-mirror');
@@ -225,7 +238,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
   const buildQuery = () => {
     let q = supabase.from('clients').select('*', { count: 'exact' });
     if (!hasTeamAccess) q = q.eq('owner_id', userId);
-    else if (poolIds.length > 0 && (!leadFilter || !leadFilter.startsWith('pool_'))) {
+    else if (poolIds.length > 0 && !showAllIncludingPools && (!leadFilter || !leadFilter.startsWith('pool_'))) {
       q = q.not('owner_id', 'in', '(' + poolIds.join(',') + ')');
     }
     if (search) {
@@ -379,7 +392,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [userId, page, search, stageFilter, leadFilter, colFilters, poolMap, poolIds]);
+  useEffect(() => { load(); }, [userId, page, search, stageFilter, leadFilter, colFilters, poolMap, poolIds, showAllIncludingPools]);
 
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -533,38 +546,80 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
           });
         }
 
-        // 3) Column filters
+        // 3) Column filters — pending overlaps applied
         const removeCol = (...keys) => () => {
           setColFilters((p) => { const n = { ...p }; keys.forEach(k => { delete n[k]; }); return n; });
           setPendingCols((p) => { const n = { ...p }; keys.forEach(k => { delete n[k]; }); return n; });
         };
 
-        if (colFilters.name)            chips.push({ label: `Name: ${colFilters.name}`,                onRemove: removeCol('name') });
-        if (colFilters.phone)           chips.push({ label: `Phone: ${colFilters.phone}`,              onRemove: removeCol('phone') });
-        if (colFilters.stage_category)  chips.push({ label: `Category: ${colFilters.stage_category}`,  onRemove: removeCol('stage_category') });
-        if (colFilters.status)          chips.push({ label: `Stage: ${colFilters.status}`,             onRemove: removeCol('status') });
-        if (colFilters.contactStatus)   chips.push({ label: `Status: ${colFilters.contactStatus}`,     onRemove: removeCol('contactStatus') });
-        if (colFilters.assigned_to)     chips.push({ label: `Assigned: ${colFilters.assigned_to}`,     onRemove: removeCol('assigned_to') });
-        if (colFilters.lead_origin)     chips.push({ label: `Origin: ${colFilters.lead_origin}`,       onRemove: removeCol('lead_origin') });
-        if (colFilters.source)          chips.push({ label: `Source: ${colFilters.source}`,            onRemove: removeCol('source') });
-        if (colFilters.developer)       chips.push({ label: `Developer: ${colFilters.developer}`,      onRemove: removeCol('developer') });
-        if (colFilters.project)         chips.push({ label: `Project: ${colFilters.project}`,          onRemove: removeCol('project') });
-        if (colFilters.location)        chips.push({ label: `Location: ${colFilters.location}`,        onRemove: removeCol('location') });
-        if (colFilters.call_result)     chips.push({ label: `Action: ${colFilters.call_result}`,       onRemove: removeCol('call_result') });
+        const SIMPLE_DEFS = [
+          { key: 'name',           prefix: 'Name' },
+          { key: 'phone',          prefix: 'Phone' },
+          { key: 'stage_category', prefix: 'Category' },
+          { key: 'status',         prefix: 'Stage' },
+          { key: 'contactStatus',  prefix: 'Status' },
+          { key: 'assigned_to',    prefix: 'Assigned' },
+          { key: 'lead_origin',    prefix: 'Origin' },
+          { key: 'source',         prefix: 'Source' },
+          { key: 'developer',      prefix: 'Developer' },
+          { key: 'project',        prefix: 'Project' },
+          { key: 'location',       prefix: 'Location' },
+          { key: 'call_result',    prefix: 'Action' },
+        ];
 
-        if (colFilters.created_from || colFilters.created_to) {
-          const f = colFilters.created_from || '...';
-          const t = colFilters.created_to || '...';
-          chips.push({ label: `Created: ${f} → ${t}`, onRemove: removeCol('created_from', 'created_to') });
-        }
-        if (colFilters.followup_from || colFilters.followup_to) {
-          const f = colFilters.followup_from || '...';
-          const t = colFilters.followup_to || '...';
-          chips.push({ label: `Follow-up: ${f} → ${t}`, onRemove: removeCol('followup_from', 'followup_to') });
-        }
-        if (colFilters.countries && colFilters.countries.length > 0) {
+        SIMPLE_DEFS.forEach(def => {
+          const pv = pendingCols[def.key];
+          const av = colFilters[def.key];
+          const val = (pv !== undefined && pv !== '') ? pv : av;
+          if (!val) return;
+          const pending = (pv || '') !== (av || '');
           chips.push({
-            label: `Country: ${colFilters.countries.join(', ')}`,
+            label: `${def.prefix}: ${val}`,
+            pending,
+            onRemove: removeCol(def.key),
+          });
+        });
+
+        // Date ranges
+        const cfFrom = colFilters.created_from || '';
+        const cfTo   = colFilters.created_to   || '';
+        const pcFrom = pendingCols.created_from || '';
+        const pcTo   = pendingCols.created_to   || '';
+        const cFrom = pcFrom || cfFrom;
+        const cTo   = pcTo   || cfTo;
+        if (cFrom || cTo) {
+          const pending = pcFrom !== cfFrom || pcTo !== cfTo;
+          chips.push({
+            label: `Created: ${cFrom || '...'} → ${cTo || '...'}`,
+            pending,
+            onRemove: removeCol('created_from', 'created_to'),
+          });
+        }
+
+        const fuCfFrom = colFilters.followup_from || '';
+        const fuCfTo   = colFilters.followup_to   || '';
+        const fuPcFrom = pendingCols.followup_from || '';
+        const fuPcTo   = pendingCols.followup_to   || '';
+        const fuFrom = fuPcFrom || fuCfFrom;
+        const fuTo   = fuPcTo   || fuCfTo;
+        if (fuFrom || fuTo) {
+          const pending = fuPcFrom !== fuCfFrom || fuPcTo !== fuCfTo;
+          chips.push({
+            label: `Follow-up: ${fuFrom || '...'} → ${fuTo || '...'}`,
+            pending,
+            onRemove: removeCol('followup_from', 'followup_to'),
+          });
+        }
+
+        // Countries
+        const cfCountries = colFilters.countries || [];
+        const pcCountries = pendingCols.countries || [];
+        const useCountries = pcCountries.length > 0 ? pcCountries : cfCountries;
+        if (useCountries.length > 0) {
+          const pending = JSON.stringify(pcCountries) !== JSON.stringify(cfCountries);
+          chips.push({
+            label: `Country: ${useCountries.join(', ')}`,
+            pending,
             onRemove: () => {
               setColFilters((p) => { const n = { ...p }; delete n.countries; return n; });
               setPendingCols((p) => ({ ...p, countries: [] }));
@@ -574,17 +629,34 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
 
         if (chips.length === 0) return null;
 
+        const anyPending = chips.some(c => c.pending);
+
         return (
           <div className="flex flex-wrap items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
             <span className="text-xs font-bold" style={{ color: C.muted }}>Active filters:</span>
             {chips.map((chip, i) => (
-              <span key={i} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full" style={{ backgroundColor: `${chip.color || C.gold}22`, color: chip.color || C.gold, fontWeight: 600 }}>
+              <span key={i}
+                className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full"
+                style={{
+                  backgroundColor: `${C.gold}22`,
+                  color: C.gold,
+                  fontWeight: 600,
+                  opacity: chip.pending ? 0.6 : 1,
+                  border: chip.pending ? `1px dashed ${C.gold}` : '1px solid transparent',
+                }}
+                title={chip.pending ? 'Pending — press Search to apply' : ''}
+              >
                 {chip.label}
                 <button onClick={chip.onRemove} className="flex items-center hover:opacity-70" style={{ marginLeft: 2 }}>
                   <X size={12} />
                 </button>
               </span>
             ))}
+            {anyPending && (
+              <span className="text-[10px] italic" style={{ color: C.muted }}>
+                (dashed = press Search to apply)
+              </span>
+            )}
             {chips.length > 1 && (
               <button
                 onClick={() => {

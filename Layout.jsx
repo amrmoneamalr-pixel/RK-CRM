@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { C } from './constants';
+import { supabase } from './supabaseClient';
 import rkLogo from './rk-logo.png.png';
 import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, Activity as ActivityIcon, Settings as SettingsIcon, Building2, Mail as MailIcon } from 'lucide-react';
 import LeadPanels from './LeadPanels';
@@ -73,6 +74,42 @@ import TeamChat from './TeamChat';
 export default function Layout({ profile, tab, setTab, onSelectCategory, onSignOut, children }) {
   const showPoolsTab = profile.role === 'admin' || profile.title === 'top_management';
   const [sidebarTab, setSidebarTab] = useState('sales');
+  const [salesTotal, setSalesTotal] = useState(null);
+  const [poolsTotal, setPoolsTotal] = useState(null);
+
+  useEffect(() => {
+    if (!showPoolsTab) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: pools } = await supabase.from('profiles').select('id').eq('is_pool', true);
+        const poolIdsArr = (pools || []).map(p => p.id);
+
+        let poolsCnt = 0;
+        if (poolIdsArr.length > 0) {
+          const { count } = await supabase
+            .from('clients')
+            .select('*', { count: 'exact', head: true })
+            .in('owner_id', poolIdsArr);
+          poolsCnt = count || 0;
+        }
+
+        let salesQ = supabase.from('clients').select('*', { count: 'exact', head: true });
+        if (poolIdsArr.length > 0) {
+          salesQ = salesQ.not('owner_id', 'in', '(' + poolIdsArr.join(',') + ')');
+        }
+        const { count: salesCnt } = await salesQ;
+
+        if (!cancelled) {
+          setPoolsTotal(poolsCnt);
+          setSalesTotal(salesCnt || 0);
+        }
+      } catch (e) {
+        console.warn('totals load failed:', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [showPoolsTab, tab]);
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'clients', label: 'Clients', icon: Users },
@@ -241,7 +278,7 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
                         border: `1px solid ${C.border}`,
                       }}
                     >
-                      Sales
+                      Sales{salesTotal !== null && <span className="ml-1 opacity-75">({salesTotal})</span>}
                     </button>
                     <button
                       onClick={() => setSidebarTab('pools')}
@@ -252,7 +289,7 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
                         border: `1px solid ${C.border}`,
                       }}
                     >
-                      Pools
+                      Pools{poolsTotal !== null && <span className="ml-1 opacity-75">({poolsTotal})</span>}
                     </button>
                   </div>
                 </>
