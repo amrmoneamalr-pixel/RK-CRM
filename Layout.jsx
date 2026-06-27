@@ -10,17 +10,17 @@ import TeamChat from './TeamChat';
   const sizes = {
     sm: {
       word: "text-lg",
-      bar: "w-[18px] h-[2.5px]",
+      bar: "w-[12px] h-[2.5px]",
       sub: "text-[7px] tracking-[3px]",
     },
     md: {
       word: "text-2xl",
-      bar: "w-[28px] h-[3px]",
+      bar: "w-[18px] h-[3px]",
       sub: "text-[9px] tracking-[4px]",
     },
     lg: {
       word: "text-4xl",
-      bar: "w-[10px] h-[4px]",
+      bar: "w-[28px] h-[4px]",
       sub: "text-xs tracking-[6px]",
     },
   };
@@ -97,12 +97,12 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
       <aside className="hidden sm:flex flex-col w-60 shrink-0 border-r sticky top-0 h-screen p-4" style={{ borderColor: C.border }}>
         <div className="mb-6">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <CovoLogo height={50} />
-            <span style={{ color: C.border, fontSize: '40px', fontWeight: 200, lineHeight: 1 }}>|</span>
+            <CovoLogo size="md" />
+            <span style={{ color: C.border, fontSize: '50px', fontWeight: 200, lineHeight: 1 }}>|</span>
             <img
               src={rkLogo}
               alt="RK Real Estate"
-              style={{ height: '46px', width: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
+              style={{ height: '58px', width: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
             />
           </div>
           <p className="text-xs mt-1 text-center" style={{ color: C.muted }}>
@@ -137,12 +137,12 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <CovoLogo height={42} />
-                <span style={{ color: C.border, fontSize: '34px', fontWeight: 200, lineHeight: 1 }}>|</span>
+                <CovoLogo size="sm" />
+                <span style={{ color: C.border, fontSize: '40px', fontWeight: 200, lineHeight: 1 }}>|</span>
                 <img
                   src={rkLogo}
                   alt="RK Real Estate"
-                  style={{ height: '38px', width: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
+                  style={{ height: '48px', width: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
                 />
               </div>
               <p className="text-xs mt-1" style={{ color: C.muted }}>
