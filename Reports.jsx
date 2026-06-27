@@ -4,11 +4,16 @@ import { C, STAGES, monthKey, fmtDate, todayStr, COLD_RESULTS } from './constant
 import { Briefcase, TrendingUp, Target, ChevronLeft } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 
+const TITLE_ORDER = ['top_management','sales_manager','team_leader','sales','marketing','operation'];
+const sortByTitleThenName = (a, b) =>
+  (TITLE_ORDER.indexOf(a.title) - TITLE_ORDER.indexOf(b.title)) ||
+  (a.full_name || '').localeCompare(b.full_name || '');
+
 // ── sub-tabs ──────────────────────────────────────────────────
 const TABS = [
   { id: 'followup', label: 'Follow-up Charts', icon: TrendingUp },
-  { id: 'team',     label: 'Team Reports',     icon: Briefcase },
-  { id: 'target',   label: 'Monthly Targets',  icon: Target },
+  { id: 'team', label: 'Team Reports', icon: Briefcase },
+  { id: 'target', label: 'Monthly Targets', icon: Target },
 ];
 
 function Chart({ title, data, color }) {
@@ -52,7 +57,6 @@ function TeamTab({ profiles, clients, activities, targets }) {
   const funnelTotal = STAGES.map((s) => ({ ...s, count: clients.filter((c) => c.stage === s.id).length }));
   const funnelMax = Math.max(1, ...funnelTotal.map((f) => f.count));
   const mk = monthKey();
-
   return (
     <div className="space-y-6">
       <div className="rounded-xl p-4" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
@@ -70,7 +74,6 @@ function TeamTab({ profiles, clients, activities, targets }) {
           ))}
         </div>
       </div>
-
       <div className="rounded-xl p-4 overflow-x-auto" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
         <h3 className="font-display font-bold text-sm mb-4">Sales Performance — {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h3>
         <table className="w-full text-sm">
@@ -164,12 +167,14 @@ export default function Reports() {
     setLoading(true);
     const mk = monthKey();
     const [{ data: p }, { data: c }, { data: a }, { data: t }] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, username, title, is_pool').eq('is_pool', false).not('title', 'in', '("top_management","operation","marketing")').order('full_name'),
+      supabase.from('profiles').select('id, full_name, username, title, is_pool').eq('is_pool', false).not('title', 'in', '("top_management","operation","marketing")'),
       supabase.from('clients').select('id, owner_id, stage, closed_at, next_follow_up, call_result, last_contacted_at'),
       supabase.from('activities').select('id, owner_id, type, date'),
       supabase.from('targets').select('*').eq('month', mk),
     ]);
-    setProfiles(p || []);
+    // sort: title order, then name (within the included titles: sales_manager > team_leader > sales)
+    const sortedProfiles = [...(p || [])].sort(sortByTitleThenName);
+    setProfiles(sortedProfiles);
     setAllClients(c || []);
     setActivities(a || []);
     setTargets(t || []);
@@ -190,10 +195,9 @@ export default function Reports() {
           </button>
         ))}
       </div>
-
       {activeTab === 'followup' && <FollowUpTab profiles={profiles} allClients={allClients} />}
-      {activeTab === 'team'     && <TeamTab profiles={profiles} clients={allClients} activities={activities} targets={targets} />}
-      {activeTab === 'target'   && <TargetTab profiles={profiles} clients={allClients} activities={activities} targets={targets} />}
+      {activeTab === 'team' && <TeamTab profiles={profiles} clients={allClients} activities={activities} targets={targets} />}
+      {activeTab === 'target' && <TargetTab profiles={profiles} clients={allClients} activities={activities} targets={targets} />}
     </div>
   );
 }

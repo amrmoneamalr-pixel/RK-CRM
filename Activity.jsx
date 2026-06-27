@@ -8,6 +8,11 @@ const MAX_SESSION_HOURS = 12; // sanity cap for a single merged block
 const ONLINE_THRESHOLD_MS = 4 * 60 * 1000; // heartbeat is every 2 min
 const MERGE_GAP_MS = 10 * 60 * 1000; // merge sessions less than 10 min apart
 
+const TITLE_ORDER = ['top_management','sales_manager','team_leader','sales','marketing','operation'];
+const sortByTitleThenName = (a, b) =>
+  (TITLE_ORDER.indexOf(a.title) - TITLE_ORDER.indexOf(b.title)) ||
+  (a.full_name || '').localeCompare(b.full_name || '');
+
 // Merge sessions (sorted ascending by login_at) that are close together
 // (e.g. from page refreshes / multiple tabs) into single continuous blocks.
 function mergeSessions(rows) {
@@ -34,7 +39,6 @@ export default function Activity({ isAdmin, currentUserTitle }) {
   const [chartData, setChartData] = useState([]);
   const [reps, setReps] = useState([]);
   const [status, setStatus] = useState([]);
-
   const [logUserId, setLogUserId] = useState('');
   const [logDate, setLogDate] = useState(new Date().toISOString().slice(0, 10));
   const [logSessions, setLogSessions] = useState([]);
@@ -56,15 +60,21 @@ export default function Activity({ isAdmin, currentUserTitle }) {
 
     const [{ data: sessions }, { data: profiles }] = await Promise.all([
       supabase.from('user_sessions').select('user_id, login_at, last_seen_at, ended_at').gte('login_at', sevenDaysAgo.toISOString()).order('login_at', { ascending: true }),
-      supabase.from('profiles').select('id, full_name, username, is_pool').eq('is_pool', false).order('full_name'),
+      // include `title` so visibility filter + sort work
+      supabase.from('profiles').select('id, full_name, username, is_pool, title').eq('is_pool', false),
     ]);
 
     const profileMap = {};
     (profiles || []).forEach((p) => { profileMap[p.id] = p.full_name || p.username || 'Unknown'; });
+
     const visibleProfiles = (profiles || []).filter((p) =>
       currentUserTitle === 'top_management' || !['operation', 'marketing'].includes(p.title)
     );
-    const repList = visibleProfiles.map((p) => ({ id: p.id, name: profileMap[p.id] }));
+
+    // sort: title order, then name
+    const sortedProfiles = [...visibleProfiles].sort(sortByTitleThenName);
+
+    const repList = sortedProfiles.map((p) => ({ id: p.id, name: profileMap[p.id], title: p.title }));
     setReps(repList);
     if (!logUserId && repList.length > 0) setLogUserId(repList[0].id);
 
@@ -135,11 +145,9 @@ export default function Activity({ isAdmin, currentUserTitle }) {
       .eq('user_id', logUserId)
       .order('login_at', { ascending: true })
       .limit(500);
-
     const dayStart = new Date(`${logDate}T00:00:00`).getTime();
     const dayEnd = new Date(`${logDate}T23:59:59.999`).getTime();
     const now = Date.now();
-
     const merged = mergeSessions(data || []);
     const sessions = merged
       .filter((m) => m.start <= dayEnd && m.end >= dayStart)
@@ -150,7 +158,6 @@ export default function Activity({ isAdmin, currentUserTitle }) {
         hours = Math.max(0, Math.min(hours, MAX_SESSION_HOURS));
         return { start: fmtTime(m.start), end: endLabel, hours };
       });
-
     setLogSessions(sessions);
     setLogLoading(false);
   };
@@ -248,7 +255,6 @@ export default function Activity({ isAdmin, currentUserTitle }) {
             style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text }}
           />
         </div>
-
         <div className="rounded-xl p-3" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
           {logLoading ? (
             <p className="text-xs" style={{ color: C.muted }}>Loading...</p>
