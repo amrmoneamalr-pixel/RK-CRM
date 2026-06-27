@@ -136,7 +136,10 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
   const [exporting, setExporting] = useState(false);
   const [page, setPage] = useState(initialPage);
   const [selectedIds, setSelectedIds] = useState(new Set());
-  const [bulkReassignTo, setBulkReassignTo] = useState('');
+  const [bulkSource, setBulkSource] = useState('sales'); // 'sales' | 'pools'
+  const [bulkSalesIds, setBulkSalesIds] = useState(new Set()); // multi-select sales uuids
+  const [bulkPoolId, setBulkPoolId] = useState(''); // single pool uuid
+  const [bulkSalesOpen, setBulkSalesOpen] = useState(false);
   const [bulkReassignStatus, setBulkReassignStatus] = useState('reRotation');
   const [bulkBusy, setBulkBusy] = useState(false);
   const [actionTarget, setActionTarget] = useState(null);
@@ -379,13 +382,36 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
     setSelectedIds((prev) => { const next = new Set(prev); ids.forEach((id) => { if (allSelected) next.delete(id); else next.add(id); }); return next; });
   };
 
+  // Round-robin distribution: split clientIds across ownerIds (shuffles for fairness)
+  const distribute = (clientIds, ownerIds) => {
+    if (!ownerIds.length) return [];
+    const shuffled = [...clientIds];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    const buckets = ownerIds.map(() => []);
+    shuffled.forEach((cid, i) => { buckets[i % ownerIds.length].push(cid); });
+    return ownerIds
+      .map((oid, i) => ({ owner_id: oid, client_ids: buckets[i] }))
+      .filter(a => a.client_ids.length > 0);
+  };
+
   const bulkReassign = async () => {
-    if (!bulkReassignTo || selectedIds.size === 0) return;
+    if (selectedIds.size === 0 || bulkBusy) return;
+    let targets = [];
+    if (bulkSource === 'sales') {
+      targets = Array.from(bulkSalesIds);
+      if (targets.length === 0) return;
+    } else {
+      if (!bulkPoolId) return;
+      targets = [bulkPoolId];
+    }
     setBulkBusy(true);
     try {
-      const { error } = await supabase.rpc('bulk_reassign_clients', {
-        p_client_ids: Array.from(selectedIds),
-        p_new_owner: bulkReassignTo,
+      const assignments = distribute(Array.from(selectedIds), targets);
+      const { error } = await supabase.rpc('bulk_reassign_clients_split', {
+        p_assignments: assignments,
         p_status: bulkReassignStatus,
       });
       if (error) {
@@ -397,7 +423,8 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
     }
     setBulkBusy(false);
     setSelectedIds(new Set());
-    setBulkReassignTo('');
+    setBulkSalesIds(new Set());
+    setBulkPoolId('');
     setBulkReassignStatus('reRotation');
     load();
   };
@@ -532,10 +559,87 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
           <span className="flex-1" />
           {hasTeamAccess && profilesList.length > 0 && (
             <>
-              <select value={bulkReassignTo} onChange={(e) => setBulkReassignTo(e.target.value)} className={selectClass} style={selectStyle}>
-                <option value="">Reassign to...</option>
-                {profilesList.map((p) => (<option key={p.id} value={p.id}>{p.is_pool ? 'Unassigned Pool' : (p.full_name || p.username || p.id)}</option>))}
-              </select>
+              {/* Source toggle */}
+              <div className="flex rounded-lg overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+                <button
+                  onClick={() => { setBulkSource('sales'); setBulkPoolId(''); }}
+                  className="px-3 py-2 text-xs font-bold"
+                  style={{ backgroundColor: bulkSource === 'sales' ? C.gold : C.bg, color: bulkSource === 'sales' ? '#14181F' : C.muted }}
+                >Sales</button>
+                <button
+                  onClick={() => { setBulkSource('pools'); setBulkSalesIds(new Set()); }}
+                  className="px-3 py-2 text-xs font-bold"
+                  style={{ backgroundColor: bulkSource === 'pools' ? C.gold : C.bg, color: bulkSource === 'pools' ? '#14181F' : C.muted }}
+                >Pools</button>
+              </div>
+
+              {/* Target picker */}
+              {bulkSource === 'sales' ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setBulkSalesOpen(v => !v)}
+                    className={selectClass}
+                    style={{ ...selectStyle, minWidth: 160, textAlign: 'left' }}
+                  >
+                    {bulkSalesIds.size === 0
+                      ? 'Select sales...'
+                      : `${bulkSalesIds.size} sales selected`}
+                    <span style={{ float: 'right', fontSize: 9, marginTop: 4 }}>▼</span>
+                  </button>
+                  {bulkSalesOpen && (
+                    <div className="absolute z-50 top-10 right-0 rounded-xl shadow-xl"
+                      style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, width: 220, maxHeight: 280, display: 'flex', flexDirection: 'column' }}>
+                      <div className="p-2 shrink-0 flex gap-1" style={{ borderBottom: `1px solid ${C.border}` }}>
+                        <button
+                          onClick={() => {
+                            const all = new Set(profilesList.filter(p => !p.is_pool).map(p => p.id));
+                            setBulkSalesIds(all);
+                          }}
+                          className="flex-1 text-xs py-1 rounded"
+                          style={{ backgroundColor: C.bg, color: C.gold }}
+                        >All</button>
+                        <button
+                          onClick={() => setBulkSalesIds(new Set())}
+                          className="flex-1 text-xs py-1 rounded"
+                          style={{ backgroundColor: C.bg, color: C.muted }}
+                        >Clear</button>
+                      </div>
+                      <div className="overflow-y-auto flex-1">
+                        {profilesList.filter(p => !p.is_pool).map(p => {
+                          const sel = bulkSalesIds.has(p.id);
+                          return (
+                            <div
+                              key={p.id}
+                              onClick={() => {
+                                const next = new Set(bulkSalesIds);
+                                if (next.has(p.id)) next.delete(p.id); else next.add(p.id);
+                                setBulkSalesIds(next);
+                              }}
+                              className="flex items-center gap-2 px-3 py-1.5 cursor-pointer text-xs hover:opacity-80"
+                              style={{ backgroundColor: sel ? `${C.gold}22` : 'transparent', color: sel ? C.gold : C.text }}
+                            >
+                              <span>{sel ? '☑' : '☐'}</span>
+                              <span>{p.full_name || p.username || p.id}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="p-2 shrink-0" style={{ borderTop: `1px solid ${C.border}` }}>
+                        <button onClick={() => setBulkSalesOpen(false)} className="w-full text-xs py-1 rounded" style={{ backgroundColor: C.gold, color: '#14181F', fontWeight: 'bold' }}>Done</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <select value={bulkPoolId} onChange={(e) => setBulkPoolId(e.target.value)} className={selectClass} style={selectStyle}>
+                  <option value="">Select pool...</option>
+                  {profilesList.filter(p => p.is_pool).map(p => (
+                    <option key={p.id} value={p.id}>{p.full_name}</option>
+                  ))}
+                </select>
+              )}
+
+              {/* Status */}
               <select value={bulkReassignStatus} onChange={(e) => setBulkReassignStatus(e.target.value)} className={selectClass} style={selectStyle}>
                 <option value="reRotation">Re-rotation</option>
                 <option value="new">New</option>
@@ -543,7 +647,13 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
                 <option value="notInterested">Not Interested</option>
                 <option value="notQualified">Not Qualified</option>
               </select>
-              <button onClick={bulkReassign} disabled={!bulkReassignTo || bulkBusy} className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-40" style={{ backgroundColor: C.gold, color: '#14181F' }}>Reassign</button>
+
+              <button
+                onClick={bulkReassign}
+                disabled={bulkBusy || (bulkSource === 'sales' ? bulkSalesIds.size === 0 : !bulkPoolId)}
+                className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-40"
+                style={{ backgroundColor: C.gold, color: '#14181F' }}
+              >Reassign</button>
             </>
           )}
           {isAdmin && (<button onClick={bulkDelete} disabled={bulkBusy} className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-40" style={{ backgroundColor: '#C9714F22', color: '#C9714F' }}>Delete</button>)}
