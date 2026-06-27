@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
 import { C, TITLES, titleLabel } from './constants';
-import { Plus, Pencil, Trash2, Check, X, KeyRound, Eye, EyeOff } from 'lucide-react';
+import { Plus, Pencil, Trash2, Check, X, KeyRound, Eye, EyeOff, Lock } from 'lucide-react';
 
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
 const inputClass = 'rounded-lg px-3 py-2 text-sm outline-none w-full';
@@ -22,7 +22,8 @@ export default function TeamPage({ currentUserId, currentUserTitle }) {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('members'); // 'members' | 'credentials'
+  const [activeTab, setActiveTab] = useState('members'); // 'members' | 'pools' | 'credentials'
+
   const isTopManagement = currentUserTitle === 'top_management';
   const isOperation = currentUserTitle === 'operation';
   const showCredentialsTab = isTopManagement || isOperation;
@@ -40,40 +41,71 @@ export default function TeamPage({ currentUserId, currentUserTitle }) {
 
   if (loading) return <p style={{ color: C.muted }} className="text-sm">Loading...</p>;
 
-  // Operation and Marketing accounts are only visible to Top Management
+  // Members tab — exclude pools entirely + apply visibility rules
   const visibleProfiles = profiles.filter((p) =>
-    currentUserTitle === 'top_management' || p.id === currentUserId || !['operation', 'marketing'].includes(p.title)
+    !p.is_pool && (
+      currentUserTitle === 'top_management' || p.id === currentUserId || !['operation', 'marketing'].includes(p.title)
+    )
   );
-  const teamLeaders = profiles.filter((p) => p.title === 'team_leader');
+
+  // Pools tab — only pools, ordered by pool_key (matches the order in PoolPanels)
+  const POOL_KEY_ORDER = ['newFresh','oldFresh','oldCampaign','cold','reRotation','noAnswer','notInterested','notQualified'];
+  const poolsList = profiles
+    .filter((p) => p.is_pool)
+    .sort((a, b) => (POOL_KEY_ORDER.indexOf(a.pool_key) - POOL_KEY_ORDER.indexOf(b.pool_key)));
+
+  const teamLeaders = profiles.filter((p) => p.title === 'team_leader' && !p.is_pool);
+
+  const tabs = [
+    { id: 'members', label: 'Users', count: visibleProfiles.length },
+    { id: 'pools',   label: 'Pools', count: poolsList.length },
+    ...(showCredentialsTab ? [{ id: 'credentials', label: 'Credentials' }] : []),
+  ];
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h2 className="font-display font-bold text-lg">Users</h2>
-          <span className="text-sm px-2.5 py-0.5 rounded-full" style={{ backgroundColor: `${C.gold}22`, color: C.gold }}>{visibleProfiles.length}</span>
+          <h2 className="font-display font-bold text-lg">
+            {activeTab === 'pools' ? 'Pools' : activeTab === 'credentials' ? 'Credentials' : 'Users'}
+          </h2>
+          {activeTab !== 'credentials' && (
+            <span className="text-sm px-2.5 py-0.5 rounded-full" style={{ backgroundColor: `${C.gold}22`, color: C.gold }}>
+              {activeTab === 'pools' ? poolsList.length : visibleProfiles.length}
+            </span>
+          )}
         </div>
-        <button
-          onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold"
-          style={{ backgroundColor: C.gold, color: '#14181F' }}
-        >
-          <Plus size={14} /> Add User
-        </button>
+        {activeTab === 'members' && (
+          <button
+            onClick={() => setShowAdd(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold"
+            style={{ backgroundColor: C.gold, color: '#14181F' }}
+          >
+            <Plus size={14} /> Add User
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
-      {showCredentialsTab && (
-        <div className="flex gap-2">
-          {['members', 'credentials'].map((tab) => (
-            <button key={tab} onClick={() => setActiveTab(tab)}
-              className="px-4 py-1.5 rounded-lg text-sm font-medium capitalize"
-              style={{ backgroundColor: activeTab === tab ? C.gold : C.surface, color: activeTab === tab ? '#14181F' : C.muted, border: `1px solid ${activeTab === tab ? C.gold : C.border}` }}>
-              {tab === 'members' ? 'Members' : 'Credentials'}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="flex gap-2 flex-wrap">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className="px-4 py-1.5 rounded-lg text-sm font-medium capitalize"
+            style={{
+              backgroundColor: activeTab === tab.id ? C.gold : C.surface,
+              color: activeTab === tab.id ? '#14181F' : C.muted,
+              border: `1px solid ${activeTab === tab.id ? C.gold : C.border}`,
+            }}
+          >
+            {tab.label}
+            {tab.count !== undefined && (
+              <span className="ml-1.5 text-xs opacity-75">({tab.count})</span>
+            )}
+          </button>
+        ))}
+      </div>
 
       {error && <p className="text-xs" style={{ color: '#C9714F' }}>{error}</p>}
 
@@ -83,6 +115,24 @@ export default function TeamPage({ currentUserId, currentUserTitle }) {
             <UserRow key={p.id} profile={p} currentUserId={currentUserId} teamLeaders={teamLeaders} onChanged={load} setError={setError} />
           ))}
         </div>
+      )}
+
+      {activeTab === 'pools' && (
+        <>
+          <div className="rounded-lg px-3 py-2 mb-1 text-xs flex items-center gap-2"
+            style={{ backgroundColor: '#5BE0EF11', border: `1px solid #5BE0EF44`, color: '#5BE0EF' }}>
+            <Lock size={12} />
+            <span>System pools — read-only. Changes can only be made via SQL.</span>
+          </div>
+          <div className="space-y-2">
+            {poolsList.map((p) => (
+              <PoolRow key={p.id} profile={p} />
+            ))}
+            {poolsList.length === 0 && (
+              <p className="text-xs text-center py-6" style={{ color: C.muted }}>No pools configured.</p>
+            )}
+          </div>
+        </>
       )}
 
       {activeTab === 'credentials' && showCredentialsTab && (
@@ -122,9 +172,29 @@ export default function TeamPage({ currentUserId, currentUserTitle }) {
 }
 
 function TitleBadge({ title, isPool }) {
-  if (isPool) return <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${C.muted}22`, color: C.muted }}>Pool</span>;
+  if (isPool) return <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ backgroundColor: '#5BE0EF22', color: '#5BE0EF' }}>Pool</span>;
   const color = TITLE_COLORS[title] || C.muted;
   return <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${color}22`, color }}>{titleLabel(title)}</span>;
+}
+
+// Read-only row for a system pool. No edit/delete/reset actions.
+function PoolRow({ profile }) {
+  return (
+    <div className="rounded-lg p-3" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-bold text-sm" style={{ color: '#5BE0EF' }}>{profile.full_name || profile.username || '—'}</span>
+            <TitleBadge isPool />
+          </div>
+          <p className="text-xs mt-0.5" style={{ color: C.muted }}>
+            pool_key: <span className="font-mono">{profile.pool_key || '—'}</span>
+          </p>
+        </div>
+        <Lock size={14} style={{ color: C.muted, flexShrink: 0 }} />
+      </div>
+    </div>
+  );
 }
 
 function UserRow({ profile, currentUserId, teamLeaders, onChanged, setError }) {
@@ -201,18 +271,14 @@ function UserRow({ profile, currentUserId, teamLeaders, onChanged, setError }) {
       <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: C.surface, border: `1px solid ${C.gold}` }}>
         <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" className={inputClass} style={inputStyle} />
         <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" className={inputClass} style={inputStyle} autoCapitalize="none" autoCorrect="off" />
-        {!profile.is_pool && (
-          <>
-            <select value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} style={inputStyle}>
-              {TITLES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
-            </select>
-            {title === 'sales' && teamLeaders.length > 0 && (
-              <select value={teamLeaderId} onChange={(e) => setTeamLeaderId(e.target.value)} className={inputClass} style={inputStyle}>
-                <option value="">No team leader</option>
-                {teamLeaders.map((tl) => <option key={tl.id} value={tl.id}>{tl.full_name || tl.username}</option>)}
-              </select>
-            )}
-          </>
+        <select value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} style={inputStyle}>
+          {TITLES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+        </select>
+        {title === 'sales' && teamLeaders.length > 0 && (
+          <select value={teamLeaderId} onChange={(e) => setTeamLeaderId(e.target.value)} className={inputClass} style={inputStyle}>
+            <option value="">No team leader</option>
+            {teamLeaders.map((tl) => <option key={tl.id} value={tl.id}>{tl.full_name || tl.username}</option>)}
+          </select>
         )}
         <div className="flex gap-2">
           <button onClick={saveEdit} disabled={saving} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-bold disabled:opacity-50" style={{ backgroundColor: C.gold, color: '#14181F' }}>
@@ -234,7 +300,7 @@ function UserRow({ profile, currentUserId, teamLeaders, onChanged, setError }) {
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-bold text-sm">{profile.full_name || '—'}</span>
-            <TitleBadge title={profile.title} isPool={profile.is_pool} />
+            <TitleBadge title={profile.title} />
             {isSelf && <span className="text-xs" style={{ color: C.muted }}>(You)</span>}
           </div>
           <p className="text-xs mt-0.5" style={{ color: C.muted }}>
@@ -245,12 +311,10 @@ function UserRow({ profile, currentUserId, teamLeaders, onChanged, setError }) {
           <button onClick={() => setEditing(true)} title="Edit">
             <Pencil size={14} style={{ color: C.muted }} />
           </button>
-          {!profile.is_pool && (
-            <button onClick={() => setResetting((s) => !s)} title="Reset password">
-              <KeyRound size={14} style={{ color: C.muted }} />
-            </button>
-          )}
-          {!profile.is_pool && !isSelf && (
+          <button onClick={() => setResetting((s) => !s)} title="Reset password">
+            <KeyRound size={14} style={{ color: C.muted }} />
+          </button>
+          {!isSelf && (
             !confirmDelete ? (
               <button onClick={() => setConfirmDelete(true)} title="Delete">
                 <Trash2 size={14} style={{ color: '#C9714F' }} />
@@ -264,7 +328,6 @@ function UserRow({ profile, currentUserId, teamLeaders, onChanged, setError }) {
           )}
         </div>
       </div>
-
       {resetting && (
         <div className="flex gap-2 mt-2.5 pt-2.5" style={{ borderTop: `1px solid ${C.border}` }}>
           <div className="relative flex-1">
@@ -314,7 +377,6 @@ function AddUserModal({ teamLeaders, onClose, onSaved, setError }) {
       p_team_leader_id: title === 'sales' && teamLeaderId ? teamLeaderId : null,
     });
     if (!error) {
-      // Save plain password for credentials tab
       const { data: newProfile } = await supabase.from('profiles').select('id').eq('username', username.trim()).single();
       if (newProfile) await supabase.from('profiles').update({ plain_password: password }).eq('id', newProfile.id);
     }
