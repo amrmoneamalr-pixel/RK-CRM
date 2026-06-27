@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { C } from './constants';
 import rkLogo from './rk-logo.png.png';
 import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, Activity as ActivityIcon, Settings as SettingsIcon, Building2, Mail as MailIcon } from 'lucide-react';
 import LeadPanels from './LeadPanels';
+import PoolPanels from './PoolPanels';
 import TeamChat from './TeamChat';
 
 // COVO CRM logo — identical to COVO Projects
@@ -70,6 +71,8 @@ import TeamChat from './TeamChat';
   );
 }
 export default function Layout({ profile, tab, setTab, onSelectCategory, onSignOut, children }) {
+  const showPoolsTab = profile.role === 'admin' || profile.title === 'top_management';
+  const [sidebarTab, setSidebarTab] = useState('sales');
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'clients', label: 'Clients', icon: Users },
@@ -208,8 +211,40 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
       <aside className="hidden lg:flex flex-col w-72 shrink-0 border-l sticky top-0 h-screen" style={{ borderColor: C.border }}>
         {(tab === 'dashboard' || tab === 'clients') ? (
           <>
-            <div className="overflow-y-auto" style={{ height: '50%' }}>
-              <LeadPanels userId={profile.id} isAdmin={profile.role === 'admin'} onSelectCategory={onSelectCategory} inSidebar />
+            <div style={{ height: '50%', display: 'flex', flexDirection: 'column' }}>
+              {showPoolsTab && (
+                <div className="flex gap-1 p-2 shrink-0" style={{ borderBottom: `1px solid ${C.border}` }}>
+                  <button
+                    onClick={() => setSidebarTab('sales')}
+                    className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                    style={{
+                      backgroundColor: sidebarTab === 'sales' ? C.gold : C.surface,
+                      color: sidebarTab === 'sales' ? '#14181F' : C.muted,
+                      border: `1px solid ${C.border}`,
+                    }}
+                  >
+                    Sales
+                  </button>
+                  <button
+                    onClick={() => setSidebarTab('pools')}
+                    className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                    style={{
+                      backgroundColor: sidebarTab === 'pools' ? C.gold : C.surface,
+                      color: sidebarTab === 'pools' ? '#14181F' : C.muted,
+                      border: `1px solid ${C.border}`,
+                    }}
+                  >
+                    Pools
+                  </button>
+                </div>
+              )}
+              <div className="overflow-y-auto flex-1">
+                {showPoolsTab && sidebarTab === 'pools' ? (
+                  <PoolPanels onSelectCategory={onSelectCategory} />
+                ) : (
+                  <LeadPanels userId={profile.id} isAdmin={profile.role === 'admin'} onSelectCategory={onSelectCategory} inSidebar />
+                )}
+              </div>
             </div>
             <div style={{ height: '50%' }}>
               <TeamChat profile={profile} />

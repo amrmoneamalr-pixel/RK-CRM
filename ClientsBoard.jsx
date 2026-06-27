@@ -141,6 +141,23 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
   const [bulkBusy, setBulkBusy] = useState(false);
   const [actionTarget, setActionTarget] = useState(null);
   const [unreadMail, setUnreadMail] = useState(0);
+  const [poolMap, setPoolMap] = useState({}); // pool_key -> id
+  const [poolIds, setPoolIds] = useState([]); // all pool user ids (to exclude from non-pool views)
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from('profiles')
+        .select('id, pool_key').eq('is_pool', true);
+      const map = {};
+      const ids = [];
+      (data || []).forEach(p => {
+        if (p.pool_key) map[p.pool_key] = p.id;
+        ids.push(p.id);
+      });
+      setPoolMap(map);
+      setPoolIds(ids);
+    })();
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -193,6 +210,9 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
   const buildQuery = () => {
     let q = supabase.from('clients').select('*', { count: 'exact' });
     if (!hasTeamAccess) q = q.eq('owner_id', userId);
+    else if (poolIds.length > 0 && (!leadFilter || !leadFilter.startsWith('pool_'))) {
+      q = q.not('owner_id', 'in', '(' + poolIds.join(',') + ')');
+    }
     if (search) {
       const esc = search.replace(/[%,]/g, '');
       q = q.or(`name.ilike.%${esc}%,phone.ilike.%${esc}%,project.ilike.%${esc}%,developer.ilike.%${esc}%,location.ilike.%${esc}%`);
@@ -262,6 +282,13 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
     }
     if (leadFilter) {
       const today = todayStr();
+      // Pool filter: leadFilter='pool_<key>' → filter by that pool owner
+      if (leadFilter.startsWith('pool_')) {
+        const key = leadFilter.slice(5);
+        const pid = poolMap[key];
+        if (pid) q = q.eq('owner_id', pid);
+        return q;
+      }
       switch (leadFilter) {
         case 'newFresh':
           q = q.eq('stage_category', 'New Fresh Lead').eq('ever_contacted', false); break;
@@ -337,7 +364,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [userId, page, search, stageFilter, leadFilter, colFilters]);
+  useEffect(() => { load(); }, [userId, page, search, stageFilter, leadFilter, colFilters, poolMap, poolIds]);
 
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));

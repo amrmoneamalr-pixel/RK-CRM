@@ -25,11 +25,22 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, inSideba
 
   const load = async () => {
     setLoading(true);
+
+    // Get pool user IDs to exclude their leads from sales counts
+    const { data: poolProfiles } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('is_pool', true);
+    const poolIds = (poolProfiles || []).map(p => p.id);
+
     let q = supabase
       .from('clients')
       .select('id, stage, stage_category, ever_contacted, created_at, next_follow_up, call_result, last_contacted_at, previous_owners, is_manual, potential')
       .order('created_at', { ascending: false });
     if (!isAdmin) q = q.eq('owner_id', userId);
+    else if (poolIds.length > 0) {
+      q = q.not('owner_id', 'in', '(' + poolIds.join(',') + ')');
+    }
     const { data } = await q;
     const clients = data || [];
     const today = todayStr();
