@@ -6,121 +6,85 @@ import LeadPanels from './LeadPanels';
 import TeamChat from './TeamChat';
 
 // COVO CRM Logo
-function CovoLogo({ size = "md" }) {
+export default function CovoLogo({ size = 'md' }) {
   const sizes = {
     sm: {
-      height: 54,
-      word: 30,
-      barW: 18,
-      barH: 3,
-      gap: 4,
-      subtitle: 8,
-      tracking: 7,
+      word: 'text-xl',
+      bar: 'w-[20px] h-[3px]',
+      sub: 'text-[8px]',
+      gap: 'gap-[4px]',
+      margin: 'my-[6px]',
     },
+
     md: {
-      height: 66,
-      word: 40,
-      barW: 26,
-      barH: 3.5,
-      gap: 5,
-      subtitle: 9,
-      tracking: 8,
+      word: 'text-3xl',
+      bar: 'w-[32px] h-[3px]',
+      sub: 'text-[10px]',
+      gap: 'gap-[4px]',
+      margin: 'my-[6px]',
     },
+
     lg: {
-      height: 82,
-      word: 52,
-      barW: 34,
-      barH: 4,
-      gap: 6,
-      subtitle: 11,
-      tracking: 10,
+      word: 'text-5xl',
+      bar: 'w-[46px] h-[4px]',
+      sub: 'text-[13px]',
+      gap: 'gap-[5px]',
+      margin: 'my-[7px]',
     },
   };
 
   const s = sizes[size] || sizes.md;
 
   return (
-    <svg
-      viewBox="0 0 190 78"
-      xmlns="http://www.w3.org/2000/svg"
-      style={{
-        height: s.height,
-        width: "auto",
-        display: "block",
-        overflow: "visible",
-      }}
-    >
+    <div className="flex flex-col items-start select-none leading-none">
+
       {/* COVO */}
-      <text
-        x="0"
-        y="28"
-        fill="#FFFFFF"
+      <span
+        className={`${s.word} font-black italic text-white tracking-wider leading-none`}
         style={{
-          fontFamily:
-            'Inter, system-ui, -apple-system, "Segoe UI", sans-serif',
-          fontWeight: 900,
-          fontStyle: "italic",
-          fontSize: `${s.word}px`,
-          letterSpacing: "-1px",
+          fontFamily: 'Inter, system-ui, sans-serif',
         }}
       >
         COVO
-      </text>
+      </span>
 
       {/* Brand Bars */}
-      <rect
-        x="2"
-        y="39"
-        width={s.barW}
-        height={s.barH}
-        rx="20"
-        fill="#5BE0EF"
-      />
+      <div className={`flex ${s.gap} ${s.margin}`}>
+        <span
+          className={`${s.bar} rounded-full`}
+          style={{ background: '#5BE0EF' }}
+        />
 
-      <rect
-        x={2 + s.barW + s.gap}
-        y="39"
-        width={s.barW}
-        height={s.barH}
-        rx="20"
-        fill="#E8196A"
-      />
+        <span
+          className={`${s.bar} rounded-full`}
+          style={{ background: '#E8196A' }}
+        />
 
-      <rect
-        x={2 + (s.barW + s.gap) * 2}
-        y="39"
-        width={s.barW}
-        height={s.barH}
-        rx="20"
-        fill="#F0A500"
-      />
+        <span
+          className={`${s.bar} rounded-full`}
+          style={{ background: '#F0A500' }}
+        />
 
-      <rect
-        x={2 + (s.barW + s.gap) * 3}
-        y="39"
-        width={s.barW}
-        height={s.barH}
-        rx="20"
-        fill="#00C9A7"
-      />
+        <span
+          className={`${s.bar} rounded-full`}
+          style={{ background: '#00C9A7' }}
+        />
+      </div>
 
       {/* CRM */}
-      <text
-        x="0"
-        y="60"
-        fill="#8DBDFF"
+      <span
+        className={`${s.sub} uppercase font-medium`}
         style={{
-          fontFamily:
-            'Inter, system-ui, -apple-system, "Segoe UI", sans-serif',
-          fontWeight: 500,
-          fontSize: `${s.subtitle}px`,
-          letterSpacing: `${s.tracking}px`,
-          textTransform: "uppercase",
+          color: '#8DBDFF',
+          fontFamily: 'Inter, system-ui, sans-serif',
+          letterSpacing: '0.45em',
+          marginLeft: '1px',
         }}
       >
         CRM
-      </text>
-    </svg>
+      </span>
+
+    </div>
   );
 }
 export default function Layout({ profile, tab, setTab, onSelectCategory, onSignOut, children }) {
