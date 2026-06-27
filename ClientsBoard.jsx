@@ -363,6 +363,9 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
         break;
       case 'reRotation':
         patch.call_result = null;
+        patch.ever_contacted = false;
+        patch.next_follow_up = null;
+        patch.last_contacted_at = null;
         break;
       case 'contacted':
         patch.call_result = 'Contacted';
