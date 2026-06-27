@@ -37,7 +37,7 @@ import TeamChat from './TeamChat';
       </span>
 
       {/* Brand Bars */}
-      <div className="flex gap-[3px] my-[5px]">
+      <div className="flex gap-[2px] my-[4px]">
         <span
           className={`${s.bar} rounded-full`}
           style={{ background: "#5BE0EF" }}
