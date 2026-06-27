@@ -521,7 +521,6 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
           }
           chips.push({
             label: 'View: ' + (label || leadFilter),
-            color: '#5BE0EF',
             onRemove: onClearLeadFilter,
           });
         }
@@ -862,9 +861,6 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
                             style={{
                               color: isPool ? '#5BE0EF' : C.muted,
                               fontWeight: isPool ? 700 : 400,
-                              textShadow: isPool
-                                ? '0 0 4px rgba(91,224,239,0.9), 0 0 8px rgba(91,224,239,0.6), 0 0 14px rgba(91,224,239,0.35)'
-                                : 'none',
                             }}>
                             {owners[c.owner_id] || '—'}
                           </td>

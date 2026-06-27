@@ -220,13 +220,11 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
                         if (onSelectCategory) onSelectCategory(null);
                         window.dispatchEvent(new CustomEvent('rk-clear-all-filters'));
                       }}
-                      className="px-6 py-1.5 rounded-lg text-xs font-bold transition-all"
+                      className="px-8 py-1.5 rounded-lg text-xs font-bold transition-colors"
                       style={{
-                        backgroundColor: 'transparent',
-                        color: '#5BE0EF',
-                        border: '1px solid #5BE0EF',
-                        textShadow: '0 0 6px rgba(91, 224, 239, 0.6)',
-                        boxShadow: '0 0 8px rgba(91, 224, 239, 0.25), inset 0 0 6px rgba(91, 224, 239, 0.1)',
+                        backgroundColor: C.surface,
+                        color: C.muted,
+                        border: `1px solid ${C.border}`,
                       }}
                       title="Show all leads (clear all filters)"
                     >
