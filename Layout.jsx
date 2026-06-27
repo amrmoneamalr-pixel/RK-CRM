@@ -1,10 +1,34 @@
 import React from 'react';
 import { C } from './constants';
-import covoLogo from './covo-only.png';
 import rkLogo from './rk-logo.png.png';
 import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, Activity as ActivityIcon, Settings as SettingsIcon, Building2, Mail as MailIcon } from 'lucide-react';
 import LeadPanels from './LeadPanels';
 import TeamChat from './TeamChat';
+
+// COVO CRM logo — inline SVG, matches covoprojects style (white card + colored bars + red subtitle)
+function CovoLogo({ height = 56 }) {
+  // viewBox: 200 x 80 → aspect ratio 2.5:1
+  return (
+    <svg viewBox="0 0 200 80" style={{ height, width: 'auto', display: 'block' }} xmlns="http://www.w3.org/2000/svg">
+      {/* White rounded background card */}
+      <rect x="0" y="0" width="200" height="80" rx="12" fill="#FFFFFF" />
+      <text x="100" y="42" textAnchor="middle" fill="#14181F"
+        style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif', fontWeight: 800, fontSize: '40px', letterSpacing: '-1px' }}>
+        COVO
+      </text>
+      {/* Colored bars */}
+      <rect x="42"  y="52" width="24" height="3.5" fill="#E63946" rx="1" />
+      <rect x="73"  y="52" width="24" height="3.5" fill="#F4B860" rx="1" />
+      <rect x="104" y="52" width="24" height="3.5" fill="#2EC4B6" rx="1" />
+      <rect x="135" y="52" width="24" height="3.5" fill="#7FA887" rx="1" />
+      {/* Subtitle */}
+      <text x="100" y="71" textAnchor="middle" fill="#E63946"
+        style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif', fontWeight: 700, fontSize: '10px', letterSpacing: '6px' }}>
+        CRM
+      </text>
+    </svg>
+  );
+}
 
 export default function Layout({ profile, tab, setTab, onSelectCategory, onSignOut, children }) {
   const tabs = [
@@ -34,11 +58,16 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
       {/* Sidebar (desktop) */}
       <aside className="hidden sm:flex flex-col w-60 shrink-0 border-r sticky top-0 h-screen p-4" style={{ borderColor: C.border }}>
         <div className="mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <img src={covoLogo} alt="COVO CRM" className="h-16" />
-            <img src={rkLogo} alt="RK Real Estate" className="h-14" />
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <CovoLogo height={50} />
+            <span style={{ color: C.border, fontSize: '40px', fontWeight: 200, lineHeight: 1 }}>|</span>
+            <img
+              src={rkLogo}
+              alt="RK Real Estate"
+              style={{ height: '46px', width: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
+            />
           </div>
-          <p className="text-xs mt-1" style={{ color: C.muted }}>
+          <p className="text-xs mt-1 text-center" style={{ color: C.muted }}>
             {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
           </p>
         </div>
@@ -67,17 +96,22 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
       {/* Header + nav (mobile) */}
       <header className="sm:hidden sticky top-0 z-20 border-b" style={{ backgroundColor: C.bg, borderColor: C.border }}>
         <div className="px-4 pt-4 pb-2">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <img src={covoLogo} alt="COVO CRM" className="h-12" />
-                <img src={rkLogo} alt="RK Real Estate" className="h-11" />
+                <CovoLogo height={42} />
+                <span style={{ color: C.border, fontSize: '34px', fontWeight: 200, lineHeight: 1 }}>|</span>
+                <img
+                  src={rkLogo}
+                  alt="RK Real Estate"
+                  style={{ height: '38px', width: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
+                />
               </div>
               <p className="text-xs mt-1" style={{ color: C.muted }}>
                 {profile.full_name || 'Welcome'}{profile.role === 'admin' ? ' · Admin' : ''}
               </p>
             </div>
-            <button onClick={onSignOut} className="flex items-center gap-1 text-xs" style={{ color: C.muted }}>
+            <button onClick={onSignOut} className="flex items-center gap-1 text-xs shrink-0" style={{ color: C.muted }}>
               <LogOut size={14} /> Sign out
             </button>
           </div>
