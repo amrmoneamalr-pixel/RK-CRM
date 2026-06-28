@@ -486,13 +486,16 @@ function DetailView({ userId, client, isAdmin, userTitle, profilesList, autoFocu
       setOwnerNames(map);
     }
 
-    // For History tab — lookup previous_owners names
+    // For History tab — lookup previous_owners + current owner names
     if (showHistoryTab) {
       const prevIds = Array.isArray(client.previous_owners) ? client.previous_owners : [];
-      if (prevIds.length > 0) {
-        const { data: profiles } = await supabase.from('profiles').select('id, full_name, username').in('id', prevIds);
+      const allIds = [...new Set([...prevIds, client.owner_id].filter(Boolean))];
+      if (allIds.length > 0) {
+        const { data: profiles } = await supabase.from('profiles').select('id, full_name, username, is_pool').in('id', allIds);
         const map = {};
-        (profiles || []).forEach(p => { map[p.id] = p.full_name || p.username || '—'; });
+        (profiles || []).forEach(p => {
+          map[p.id] = p.full_name || p.username || '—';
+        });
         setPreviousOwnerNames(map);
       }
     }
