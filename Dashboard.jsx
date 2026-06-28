@@ -1,142 +1,324 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from './supabaseClient';
-import { C, STAGES, ACTIVITY_TYPES, activityLabel, monthKey, todayStr, fmtDate } from './constants';
-import { Users, Clock, CheckCircle2, BarChart3 } from 'lucide-react';
+import { C } from './constants';
+import {
+  Sparkles, RotateCw, RefreshCw, Calendar, PhoneCall,
+  CalendarClock, CalendarCheck, Target as TargetIcon, TrendingUp
+} from 'lucide-react';
 
-export function ProgressBar({ value, target, color }) {
-  const pct = target > 0 ? Math.min(100, Math.round((value / target) * 100)) : 0;
+// ─── Period helpers ────────────────────────────────────────────────────
+// Week starts on Saturday. Month starts on the 1st.
+function getPeriodRange(period) {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const d = now.getDate();
+
+  if (period === 'daily') {
+    const start = new Date(y, m, d, 0, 0, 0, 0);
+    const end = new Date(y, m, d + 1, 0, 0, 0, 0);
+    return { start, end, label: 'Today' };
+  }
+  if (period === 'weekly') {
+    // Saturday = 6, Sunday = 0, Monday = 1 ... Friday = 5
+    const dow = now.getDay();
+    const daysBackToSat = (dow + 1) % 7; // Sat→0, Sun→1, Mon→2, ..., Fri→6
+    const start = new Date(y, m, d - daysBackToSat, 0, 0, 0, 0);
+    const end = new Date(y, m, d + 1, 0, 0, 0, 0);
+    return { start, end, label: "This Week" };
+  }
+  // monthly
+  const start = new Date(y, m, 1, 0, 0, 0, 0);
+  const end = new Date(y, m + 1, 1, 0, 0, 0, 0);
+  return { start, end, label: 'This Month' };
+}
+
+const fmtDateISO = (d) => d.toISOString();
+const fmtDateOnly = (d) => d.toISOString().slice(0, 10);
+
+// ─── Box component ─────────────────────────────────────────────────────
+function MetricBox({ icon: Icon, label, value, color, sublabel, loading }) {
   return (
-    <div>
-      <div className="flex items-center justify-between text-sm mb-1.5">
-        <span className="font-display font-bold">
-          {value} <span style={{ color: C.muted, fontWeight: 400 }}>/ {target || '—'}</span>
-        </span>
-        <span style={{ color: C.muted }}>{target > 0 ? `${pct}%` : 'No target set'}</span>
+    <div className="rounded-xl p-4 flex flex-col gap-2" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center rounded-lg" style={{ width: 28, height: 28, backgroundColor: `${color}22`, color }}>
+            <Icon size={14} />
+          </div>
+          <span className="text-xs font-bold" style={{ color: C.muted }}>{label}</span>
+        </div>
       </div>
-      <div className="h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: C.bg }}>
+      <div className="flex items-baseline gap-2">
+        <span className="font-display font-bold text-3xl" style={{ color: loading ? C.muted : C.text }}>
+          {loading ? '—' : value}
+        </span>
+        {sublabel && !loading && <span className="text-xs" style={{ color: C.muted }}>{sublabel}</span>}
+      </div>
+    </div>
+  );
+}
+
+// ─── Target box (special) ──────────────────────────────────────────────
+function TargetBox({ achieved, target, period, loading }) {
+  const pct = target > 0 ? Math.min(100, Math.round((achieved / target) * 100)) : 0;
+  const color = pct >= 100 ? '#7FA887' : pct >= 50 ? C.gold : '#C9714F';
+  return (
+    <div className="rounded-xl p-4" style={{ backgroundColor: C.surface, border: `1px solid ${C.gold}` }}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <TargetIcon size={14} style={{ color: C.gold }} />
+          <span className="text-xs font-bold" style={{ color: C.muted }}>{period} Target — Deals Closed</span>
+        </div>
+        <span className="text-xs font-bold" style={{ color }}>{pct}%</span>
+      </div>
+      <div className="flex items-baseline gap-2 mb-2">
+        <span className="font-display font-bold text-3xl" style={{ color: loading ? C.muted : C.text }}>
+          {loading ? '—' : achieved}
+        </span>
+        <span className="text-sm" style={{ color: C.muted }}>
+          / {target || '—'}
+        </span>
+      </div>
+      <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: C.bg }}>
         <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
       </div>
     </div>
   );
 }
 
-export default function Dashboard({ userId }) {
-  const [clients, setClients] = useState([]);
-  const [activities, setActivities] = useState([]);
-  const [targets, setTargets] = useState({ deals_target: 0, meetings_target: 0 });
+// ─── Dashboard ─────────────────────────────────────────────────────────
+export default function Dashboard({ profile }) {
+  const [period, setPeriod] = useState('daily');
   const [loading, setLoading] = useState(true);
+  const [metrics, setMetrics] = useState({});
+  const [target, setTarget] = useState(null);
+
+  const range = useMemo(() => getPeriodRange(period), [period]);
+  const userId = profile?.id;
 
   useEffect(() => {
-    load();
-  }, [userId]);
+    if (!userId) return;
+    loadMetrics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, period]);
 
-  const load = async () => {
+  const loadMetrics = async () => {
     setLoading(true);
-    const [{ data: c }, { data: a }, { data: t }] = await Promise.all([
-      supabase.from('clients').select('*').eq('owner_id', userId),
-      supabase.from('activities').select('*').eq('owner_id', userId),
-      supabase.from('targets').select('*').eq('owner_id', userId).eq('month', monthKey()).maybeSingle(),
-    ]);
-    setClients(c || []);
-    setActivities(a || []);
-    setTargets(t || { deals_target: 0, meetings_target: 0 });
+    try {
+      const startISO = fmtDateISO(range.start);
+      const endISO = fmtDateISO(range.end);
+      const startDate = fmtDateOnly(range.start);
+      const endDate = fmtDateOnly(new Date(range.end.getTime() - 1)); // inclusive end day
+
+      // Run all queries in parallel
+      const [
+        freshRes,           // (1) Fresh leads (first assignment in period)
+        rotatedNewRes,      // (2) Rotated NEW Fresh in period
+        reRotationRes,      // (3) Any re-rotation received in period
+        followupsRes,       // (4) Today's/Week's/Month's followups (next_follow_up in period)
+        activitiesRes,      // (5,6,7) all activities in period
+        targetRow,          // monthly target
+        closedRes,          // closed deals in period (stage = 'won')
+      ] = await Promise.all([
+        supabase
+          .from('client_ownership_log')
+          .select('client_id', { count: 'exact', head: false })
+          .eq('owner_id', userId)
+          .eq('via_rotation', false)
+          .gte('assigned_at', startISO)
+          .lt('assigned_at', endISO),
+
+        supabase
+          .from('client_ownership_log')
+          .select('client_id', { count: 'exact', head: false })
+          .eq('owner_id', userId)
+          .eq('via_rotation', true)
+          .eq('stage_category', 'New Fresh Lead')
+          .gte('assigned_at', startISO)
+          .lt('assigned_at', endISO),
+
+        supabase
+          .from('client_ownership_log')
+          .select('client_id', { count: 'exact', head: false })
+          .eq('owner_id', userId)
+          .eq('via_rotation', true)
+          .gte('assigned_at', startISO)
+          .lt('assigned_at', endISO),
+
+        supabase
+          .from('clients')
+          .select('id', { count: 'exact', head: false })
+          .eq('owner_id', userId)
+          .gte('next_follow_up', startDate)
+          .lte('next_follow_up', endDate),
+
+        supabase
+          .from('activities')
+          .select('client_id, type, notes, date, created_at, owner_id')
+          .eq('owner_id', userId)
+          .gte('created_at', startISO)
+          .lt('created_at', endISO),
+
+        supabase
+          .from('targets')
+          .select('deals_target')
+          .eq('owner_id', userId)
+          .eq('month', new Date().toISOString().slice(0, 7))
+          .maybeSingle(),
+
+        supabase
+          .from('clients')
+          .select('id', { count: 'exact', head: false })
+          .eq('owner_id', userId)
+          .eq('stage', 'won')
+          .gte('closed_at', startISO)
+          .lt('closed_at', endISO),
+      ]);
+
+      // Deduplicate: count distinct client_ids
+      const distinctIds = (rows) => new Set((rows || []).map(r => r.client_id)).size;
+
+      // Active Calls: distinct clients where call_result is one of the response types
+      const ACTIVE_RESULTS = ['Contacted', 'Interest in Resale', 'Interest in Separate', 'Not Interested', 'Not Qualified'];
+      const activities = activitiesRes.data || [];
+
+      const activeCallClients = new Set();
+      const plannedMeetingClients = new Set();
+      const actualMeetingClients = new Set();
+      activities.forEach(a => {
+        const notes = a.notes || '';
+        // Active call check (based on Action: ... in notes)
+        ACTIVE_RESULTS.forEach(res => {
+          if (notes.includes('Action: ' + res)) activeCallClients.add(a.client_id);
+        });
+        // Meeting checks (we tag these explicitly in the notes when saving)
+        if (notes.includes('Planned Meeting')) plannedMeetingClients.add(a.client_id);
+        if (notes.includes('Actual Meeting')) actualMeetingClients.add(a.client_id);
+      });
+
+      setMetrics({
+        fresh: distinctIds(freshRes.data),
+        rotatedNew: distinctIds(rotatedNewRes.data),
+        reRotation: distinctIds(reRotationRes.data),
+        followups: (followupsRes.count || 0),
+        activeCalls: activeCallClients.size,
+        plannedMeetings: plannedMeetingClients.size,
+        actualMeetings: actualMeetingClients.size,
+        closed: closedRes.count || 0,
+      });
+
+      setTarget(targetRow?.data?.deals_target || 0);
+    } catch (e) {
+      console.warn('Dashboard load failed:', e);
+    }
     setLoading(false);
   };
 
-  if (loading) return <p style={{ color: C.muted }} className="text-sm">Loading...</p>;
-
-  const activeClients = clients.filter((c) => c.stage !== 'won' && c.stage !== 'lost');
-  const today = todayStr();
-  const due = clients.filter((c) => c.next_follow_up && c.stage !== 'won' && c.stage !== 'lost');
-  const overdue = due.filter((c) => c.next_follow_up < today).length;
-  const dueToday = due.filter((c) => c.next_follow_up === today).length;
-  const dealsThisMonth = clients.filter((c) => c.stage === 'won' && c.closed_at && c.closed_at.startsWith(monthKey())).length;
-  const meetingsThisMonth = activities.filter((a) => a.type === 'meeting' && a.date && a.date.startsWith(monthKey())).length;
-  const conversionRate = clients.length
-    ? Math.round((clients.filter((c) => c.stage === 'won').length / clients.length) * 100)
-    : 0;
-  const funnelCounts = STAGES.map((s) => ({ ...s, count: clients.filter((c) => c.stage === s.id).length }));
-  const funnelMax = Math.max(1, ...funnelCounts.map((f) => f.count));
-
-  const stats = [
-    { label: 'Active Clients', value: activeClients.length, icon: Users, color: C.gold },
-    {
-      label: 'Follow-ups Due',
-      value: overdue + dueToday,
-      icon: Clock,
-      color: overdue > 0 ? '#C9714F' : '#6E8CAE',
-      sub: overdue > 0 ? `${overdue} overdue` : null,
-    },
-    { label: 'Deals This Month', value: `${dealsThisMonth} / ${targets.deals_target || 0}`, icon: CheckCircle2, color: '#7FA887' },
-    { label: 'Conversion Rate', value: `${conversionRate}%`, icon: BarChart3, color: '#9B7EBD' },
-  ];
-
-  const recent = [...activities]
-    .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
-    .slice(0, 6)
-    .map((a) => ({ ...a, client: clients.find((c) => c.id === a.client_id) }))
-    .filter((a) => a.client);
-
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {stats.map((s) => {
-          const Icon = s.icon;
-          return (
-            <div key={s.label} className="rounded-xl p-3.5" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
-              <Icon size={16} style={{ color: s.color }} className="mb-2" />
-              <div className="font-display text-xl font-extrabold">{s.value}</div>
-              <div className="text-xs mt-1" style={{ color: C.muted }}>{s.label}</div>
-              {s.sub && <div className="text-[11px] mt-0.5" style={{ color: '#C9714F' }}>{s.sub}</div>}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="rounded-xl p-4" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
-        <h2 className="font-display font-bold text-sm mb-4">Sales Funnel</h2>
-        <div className="space-y-2.5">
-          {funnelCounts.map((s) => (
-            <div key={s.id} className="flex items-center gap-3">
-              <div className="w-28 text-xs shrink-0" style={{ color: C.muted }}>{s.label}</div>
-              <div className="flex-1 h-6 rounded-md overflow-hidden" style={{ backgroundColor: C.bg }}>
-                <div
-                  className="h-full rounded-md flex items-center justify-end px-2 transition-all"
-                  style={{ width: `${Math.max(6, (s.count / funnelMax) * 100)}%`, backgroundColor: s.color }}
-                >
-                  {s.count > 0 && <span className="text-[11px] font-bold" style={{ color: '#14181F' }}>{s.count}</span>}
-                </div>
-              </div>
-            </div>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h2 className="font-display font-bold text-lg">Dashboard</h2>
+          <p className="text-xs" style={{ color: C.muted }}>
+            Welcome back, {profile?.full_name?.split(' ')[0] || 'there'}!
+          </p>
+        </div>
+        {/* Period switcher */}
+        <div className="flex rounded-lg overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+          {[
+            { id: 'daily',   label: 'Daily' },
+            { id: 'weekly',  label: 'Weekly' },
+            { id: 'monthly', label: 'Monthly' },
+          ].map(t => (
+            <button
+              key={t.id}
+              onClick={() => setPeriod(t.id)}
+              className="px-4 py-1.5 text-xs font-bold transition-colors"
+              style={{
+                backgroundColor: period === t.id ? C.gold : C.surface,
+                color: period === t.id ? '#14181F' : C.muted,
+              }}
+            >
+              {t.label}
+            </button>
           ))}
         </div>
       </div>
 
-      <div className="rounded-xl p-4" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
-        <h2 className="font-display font-bold text-sm mb-3">Meetings This Month</h2>
-        <ProgressBar value={meetingsThisMonth} target={targets.meetings_target || 0} color="#6E8CAE" />
+      {/* Target — full width */}
+      <TargetBox
+        achieved={metrics.closed || 0}
+        target={target || 0}
+        period={range.label}
+        loading={loading}
+      />
+
+      {/* Row 1: Fresh / Followups / Active Calls */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <MetricBox
+          icon={Sparkles}
+          label={`${range.label}'s Fresh Leads`}
+          value={metrics.fresh || 0}
+          color="#7FA887"
+          loading={loading}
+        />
+        <MetricBox
+          icon={Calendar}
+          label={`${range.label}'s Follow-ups`}
+          value={metrics.followups || 0}
+          color="#6E8CAE"
+          loading={loading}
+        />
+        <MetricBox
+          icon={PhoneCall}
+          label={`${range.label}'s Active Calls`}
+          value={metrics.activeCalls || 0}
+          color={C.gold}
+          loading={loading}
+        />
       </div>
 
-      <div className="rounded-xl p-4" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
-        <h2 className="font-display font-bold text-sm mb-3">Recent Activity</h2>
-        {recent.length === 0 ? (
-          <p className="text-sm" style={{ color: C.muted }}>No activity logged yet.</p>
-        ) : (
-          <div className="space-y-2">
-            {recent.map((a) => {
-              const isSystem = a.type === 'system';
-              return (
-                <div key={a.id} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: C.bg }}>
-                  <div className="text-sm">
-                    {a.client.name} — {isSystem ? <span style={{ color: C.muted, fontStyle: 'italic' }}>{a.notes}</span> : activityLabel(a.type)}
-                  </div>
-                  <div className="text-[11px]" style={{ color: C.muted }}>{fmtDate(a.date)}</div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+      {/* Row 2: Rotated New Fresh / Re-rotation */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <MetricBox
+          icon={RotateCw}
+          label={`${range.label}'s Rotated New Fresh`}
+          value={metrics.rotatedNew || 0}
+          color="#9B7EBD"
+          loading={loading}
+        />
+        <MetricBox
+          icon={RefreshCw}
+          label={`${range.label}'s Re-rotation`}
+          value={metrics.reRotation || 0}
+          color="#E0A458"
+          loading={loading}
+        />
       </div>
+
+      {/* Row 3: Meetings */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <MetricBox
+          icon={CalendarClock}
+          label={`${range.label}'s Planned Meetings`}
+          value={metrics.plannedMeetings || 0}
+          color="#5BA3D0"
+          loading={loading}
+        />
+        <MetricBox
+          icon={CalendarCheck}
+          label={`${range.label}'s Actual Meetings`}
+          value={metrics.actualMeetings || 0}
+          color="#7FA887"
+          loading={loading}
+        />
+      </div>
+
+      {/* Subtle period range footer */}
+      <p className="text-[10px] text-center" style={{ color: C.muted }}>
+        Showing data from {range.start.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} to {new Date(range.end.getTime() - 1).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+      </p>
     </div>
   );
 }
