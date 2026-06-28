@@ -263,7 +263,7 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
                       onClick={() => {
                         setAllActive(true);
                         if (onSelectCategory) onSelectCategory(null);
-                        window.dispatchEvent(new CustomEvent('rk-clear-all-filters'));
+                        window.dispatchEvent(new CustomEvent('rk-set-view-mode', { detail: { mode: 'all' } }));
                       }}
                       className="px-8 py-1.5 rounded-lg text-xs font-bold transition-colors"
                       style={{
@@ -278,7 +278,12 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
                   </div>
                   <div className="flex gap-1 p-2 shrink-0" style={{ borderBottom: `1px solid ${C.border}` }}>
                     <button
-                      onClick={() => { setAllActive(false); setSidebarTab('sales'); }}
+                      onClick={() => {
+                        setAllActive(false);
+                        setSidebarTab('sales');
+                        if (onSelectCategory) onSelectCategory(null);
+                        window.dispatchEvent(new CustomEvent('rk-set-view-mode', { detail: { mode: 'sales' } }));
+                      }}
                       className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors"
                       style={{
                         backgroundColor: (sidebarTab === 'sales' && !allActive) ? C.gold : C.surface,
@@ -289,7 +294,12 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
                       Sales{salesTotal !== null && <span className="ml-1 opacity-75">({salesTotal})</span>}
                     </button>
                     <button
-                      onClick={() => { setAllActive(false); setSidebarTab('pools'); }}
+                      onClick={() => {
+                        setAllActive(false);
+                        setSidebarTab('pools');
+                        if (onSelectCategory) onSelectCategory(null);
+                        window.dispatchEvent(new CustomEvent('rk-set-view-mode', { detail: { mode: 'pools' } }));
+                      }}
                       className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors"
                       style={{
                         backgroundColor: (sidebarTab === 'pools' && !allActive) ? C.gold : C.surface,

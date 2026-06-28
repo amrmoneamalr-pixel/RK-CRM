@@ -184,30 +184,32 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  // Global "Clear all filters" event from the All button in Layout
+  // View mode set by Sales/Pools/All tabs in Layout sidebar
   const [showAllIncludingPools, setShowAllIncludingPools] = useState(false);
+  const [showOnlyPools, setShowOnlyPools] = useState(false);
   useEffect(() => {
-    const handler = () => {
+    const handler = (e) => {
+      const mode = e?.detail?.mode || 'sales';
+      // any tab switch clears search & col filters
       setColFilters({});
       setPendingCols({});
       setSearch('');
       setSearchInput('');
-      setShowAllIncludingPools(true);
+      if (mode === 'all') {
+        setShowAllIncludingPools(true);
+        setShowOnlyPools(false);
+      } else if (mode === 'pools') {
+        setShowAllIncludingPools(false);
+        setShowOnlyPools(true);
+      } else {
+        // 'sales' or anything else = default sales view
+        setShowAllIncludingPools(false);
+        setShowOnlyPools(false);
+      }
     };
-    window.addEventListener('rk-clear-all-filters', handler);
-    return () => window.removeEventListener('rk-clear-all-filters', handler);
+    window.addEventListener('rk-set-view-mode', handler);
+    return () => window.removeEventListener('rk-set-view-mode', handler);
   }, []);
-
-  // Turn off "show all" whenever a real filter becomes active
-  useEffect(() => {
-    if (!showAllIncludingPools) return;
-    const hasAnyFilter = leadFilter || search || Object.keys(colFilters).some(k => {
-      const v = colFilters[k];
-      if (Array.isArray(v)) return v.length > 0;
-      return Boolean(v);
-    });
-    if (hasAnyFilter) setShowAllIncludingPools(false);
-  }, [leadFilter, search, colFilters, showAllIncludingPools]);
 
   useEffect(() => {
     const top = document.getElementById('top-scroll-mirror');
@@ -249,8 +251,15 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
   const buildQuery = () => {
     let q = supabase.from('clients').select('*', { count: 'exact' });
     if (!hasTeamAccess) q = q.eq('owner_id', userId);
-    else if (poolIds.length > 0 && !showAllIncludingPools && (!leadFilter || !leadFilter.startsWith('pool_'))) {
-      q = q.not('owner_id', 'in', '(' + poolIds.join(',') + ')');
+    else if (poolIds.length > 0 && (!leadFilter || !leadFilter.startsWith('pool_'))) {
+      if (showOnlyPools) {
+        // Pools tab → only show leads owned by a pool
+        q = q.in('owner_id', poolIds);
+      } else if (!showAllIncludingPools) {
+        // Default (Sales tab) → exclude pool-owned leads
+        q = q.not('owner_id', 'in', '(' + poolIds.join(',') + ')');
+      }
+      // showAllIncludingPools=true → no pool filter, show everything
     }
     if (search) {
       const esc = search.replace(/[%,]/g, '');
@@ -403,7 +412,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [userId, page, search, stageFilter, leadFilter, colFilters, poolMap, poolIds, showAllIncludingPools]);
+  useEffect(() => { load(); }, [userId, page, search, stageFilter, leadFilter, colFilters, poolMap, poolIds, showAllIncludingPools, showOnlyPools]);
 
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
