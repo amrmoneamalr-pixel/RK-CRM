@@ -18,8 +18,16 @@ const extractComment = (notes) => {
   const lines = notes.split('\n').filter(l => !l.startsWith('Action: ') && !l.startsWith('\u{1F4C5}') && !l.startsWith('\u2705'));
   return lines.join('\n').trim();
 };
+
+// Strip the "📅 Follow-up: ..." line from notes for display
+// (we still keep it in storage so the time can be extracted)
+const stripFollowupLine = (notes) => {
+  if (!notes) return '';
+  return notes.split('\n').filter(l => !l.startsWith('\u{1F4C5} Follow-up:')).join('\n').trim();
+};
+
 import { WhatsAppIcon, SourceTag } from './BrandIcons';
-import { X, Phone, Trash2, AlertCircle, Pencil } from 'lucide-react';
+import { X, Phone, Trash2, AlertCircle, Pencil, Calendar, History as HistoryIcon, User as UserIcon } from 'lucide-react';
 
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
 const inputClass = 'rounded-lg px-3 py-2 text-sm outline-none w-full';
@@ -77,7 +85,7 @@ function useMarketerNames(profilesList) {
 export default function ClientModal({ mode, userId, client, isAdmin, userTitle, profilesList, autoFocusActivity, onClose, onSaved }) {
   if (mode === 'add') return <AddForm userId={userId} isAdmin={isAdmin} userTitle={userTitle} profilesList={profilesList} onClose={onClose} onSaved={onSaved} />;
   if (mode === 'edit') return <EditForm userId={userId} client={client} profilesList={profilesList} onClose={onClose} onSaved={onSaved} />;
-  return <DetailView userId={userId} client={client} isAdmin={isAdmin} profilesList={profilesList} autoFocusActivity={autoFocusActivity} onClose={onClose} onSaved={onSaved} />;
+  return <DetailView userId={userId} client={client} isAdmin={isAdmin} userTitle={userTitle} profilesList={profilesList} autoFocusActivity={autoFocusActivity} onClose={onClose} onSaved={onSaved} />;
 }
 
 function OriginFields({ form, setForm, marketerNames }) {
@@ -194,7 +202,6 @@ function AddForm({ userId, isAdmin, profilesList, userTitle, onClose, onSaved })
             {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </Field>
-
         {isManualUser ? (
           <Field label="Stage Category">
             <input value="Manual" disabled className={inputClass} style={{ ...inputStyle, opacity: 0.6 }} />
@@ -243,7 +250,6 @@ function AddForm({ userId, isAdmin, profilesList, userTitle, onClose, onSaved })
             )}
           </>
         )}
-
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={form.potential} onChange={(e) => setForm((f) => ({ ...f, potential: e.target.checked }))} />
           <span style={{ color: C.muted }}>Mark as high-potential lead</span>
@@ -410,18 +416,28 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
   );
 }
 
-function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, onClose, onSaved, onNext }) {
+function DetailView({ userId, client, isAdmin, userTitle, profilesList, autoFocusActivity, onClose, onSaved, onNext }) {
   const isOwner = client.owner_id === userId;
   const canComment = isOwner || isAdmin;
+  const showHistoryTab = isAdmin || userTitle === 'top_management' || userTitle === 'sales_manager';
+  const [activeTab, setActiveTab] = useState('details');
+
+  // Current user's display name for snapshot
+  const currentUserProfile = (profilesList || []).find((p) => p.id === userId);
+  const currentUserName = currentUserProfile?.full_name || currentUserProfile?.username || 'Unknown';
+
   const [editName, setEditName] = useState(false);
   const [nameVal, setNameVal] = useState(client.name || '');
   const [secPhone, setSecPhone] = useState(client.secondary_phone || '');
+
   const saveName = async () => {
     await supabase.from('clients').update({ name: nameVal, secondary_phone: secPhone || null }).eq('id', client.id);
     setEditName(false); onSaved();
   };
+
   const [activities, setActivities] = useState([]);
-  const [ownerNames, setOwnerNames] = useState({});  // ← جديد
+  const [ownerNames, setOwnerNames] = useState({});
+  const [previousOwnerNames, setPreviousOwnerNames] = useState({}); // for History tab — current names of previous_owners uuids
   const [nextFollowUp, setNextFollowUp] = useState('');
   const [followUpTime, setFollowUpTime] = useState('');
   const [callResult, setCallResult] = useState('');
@@ -451,18 +467,40 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
   }, [autoFocusActivity]);
 
   const loadActivities = async () => {
-    const { data } = await supabase.from('activities').select('*').eq('client_id', client.id).order('created_at', { ascending: false });
+    const { data } = await supabase
+      .from('activities')
+      .select('*')
+      .eq('client_id', client.id)
+      .order('created_at', { ascending: false });
     const acts = (data || []).filter((a) => a.type !== 'system');
     setActivities(acts);
-    // Load owner names for activities ← جديد
-    const ownerIds = [...new Set(acts.map(a => a.owner_id).filter(Boolean))];
-    if (ownerIds.length > 0) {
-      const { data: profiles } = await supabase.from('profiles').select('id, full_name, username').in('id', ownerIds);
+
+    // Build owner-name map for activities that don't have a snapshot
+    const ownerIdsMissing = [...new Set(
+      acts.filter(a => a.owner_id && !a.owner_name_snapshot).map(a => a.owner_id)
+    )];
+    if (ownerIdsMissing.length > 0) {
+      const { data: profiles } = await supabase.from('profiles').select('id, full_name, username').in('id', ownerIdsMissing);
       const map = {};
       (profiles || []).forEach(p => { map[p.id] = p.full_name || p.username || '—'; });
       setOwnerNames(map);
     }
+
+    // For History tab — lookup previous_owners names
+    if (showHistoryTab) {
+      const prevIds = Array.isArray(client.previous_owners) ? client.previous_owners : [];
+      if (prevIds.length > 0) {
+        const { data: profiles } = await supabase.from('profiles').select('id, full_name, username').in('id', prevIds);
+        const map = {};
+        (profiles || []).forEach(p => { map[p.id] = p.full_name || p.username || '—'; });
+        setPreviousOwnerNames(map);
+      }
+    }
   };
+
+  // Resolve owner display name for an activity (snapshot → current lookup → fallback)
+  const displayOwnerName = (a) =>
+    a.owner_name_snapshot || ownerNames[a.owner_id] || (a.owner_id ? 'Deleted user' : '—');
 
   const hasComment = commentText.trim().length > 0;
   const hasDate = nextFollowUp.length > 0;
@@ -479,24 +517,34 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
     if (callResult !== savedCallResult) patch.call_result = callResult || null;
     if (nextFollowUp !== (client.next_follow_up || '')) patch.next_follow_up = nextFollowUp || null;
     patch.last_contacted_at = new Date().toISOString();
+
     if (Object.keys(patch).length > 0) {
       await supabase.from('clients').update(patch).eq('id', client.id);
     }
+
     const hasMeeting = plannedMeeting || actualMeeting;
     const activityType = hasMeeting ? 'meeting' : 'call';
+
     const lines = [];
     if (callResult) lines.push('Action: ' + callResult);
     if (commentText.trim()) lines.push(commentText.trim());
-    if (nextFollowUp) lines.push(`📅 Follow-up: ${nextFollowUp} ${followUpTime}`);
-    if (plannedMeeting) lines.push('📅 Planned Meeting – scheduled with client');
-    if (actualMeeting) lines.push('✅ Actual Meeting – meeting happened today');
+    if (nextFollowUp) lines.push(`\u{1F4C5} Follow-up: ${nextFollowUp} ${followUpTime}`);
+    if (plannedMeeting) lines.push('\u{1F4C5} Planned Meeting – scheduled with client');
+    if (actualMeeting) lines.push('\u2705 Actual Meeting – meeting happened today');
     const logText = lines.join('\n');
+
     if (logText) {
       await supabase.from('activities').insert({
-        client_id: client.id, owner_id: userId, type: activityType,
-        date: todayStr(), notes: logText, next_follow_up: nextFollowUp || null,
+        client_id: client.id,
+        owner_id: userId,
+        owner_name_snapshot: currentUserName,
+        type: activityType,
+        date: todayStr(),
+        notes: logText,
+        next_follow_up: nextFollowUp || null,
       });
     }
+
     if (patch.call_result === 'No Answer') {
       const { data } = await supabase.from('clients').select('owner_id, no_answer_count, previous_owners').eq('id', client.id).maybeSingle();
       if (!data || data.owner_id !== client.owner_id) {
@@ -505,6 +553,7 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
       setNoAnswerCount(data.no_answer_count || 0);
       setPreviousOwners(data.previous_owners || []);
     }
+
     setSavedCallResult(callResult);
     setSaving(false);
     setCallResult(''); setSavedCallResult(''); setCommentText('');
@@ -554,6 +603,24 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
         )}
       </span>
     } onClose={onClose}>
+
+      {/* Tabs (admins/managers only) */}
+      {showHistoryTab && (
+        <div className="flex gap-1 mb-3 p-1 rounded-lg" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
+          <button onClick={() => setActiveTab('details')}
+            className="flex-1 py-1.5 rounded text-xs font-bold flex items-center justify-center gap-1.5"
+            style={{ backgroundColor: activeTab === 'details' ? C.gold : 'transparent', color: activeTab === 'details' ? '#14181F' : C.muted }}>
+            Details
+          </button>
+          <button onClick={() => setActiveTab('history')}
+            className="flex-1 py-1.5 rounded text-xs font-bold flex items-center justify-center gap-1.5"
+            style={{ backgroundColor: activeTab === 'history' ? C.gold : 'transparent', color: activeTab === 'history' ? '#14181F' : C.muted }}>
+            <HistoryIcon size={12} /> History
+          </button>
+        </div>
+      )}
+
+      {activeTab === 'details' && (
       <div className="space-y-4">
         <div className="flex flex-wrap gap-2">
           <Pill color={st.color}>{st.label}</Pill>
@@ -602,12 +669,10 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
 
         {canComment ? (
           <div ref={activityRef} className="rounded-lg p-3 space-y-3" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
-            
-            {/* Stage selector */}
             <Field label="Stage *">
-              <select value={leadStage} onChange={(e) => { 
+              <select value={leadStage} onChange={(e) => {
                 const val = e.target.value;
-                setLeadStage(val); 
+                setLeadStage(val);
                 setCallResult('');
                 setNextFollowUp('');
               }} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }}>
@@ -617,7 +682,6 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
               </select>
             </Field>
 
-            {/* Actions based on stage */}
             {leadStage === 'interested' && (
               <Field label="Action *">
                 <select value={callResult} onChange={(e) => setCallResult(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }}>
@@ -630,7 +694,6 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
                 </select>
               </Field>
             )}
-
             {leadStage === 'notInterested' && (
               <Field label="Action *">
                 <select value={callResult} onChange={(e) => setCallResult(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }}>
@@ -645,10 +708,13 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
             )}
 
             <textarea value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Write a comment about this lead..." className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }} rows={2} />
+
             <div className="space-y-2">
               <label className="flex items-center gap-2.5 text-sm cursor-pointer">
                 <input type="checkbox" checked={plannedMeeting} onChange={(e) => setPlannedMeeting(e.target.checked)} className="w-4 h-4" />
-                <span style={{ color: C.muted }}>📅 Planned Meeting – scheduled with client</span>
+                <span className="flex items-center gap-1.5" style={{ color: C.muted }}>
+                  <Calendar size={12} /> Planned Meeting – scheduled with client
+                </span>
               </label>
               <label className="flex items-center gap-2.5 text-sm cursor-pointer">
                 <input type="checkbox" checked={actualMeeting} onChange={(e) => setActualMeeting(e.target.checked)} className="w-4 h-4" />
@@ -656,24 +722,25 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
               </label>
               {meetingNeedsComment && <p className="text-xs" style={{ color: '#C9714F' }}>A comment is required to log a meeting</p>}
             </div>
+
             {followupRequired && (
-            <Field label="Next Follow-up Date & Time">
-              <div className="flex gap-2">
-                <input type="date" value={nextFollowUp} min={todayStr()} max={maxDate} onChange={(e) => setNextFollowUp(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface, flex: 2 }} />
-                <select value={followUpTime} onChange={(e) => setFollowUpTime(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface, flex: 1, color: followUpTime ? C.text : C.muted }}>
-                  <option value="">-- Time --</option>
-                  <option value="">— Time —</option>
-                  {Array.from({ length: 24 }, (_, h) =>
-                    ['00', '30'].map(m => {
-                      const val = `${String(h).padStart(2,'0')}:${m}`;
-                      const label = h === 0 ? `12:${m} AM` : h < 12 ? `${h}:${m} AM` : h === 12 ? `12:${m} PM` : `${h-12}:${m} PM`;
-                      return <option key={val} value={val}>{label}</option>;
-                    })
-                  )}
-                </select>
-              </div>
-            </Field>
-          )}
+              <Field label="Next Follow-up Date & Time">
+                <div className="flex gap-2">
+                  <input type="date" value={nextFollowUp} min={todayStr()} max={maxDate} onChange={(e) => setNextFollowUp(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface, flex: 2 }} />
+                  <select value={followUpTime} onChange={(e) => setFollowUpTime(e.target.value)} className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface, flex: 1, color: followUpTime ? C.text : C.muted }}>
+                    <option value="">— Time —</option>
+                    {Array.from({ length: 24 }, (_, h) =>
+                      ['00', '30'].map(m => {
+                        const val = `${String(h).padStart(2,'0')}:${m}`;
+                        const label = h === 0 ? `12:${m} AM` : h < 12 ? `${h}:${m} AM` : h === 12 ? `12:${m} PM` : `${h-12}:${m} PM`;
+                        return <option key={val} value={val}>{label}</option>;
+                      })
+                    )}
+                  </select>
+                </div>
+              </Field>
+            )}
+
             <button onClick={handleSave} disabled={!canSave} className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-40 transition-colors"
               style={{ backgroundColor: canSave ? C.gold : C.surface, color: canSave ? '#14181F' : C.muted, border: canSave ? 'none' : `1px solid ${C.border}` }}>
               {saving ? 'Saving...' : '+ Add Comment'}
@@ -689,30 +756,100 @@ function DetailView({ userId, client, isAdmin, profilesList, autoFocusActivity, 
           <p className="text-xs" style={{ color: noAnswerCount >= 3 ? '#C9714F' : C.muted }}>No-answer streak: {noAnswerCount}/3</p>
         )}
 
-        {/* History — مع اسم الـ user ← جديد */}
+        {/* Recent activity (Details tab) — last 5 only, with cleaned notes + Calendar icon */}
         {activities.length > 0 && (
           <div className="space-y-1.5">
-            {activities.map((a) => (
-              <div key={a.id} className="flex items-start justify-between gap-2 p-2 rounded-lg" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
-                <div className="flex flex-col gap-1 flex-1">
-                  <span className="text-xs whitespace-pre-wrap" style={{ color: C.text }}>{a.notes}</span>
-                  {a.next_follow_up && (
-                    <span className="text-xs" style={{ color: C.gold }}>📅 Next Follow-up: {fmtDate(a.next_follow_up)}{a.notes?.match(/Follow-up: \S+ (\d{2}:\d{2})/)?.[1] ? ` · ${a.notes.match(/Follow-up: \S+ (\d{2}:\d{2})/)[1]}` : ''}</span>
-                  )}
+            {activities.slice(0, 5).map((a) => {
+              const cleaned = stripFollowupLine(a.notes);
+              const timeMatch = a.notes?.match(/Follow-up: \S+ (\d{2}:\d{2})/);
+              return (
+                <div key={a.id} className="flex items-start justify-between gap-2 p-2 rounded-lg" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
+                  <div className="flex flex-col gap-1 flex-1 min-w-0">
+                    {cleaned && <span className="text-xs whitespace-pre-wrap" style={{ color: C.text }}>{cleaned}</span>}
+                    {a.next_follow_up && (
+                      <span className="text-xs flex items-center gap-1" style={{ color: C.gold }}>
+                        <Calendar size={12} /> Next Follow-up: {fmtDate(a.next_follow_up)}{timeMatch?.[1] ? ` · ${timeMatch[1]}` : ''}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-0.5 shrink-0 ml-2">
+                    <span className="text-[11px] font-medium" style={{ color: C.gold }}>{displayOwnerName(a)}</span>
+                    <span className="text-[11px]" style={{ color: C.muted }}>
+                      {fmtDate(a.date)}{a.created_at ? ` · ${fmtTime(a.created_at)}` : ''}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex flex-col items-end gap-0.5 shrink-0 ml-2">
-                  {ownerNames[a.owner_id] && (
-                    <span className="text-[11px] font-medium" style={{ color: C.gold }}>{ownerNames[a.owner_id]}</span>
-                  )}
-                  <span className="text-[11px]" style={{ color: C.muted }}>
-                    {fmtDate(a.date)}{a.created_at ? ` · ${fmtTime(a.created_at)}` : ''}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
+            {activities.length > 5 && showHistoryTab && (
+              <button onClick={() => setActiveTab('history')} className="w-full text-center text-xs py-2" style={{ color: C.gold }}>
+                See all {activities.length} activities in History →
+              </button>
+            )}
           </div>
         )}
       </div>
+      )}
+
+      {/* HISTORY TAB */}
+      {activeTab === 'history' && showHistoryTab && (
+        <div className="space-y-4">
+          {/* Ownership chain */}
+          <div className="rounded-lg p-3" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
+            <p className="text-xs font-bold mb-2 flex items-center gap-1.5" style={{ color: C.muted }}>
+              <UserIcon size={12} /> Ownership chain
+            </p>
+            <div className="space-y-1.5">
+              {(Array.isArray(client.previous_owners) ? client.previous_owners : []).map((pid, idx) => (
+                <div key={`prev-${idx}`} className="flex items-center justify-between text-xs">
+                  <span style={{ color: C.muted }}>
+                    #{idx + 1} · {previousOwnerNames[pid] || 'Deleted user'}
+                  </span>
+                  <span style={{ color: C.muted, fontSize: 10 }}>previous</span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between text-xs pt-1.5 mt-1.5" style={{ borderTop: `1px solid ${C.border}` }}>
+                <span className="font-bold" style={{ color: C.gold }}>
+                  Current owner · {ownerNames[client.owner_id] || previousOwnerNames[client.owner_id] || 'Unknown'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Full activity log with snapshot names */}
+          <div>
+            <p className="text-xs font-bold mb-2" style={{ color: C.muted }}>
+              Full activity log ({activities.length})
+            </p>
+            {activities.length === 0 ? (
+              <p className="text-xs text-center py-4" style={{ color: C.muted }}>No activity yet.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {activities.map((a) => {
+                  const cleaned = stripFollowupLine(a.notes);
+                  const timeMatch = a.notes?.match(/Follow-up: \S+ (\d{2}:\d{2})/);
+                  return (
+                    <div key={a.id} className="rounded-lg p-2.5" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
+                      <div className="flex items-center justify-between gap-2 mb-1.5 pb-1.5" style={{ borderBottom: `1px solid ${C.border}` }}>
+                        <span className="text-xs font-bold" style={{ color: C.gold }}>{displayOwnerName(a)}</span>
+                        <span className="text-[10px]" style={{ color: C.muted }}>
+                          {fmtDate(a.date)}{a.created_at ? ` · ${fmtTime(a.created_at)}` : ''}
+                        </span>
+                      </div>
+                      {cleaned && <span className="text-xs whitespace-pre-wrap block" style={{ color: C.text }}>{cleaned}</span>}
+                      {a.next_follow_up && (
+                        <span className="text-xs flex items-center gap-1 mt-1" style={{ color: C.gold }}>
+                          <Calendar size={11} /> Next Follow-up: {fmtDate(a.next_follow_up)}{timeMatch?.[1] ? ` · ${timeMatch[1]}` : ''}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </Modal>
   );
 }
