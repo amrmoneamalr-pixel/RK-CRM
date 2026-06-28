@@ -34,22 +34,23 @@ function getPeriodRange(period) {
 const fmtDateISO = (d) => d.toISOString();
 const fmtDateOnly = (d) => d.toISOString().slice(0, 10);
 
-// ─── Solid-color tile (like ChartSplash dashboard) ─────────────────────
+// ─── Solid-color tile with a clean icon top-right ──────────────────────
 function MetricTile({ icon: Icon, label, value, bg, sub, loading }) {
   return (
-    <div className="relative rounded-xl p-5 overflow-hidden" style={{ backgroundColor: bg, minHeight: 128 }}>
-      {/* faded decorative icon */}
-      <Icon
-        size={88}
-        strokeWidth={1.5}
-        style={{
-          position: 'absolute',
-          bottom: -14,
-          right: -14,
-          color: 'rgba(255,255,255,0.18)',
-        }}
-      />
-      <div className="relative" style={{ color: '#fff' }}>
+    <div className="rounded-xl p-5 relative" style={{ backgroundColor: bg, minHeight: 128 }}>
+      {Icon && (
+        <div
+          className="absolute flex items-center justify-center rounded-lg"
+          style={{
+            top: 14, right: 14, width: 32, height: 32,
+            backgroundColor: 'rgba(255,255,255,0.18)',
+            color: '#fff',
+          }}
+        >
+          <Icon size={16} strokeWidth={2} />
+        </div>
+      )}
+      <div style={{ color: '#fff' }}>
         <div className="font-display font-bold leading-none mb-3" style={{ fontSize: '2.4rem' }}>
           {loading ? '—' : value}
         </div>
@@ -60,25 +61,29 @@ function MetricTile({ icon: Icon, label, value, bg, sub, loading }) {
   );
 }
 
-// ─── Target tile (full width, with progress bar) ───────────────────────
+// ─── Target tile (full width, with icon + progress bar) ────────────────
 function TargetTile({ achieved, target, period, loading }) {
   const pct = target > 0 ? Math.min(100, Math.round((achieved / target) * 100)) : 0;
-  // Solid bg, color varies by progress
   const bg = pct >= 100 ? '#2E7D5C' : pct >= 50 ? '#B8852A' : '#8B3A2E';
   return (
-    <div className="relative rounded-xl p-5 overflow-hidden" style={{ backgroundColor: bg, minHeight: 128 }}>
-      <TargetIcon
-        size={100}
-        strokeWidth={1.3}
-        style={{ position: 'absolute', bottom: -18, right: -18, color: 'rgba(255,255,255,0.18)' }}
-      />
-      <div className="relative" style={{ color: '#fff' }}>
+    <div className="rounded-xl p-5 relative" style={{ backgroundColor: bg, minHeight: 128 }}>
+      <div
+        className="absolute flex items-center justify-center rounded-lg"
+        style={{
+          top: 14, right: 14, width: 32, height: 32,
+          backgroundColor: 'rgba(255,255,255,0.18)',
+          color: '#fff',
+        }}
+      >
+        <TargetIcon size={16} strokeWidth={2} />
+      </div>
+      <div style={{ color: '#fff' }}>
         <div className="flex items-baseline gap-2 mb-2">
           <span className="font-display font-bold leading-none" style={{ fontSize: '2.4rem' }}>
             {loading ? '—' : achieved}
           </span>
           <span className="text-base opacity-80">/ {target || '—'}</span>
-          <span className="ml-auto text-sm font-bold opacity-90">{pct}%</span>
+          <span className="ml-auto mr-12 text-sm font-bold opacity-90">{pct}%</span>
         </div>
         <div className="text-sm font-semibold leading-tight">Target — Deals Closed</div>
         <div className="text-xs mt-0.5 opacity-80">{period}</div>
