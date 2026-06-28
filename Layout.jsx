@@ -74,8 +74,15 @@ import TeamChat from './TeamChat';
 export default function Layout({ profile, tab, setTab, onSelectCategory, onSignOut, children }) {
   const showPoolsTab = profile.role === 'admin' || profile.title === 'top_management';
   const [sidebarTab, setSidebarTab] = useState('sales');
+  const [allActive, setAllActive] = useState(false);
   const [salesTotal, setSalesTotal] = useState(null);
   const [poolsTotal, setPoolsTotal] = useState(null);
+
+  // Wrap onSelectCategory so clicking a panel inside Sales/Pools deactivates All
+  const onSelectFromPanel = (cat) => {
+    setAllActive(false);
+    if (onSelectCategory) onSelectCategory(cat);
+  };
 
   useEffect(() => {
     if (!showPoolsTab) return;
@@ -254,38 +261,39 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
                   <div className="flex justify-center p-2 shrink-0" style={{ borderBottom: `1px solid ${C.border}` }}>
                     <button
                       onClick={() => {
+                        setAllActive(true);
                         if (onSelectCategory) onSelectCategory(null);
                         window.dispatchEvent(new CustomEvent('rk-clear-all-filters'));
                       }}
                       className="px-8 py-1.5 rounded-lg text-xs font-bold transition-colors"
                       style={{
-                        backgroundColor: C.surface,
-                        color: C.muted,
-                        border: `1px solid ${C.border}`,
+                        backgroundColor: allActive ? C.gold : C.surface,
+                        color: allActive ? '#14181F' : C.muted,
+                        border: `1px solid ${allActive ? C.gold : C.border}`,
                       }}
-                      title="Show all leads (clear all filters)"
+                      title="Show all leads (sales + pools)"
                     >
-                      All
+                      All{(salesTotal !== null && poolsTotal !== null) && <span className="ml-1 opacity-75">({salesTotal + poolsTotal})</span>}
                     </button>
                   </div>
                   <div className="flex gap-1 p-2 shrink-0" style={{ borderBottom: `1px solid ${C.border}` }}>
                     <button
-                      onClick={() => setSidebarTab('sales')}
+                      onClick={() => { setAllActive(false); setSidebarTab('sales'); }}
                       className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors"
                       style={{
-                        backgroundColor: sidebarTab === 'sales' ? C.gold : C.surface,
-                        color: sidebarTab === 'sales' ? '#14181F' : C.muted,
+                        backgroundColor: (sidebarTab === 'sales' && !allActive) ? C.gold : C.surface,
+                        color: (sidebarTab === 'sales' && !allActive) ? '#14181F' : C.muted,
                         border: `1px solid ${C.border}`,
                       }}
                     >
                       Sales{salesTotal !== null && <span className="ml-1 opacity-75">({salesTotal})</span>}
                     </button>
                     <button
-                      onClick={() => setSidebarTab('pools')}
+                      onClick={() => { setAllActive(false); setSidebarTab('pools'); }}
                       className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors"
                       style={{
-                        backgroundColor: sidebarTab === 'pools' ? C.gold : C.surface,
-                        color: sidebarTab === 'pools' ? '#14181F' : C.muted,
+                        backgroundColor: (sidebarTab === 'pools' && !allActive) ? C.gold : C.surface,
+                        color: (sidebarTab === 'pools' && !allActive) ? '#14181F' : C.muted,
                         border: `1px solid ${C.border}`,
                       }}
                     >
@@ -296,9 +304,9 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
               )}
               <div className="overflow-y-auto flex-1">
                 {showPoolsTab && sidebarTab === 'pools' ? (
-                  <PoolPanels onSelectCategory={onSelectCategory} />
+                  <PoolPanels onSelectCategory={onSelectFromPanel} />
                 ) : (
-                  <LeadPanels userId={profile.id} isAdmin={profile.role === 'admin'} onSelectCategory={onSelectCategory} inSidebar />
+                  <LeadPanels userId={profile.id} isAdmin={profile.role === 'admin'} onSelectCategory={onSelectFromPanel} inSidebar />
                 )}
               </div>
             </div>
