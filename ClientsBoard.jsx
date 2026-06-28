@@ -948,13 +948,14 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
                       <td className="py-2.5 px-3"><Pill color={c.ever_contacted ? '#7FA887' : '#D6453E'}>{c.ever_contacted ? 'Contacted' : 'New'}</Pill></td>
                       {hasTeamAccess && (() => {
                         const isPool = poolIds.includes(c.owner_id);
+                        const name = owners[c.owner_id] || '—';
                         return (
-                          <td className="py-2.5 px-3 whitespace-nowrap"
-                            style={{
-                              color: isPool ? '#5BE0EF' : C.muted,
-                              fontWeight: isPool ? 700 : 400,
-                            }}>
-                            {owners[c.owner_id] || '—'}
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            {isPool ? (
+                              <Pill color="#5BE0EF">{name}</Pill>
+                            ) : (
+                              <span style={{ color: C.muted }}>{name}</span>
+                            )}
                           </td>
                         );
                       })()}
