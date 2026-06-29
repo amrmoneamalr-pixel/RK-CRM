@@ -32,7 +32,14 @@ function getPeriodRange(period) {
 }
 
 const fmtDateISO = (d) => d.toISOString();
-const fmtDateOnly = (d) => d.toISOString().slice(0, 10);
+// Use LOCAL date components (not UTC) to avoid timezone shift bugs
+// e.g. midnight Cairo = 22:00 UTC the previous day → toISOString().slice(0,10) gives wrong date
+const fmtDateOnly = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
 
 // ─── Solid-color tile with a clean icon top-right ──────────────────────
 function MetricTile({ icon: Icon, label, value, bg, sub, loading }) {
