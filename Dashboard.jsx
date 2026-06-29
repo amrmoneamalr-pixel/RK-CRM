@@ -182,7 +182,7 @@ export default function Dashboard({ profile }) {
       // (2) Follow-ups: distinct clients with ANY activity in period
       // (3) Active Calls: distinct clients where Action ∈ {Contacted, Not Interested, Not Qualified, Interest in Resale, Interest in Separate}
       // (6,7) Meetings
-      const ACTIVE = ['Contacted', 'Interest in Resale', 'Interest in Separate', 'Not Interested', 'Not Qualified'];
+      const ACTIVE = ['Contacted', 'Interest in Resale', 'Interest in Separate', 'Not Interested', 'Not Qualified', 'Deal with the client'];
       const followupClients = new Set();
       const activeClients = new Set();
       const plannedClients = new Set();

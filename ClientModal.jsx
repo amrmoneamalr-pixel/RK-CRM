@@ -449,6 +449,7 @@ function DetailView({ userId, client, isAdmin, userTitle, profilesList, autoFocu
   const [leadStage, setLeadStage] = useState('');
   const [plannedMeeting, setPlannedMeeting] = useState(false);
   const [actualMeeting, setActualMeeting] = useState(false);
+  const [dealValue, setDealValue] = useState('');
   const [saving, setSaving] = useState(false);
   const activityRef = useRef(null);
 
@@ -511,7 +512,10 @@ function DetailView({ userId, client, isAdmin, userTitle, profilesList, autoFocu
   const meetingNeedsComment = (plannedMeeting || actualMeeting) && !hasComment;
   const NO_FOLLOWUP_REQUIRED = ['Not Interested', 'Not Qualified', 'Deal with the client'];
   const followupRequired = !(leadStage === 'notInterested' || NO_FOLLOWUP_REQUIRED.includes(callResult));
-  const canSave = hasAction && hasComment && (hasDate || !followupRequired) && !saving;
+  const isDeal = callResult === 'Deal with the client';
+  const dealValueNum = Number((dealValue || '').replace(/[^0-9.]/g, ''));
+  const dealValueValid = !isDeal || (dealValueNum > 0);
+  const canSave = hasAction && hasComment && (hasDate || !followupRequired) && dealValueValid && !saving;
 
   const handleSave = async () => {
     if (!canSave) return;
@@ -537,6 +541,7 @@ function DetailView({ userId, client, isAdmin, userTitle, profilesList, autoFocu
 
     const lines = [];
     if (callResult) lines.push('Action: ' + callResult);
+    if (isDeal && dealValueNum > 0) lines.push(`\u{1F4B0} Deal value: ${dealValueNum.toLocaleString('en-US')} EGP`);
     if (commentText.trim()) lines.push(commentText.trim());
     if (nextFollowUp) lines.push(`\u{1F4C5} Follow-up: ${nextFollowUp} ${followUpTime}`);
     if (plannedMeeting) lines.push('\u{1F4C5} Planned Meeting – scheduled with client');
@@ -569,6 +574,7 @@ function DetailView({ userId, client, isAdmin, userTitle, profilesList, autoFocu
     setCallResult(''); setSavedCallResult(''); setCommentText('');
     setNextFollowUp(''); setFollowUpTime(''); setPlannedMeeting(false); setActualMeeting(false);
     setLeadStage('');
+    setDealValue('');
     onSaved(); onClose();
   };
 
@@ -720,6 +726,34 @@ function DetailView({ userId, client, isAdmin, userTitle, profilesList, autoFocu
             )}
 
             <textarea value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Write a comment about this lead..." className={inputClass} style={{ ...inputStyle, backgroundColor: C.surface }} rows={2} />
+
+            {isDeal && (
+              <Field label="Deal Value (EGP) *">
+                <div className="rounded-lg p-2.5" style={{ backgroundColor: '#7FA88715', border: `1px solid #7FA887` }}>
+                  <div className="flex items-center gap-2">
+                    <span style={{ color: '#7FA887' }}>💰</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={dealValue}
+                      onChange={(e) => {
+                        // Allow only digits and format with commas
+                        const raw = e.target.value.replace(/[^0-9]/g, '');
+                        setDealValue(raw ? Number(raw).toLocaleString('en-US') : '');
+                      }}
+                      placeholder="e.g. 5,000,000"
+                      className={inputClass}
+                      style={{ ...inputStyle, backgroundColor: C.surface }}
+                    />
+                  </div>
+                  {!dealValueValid && (
+                    <p className="text-[10px] mt-1.5" style={{ color: '#C9714F' }}>
+                      Please enter the deal value to close this client
+                    </p>
+                  )}
+                </div>
+              </Field>
+            )}
 
             <div className="space-y-2">
               <label className="flex items-center gap-2.5 text-sm cursor-pointer">
