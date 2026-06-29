@@ -131,6 +131,21 @@ export default function Dashboard({ profile }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, period]);
 
+  // Auto-refresh when activity is saved anywhere else (e.g. ClientModal, ImportModal)
+  useEffect(() => {
+    if (!userId) return;
+    const handler = () => loadMetrics();
+    window.addEventListener('rk-data-updated', handler);
+    // Also refresh when the user comes back to this tab
+    const onFocus = () => loadMetrics();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      window.removeEventListener('rk-data-updated', handler);
+      window.removeEventListener('focus', onFocus);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, period]);
+
   const loadMetrics = async () => {
     setLoading(true);
     try {

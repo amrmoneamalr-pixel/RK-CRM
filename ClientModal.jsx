@@ -558,6 +558,8 @@ function DetailView({ userId, client, isAdmin, userTitle, profilesList, autoFocu
         notes: logText,
         next_follow_up: nextFollowUp || null,
       });
+      // notify Dashboard (and other listeners) so counts update live
+      window.dispatchEvent(new CustomEvent('rk-data-updated'));
     }
 
     if (patch.call_result === 'No Answer') {
