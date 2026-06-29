@@ -153,31 +153,28 @@ export default function Dashboard({ profile }) {
       const endISO = fmtDateISO(range.end);
 
       const [freshRes, rotatedFreshRes, reRotationRes, activitiesRes, targetRow, closedRes] = await Promise.all([
-        // (1) Fresh Leads — SNAPSHOT: stage='new' + status='New' + category='New Fresh Lead' + no previous_owners
-        supabase.from('clients').select('id', { count: 'exact', head: true })
+        // (1) Fresh Leads — PERIOD: distinct leads received without rotation, with category='New Fresh Lead'
+        supabase.from('client_ownership_log').select('client_id')
           .eq('owner_id', userId)
-          .eq('stage', 'new')
-          .eq('ever_contacted', false)
+          .eq('via_rotation', false)
           .eq('stage_category', 'New Fresh Lead')
-          .or('previous_owners.is.null,previous_owners.eq.{}'),
+          .gte('assigned_at', startISO).lt('assigned_at', endISO),
 
-        // (4) Rotated Fresh — SNAPSHOT: category='New Fresh Lead' + in re-rotation + uncontacted
-        supabase.from('clients').select('id', { count: 'exact', head: true })
+        // (4) Rotated Fresh — PERIOD: distinct leads received via rotation with category='New Fresh Lead'
+        supabase.from('client_ownership_log').select('client_id')
           .eq('owner_id', userId)
+          .eq('via_rotation', true)
           .eq('stage_category', 'New Fresh Lead')
-          .eq('ever_contacted', false)
-          .not('previous_owners', 'is', null)
-          .neq('previous_owners', '{}'),
+          .gte('assigned_at', startISO).lt('assigned_at', endISO),
 
-        // (5) Re-rotation — SNAPSHOT: in re-rotation + uncontacted + NOT 'New Fresh Lead' category
-        supabase.from('clients').select('id', { count: 'exact', head: true })
+        // (5) Re-rotation — PERIOD: distinct leads received via rotation, NOT 'New Fresh Lead'
+        supabase.from('client_ownership_log').select('client_id')
           .eq('owner_id', userId)
-          .eq('ever_contacted', false)
+          .eq('via_rotation', true)
           .neq('stage_category', 'New Fresh Lead')
-          .not('previous_owners', 'is', null)
-          .neq('previous_owners', '{}'),
+          .gte('assigned_at', startISO).lt('assigned_at', endISO),
 
-        // (2, 3, 6, 7) all activities in period — needed for distinct counting
+        // (2, 3, 6, 7) all activities in period
         supabase.from('activities').select('client_id, notes')
           .eq('owner_id', userId)
           .gte('created_at', startISO).lt('created_at', endISO),
@@ -188,14 +185,16 @@ export default function Dashboard({ profile }) {
           .eq('month', new Date().toISOString().slice(0, 7))
           .maybeSingle(),
 
-        // Closed deals in period (for Target progress)
+        // Closed deals in period
         supabase.from('clients').select('id', { count: 'exact', head: true })
           .eq('owner_id', userId).eq('stage', 'won')
           .gte('closed_at', startISO).lt('closed_at', endISO),
       ]);
 
-      // (2) Follow-ups: distinct clients with ANY activity in period
-      // (3) Active Calls: distinct clients where Action ∈ {Contacted, Not Interested, Not Qualified, Interest in Resale, Interest in Separate}
+      const distinctIds = (rows) => new Set((rows || []).map(r => r.client_id)).size;
+
+      // (2) Follow-ups: distinct clients with ANY activity in period (each activity = one comment from client card)
+      // (3) Active Calls: distinct clients where Action ∈ ACTIVE set
       // (6,7) Meetings
       const ACTIVE = ['Contacted', 'Interest in Resale', 'Interest in Separate', 'Not Interested', 'Not Qualified', 'Deal with the client'];
       const followupClients = new Set();
@@ -204,7 +203,7 @@ export default function Dashboard({ profile }) {
       const actualClients = new Set();
 
       (activitiesRes.data || []).forEach(a => {
-        followupClients.add(a.client_id); // any activity counts as a follow-up
+        followupClients.add(a.client_id);
         const n = a.notes || '';
         ACTIVE.forEach(r => { if (n.includes('Action: ' + r)) activeClients.add(a.client_id); });
         if (n.includes('Planned Meeting')) plannedClients.add(a.client_id);
@@ -212,9 +211,9 @@ export default function Dashboard({ profile }) {
       });
 
       setMetrics({
-        fresh: freshRes.count || 0,
-        rotatedFresh: rotatedFreshRes.count || 0,
-        reRotation: reRotationRes.count || 0,
+        fresh: distinctIds(freshRes.data),
+        rotatedFresh: distinctIds(rotatedFreshRes.data),
+        reRotation: distinctIds(reRotationRes.data),
         followups: followupClients.size,
         activeCalls: activeClients.size,
         plannedMeetings: plannedClients.size,
@@ -229,10 +228,17 @@ export default function Dashboard({ profile }) {
         rangeStart: startISO,
         rangeEnd: endISO,
         activityRows: (activitiesRes.data || []).length,
-        countsRaw: {
-          fresh: freshRes.count,
-          rotatedFresh: rotatedFreshRes.count,
-          reRotation: reRotationRes.count,
+        rawRowCounts: {
+          fresh: (freshRes.data || []).length,
+          rotatedFresh: (rotatedFreshRes.data || []).length,
+          reRotation: (reRotationRes.data || []).length,
+        },
+        distinctCounts: {
+          fresh: distinctIds(freshRes.data),
+          rotatedFresh: distinctIds(rotatedFreshRes.data),
+          reRotation: distinctIds(reRotationRes.data),
+          followups: followupClients.size,
+          activeCalls: activeClients.size,
           closed: closedRes.count,
         },
         targetRow: targetRow?.data,
@@ -292,14 +298,14 @@ export default function Dashboard({ profile }) {
         loading={loading}
       />
 
-      {/* Row 1: (1) Fresh · (4) Followups · (5) Active Calls */}
+      {/* Row 1: Fresh · Followups · Active Calls */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <MetricTile
           icon={Sparkles}
           label="Fresh Leads"
           value={metrics.fresh || 0}
           bg="#2E7D5C"
-          sub="Current"
+          sub={range.subLabel}
           loading={loading}
         />
         <MetricTile
@@ -320,14 +326,14 @@ export default function Dashboard({ profile }) {
         />
       </div>
 
-      {/* Row 2: (2) Rotated Fresh · (3) Re-rotation */}
+      {/* Row 2: Rotated Fresh · Re-rotation */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <MetricTile
           icon={RotateCw}
           label="Rotated Fresh"
           value={metrics.rotatedFresh || 0}
           bg="#6D4F8C"
-          sub="Current"
+          sub={range.subLabel}
           loading={loading}
         />
         <MetricTile
@@ -335,7 +341,7 @@ export default function Dashboard({ profile }) {
           label="Re-rotation"
           value={metrics.reRotation || 0}
           bg="#C9714F"
-          sub="Current"
+          sub={range.subLabel}
           loading={loading}
         />
       </div>
