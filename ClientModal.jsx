@@ -423,8 +423,27 @@ function DetailView({ userId, client, isAdmin, userTitle, profilesList, autoFocu
   const [activeTab, setActiveTab] = useState('details');
 
   // Current user's display name for snapshot
-  const currentUserProfile = (profilesList || []).find((p) => p.id === userId);
-  const currentUserName = currentUserProfile?.full_name || currentUserProfile?.username || 'Unknown';
+  // Try profilesList first; fall back to a direct DB fetch so we never store "Unknown"
+  const currentUserProfileFromList = (profilesList || []).find((p) => p.id === userId);
+  const [currentUserName, setCurrentUserName] = useState(
+    currentUserProfileFromList?.full_name || currentUserProfileFromList?.username || null
+  );
+  useEffect(() => {
+    if (currentUserName) return;
+    if (!userId) return;
+    (async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name, username')
+        .eq('id', userId)
+        .maybeSingle();
+      if (data) {
+        setCurrentUserName(data.full_name || data.username || '—');
+      } else {
+        setCurrentUserName('—');
+      }
+    })();
+  }, [userId, currentUserName]);
 
   const [editName, setEditName] = useState(false);
   const [nameVal, setNameVal] = useState(client.name || '');
@@ -549,10 +568,20 @@ function DetailView({ userId, client, isAdmin, userTitle, profilesList, autoFocu
     const logText = lines.join('\n');
 
     if (logText) {
+      // Ensure we have the user's name for the snapshot — fetch if not yet loaded
+      let nameForSnapshot = currentUserName;
+      if (!nameForSnapshot) {
+        const { data: meRow } = await supabase
+          .from('profiles')
+          .select('full_name, username')
+          .eq('id', userId)
+          .maybeSingle();
+        nameForSnapshot = meRow?.full_name || meRow?.username || null;
+      }
       await supabase.from('activities').insert({
         client_id: client.id,
         owner_id: userId,
-        owner_name_snapshot: currentUserName,
+        owner_name_snapshot: nameForSnapshot,
         type: activityType,
         date: todayStr(),
         notes: logText,
