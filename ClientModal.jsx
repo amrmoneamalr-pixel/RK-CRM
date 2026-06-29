@@ -509,7 +509,7 @@ function DetailView({ userId, client, isAdmin, userTitle, profilesList, autoFocu
   const hasDate = nextFollowUp.length > 0;
   const hasAction = callResult.length > 0 && leadStage.length > 0;
   const meetingNeedsComment = (plannedMeeting || actualMeeting) && !hasComment;
-  const NO_FOLLOWUP_REQUIRED = ['Not Interested', 'Not Qualified'];
+  const NO_FOLLOWUP_REQUIRED = ['Not Interested', 'Not Qualified', 'Deal with the client'];
   const followupRequired = !(leadStage === 'notInterested' || NO_FOLLOWUP_REQUIRED.includes(callResult));
   const canSave = hasAction && hasComment && (hasDate || !followupRequired) && !saving;
 
@@ -522,6 +522,11 @@ function DetailView({ userId, client, isAdmin, userTitle, profilesList, autoFocu
     patch.last_contacted_at = new Date().toISOString();
     // Any action removes the lead from re-rotation and marks it as "touched"
     patch.ever_contacted = true;
+    // "Deal with the client" → close as won
+    if (callResult === 'Deal with the client') {
+      patch.stage = 'won';
+      patch.closed_at = new Date().toISOString();
+    }
 
     if (Object.keys(patch).length > 0) {
       await supabase.from('clients').update(patch).eq('id', client.id);
@@ -693,9 +698,11 @@ function DetailView({ userId, client, isAdmin, userTitle, profilesList, autoFocu
                   <option value="">— Select —</option>
                   <option value="Contacted">Contacted</option>
                   <option value="No Answer">No Answer</option>
+                  <option value="Switched Off">Switched Off</option>
                   <option value="Send WhatsApp">Send WhatsApp</option>
                   <option value="Interest in Resale">Interest in Resale</option>
                   <option value="Interest in Separate">Interest in Separate</option>
+                  <option value="Deal with the client">Deal with the client</option>
                 </select>
               </Field>
             )}
