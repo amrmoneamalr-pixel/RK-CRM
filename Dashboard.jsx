@@ -101,9 +101,22 @@ export default function Dashboard({ profile }) {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({});
   const [target, setTarget] = useState(0);
+  const [resolvedUserId, setResolvedUserId] = useState(profile?.id || null);
+  const [debug, setDebug] = useState(null);
 
   const range = useMemo(() => getPeriodRange(period), [period]);
-  const userId = profile?.id;
+  const userId = resolvedUserId;
+
+  // If profile prop wasn't passed, fall back to the current auth user
+  useEffect(() => {
+    if (resolvedUserId) return;
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        if (data?.user?.id) setResolvedUserId(data.user.id);
+      } catch (e) { console.warn('auth.getUser failed', e); }
+    })();
+  }, [resolvedUserId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -168,9 +181,32 @@ export default function Dashboard({ profile }) {
         closed: closedRes.count || 0,
       });
 
+      // Debug snapshot
+      setDebug({
+        uid: userId,
+        rangeStart: startISO,
+        rangeEnd: endISO,
+        followDateRange: `${startDate} → ${endDate}`,
+        ownershipRows: (freshRes.data || []).length,
+        rotationRows: (reRotationRes.data || []).length,
+        activityRows: (activitiesRes.data || []).length,
+        followupsCount: followupsRes.count,
+        closedCount: closedRes.count,
+        targetRow: targetRow?.data,
+        errors: {
+          fresh: freshRes.error?.message,
+          rotated: rotatedNewRes.error?.message,
+          rerotation: reRotationRes.error?.message,
+          followups: followupsRes.error?.message,
+          activities: activitiesRes.error?.message,
+          closed: closedRes.error?.message,
+        },
+      });
+
       setTarget(targetRow?.data?.deals_target || 0);
     } catch (e) {
       console.warn('Dashboard load failed:', e);
+      setDebug({ exception: e.message });
     }
     setLoading(false);
   };
@@ -285,6 +321,28 @@ export default function Dashboard({ profile }) {
       <p className="text-[10px] text-center" style={{ color: C.muted }}>
         Showing data from {range.start.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} to {new Date(range.end.getTime() - 1).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
       </p>
+
+      {/* Manual refresh button */}
+      <div className="flex justify-center pt-1">
+        <button
+          onClick={loadMetrics}
+          disabled={!userId || loading}
+          className="text-xs px-4 py-1.5 rounded-lg disabled:opacity-40"
+          style={{ backgroundColor: C.surface, color: C.gold, border: `1px solid ${C.border}` }}
+        >
+          {loading ? 'Loading…' : '↻ Refresh numbers'}
+        </button>
+      </div>
+
+      {/* Debug overlay (temporary — to diagnose why numbers don't update) */}
+      {debug && (
+        <details className="rounded-lg p-2 text-[10px]" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.muted }}>
+          <summary className="cursor-pointer" style={{ color: C.gold }}>🔧 Debug info (tap to expand)</summary>
+          <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all" style={{ fontSize: 10 }}>
+{JSON.stringify(debug, null, 2)}
+          </pre>
+        </details>
+      )}
     </div>
   );
 }
