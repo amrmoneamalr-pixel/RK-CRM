@@ -11,7 +11,6 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, inSideba
     callbackToday: 0,
     late: 0,
     reRotation: 0,
-    contactedReRotation: 0,
     oldFresh: 0,
     contactedOldFresh: 0,
     cold: 0,
@@ -53,7 +52,6 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, inSideba
       callbackToday: 0,
       late: 0,
       reRotation: 0,
-      contactedReRotation: 0,
       oldFresh: 0,
       contactedOldFresh: 0,
       cold: 0,
@@ -63,33 +61,31 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, inSideba
     };
 
     clients.forEach((c) => {
-      // Re-rotation: has previous owners (manual leads bypass)
+      // Re-rotation: untouched lead that came via rotation (manual leads bypass)
       const hasPrev = Array.isArray(c.previous_owners) && c.previous_owners.length > 0;
-      if (hasPrev && !c.is_manual) {
-        if (c.ever_contacted) next.contactedReRotation++;
-        else next.reRotation++;
-      }
+      const inRotation = hasPrev && !c.is_manual && !c.ever_contacted;
+      if (inRotation) next.reRotation++;
 
       // Auto-recategorize: New Fresh older than 90 days → Old Fresh
       let cat = c.stage_category;
       if (cat === 'New Fresh Lead' && c.created_at < ninetyDaysAgo) cat = 'Old Fresh Lead';
 
-      // New Fresh Lead bucket
-      if (cat === 'New Fresh Lead' && !hasPrev) {
+      // Uncontacted category panels EXCLUDE leads still in re-rotation
+      // Contacted category panels INCLUDE all (with or without previous_owners)
+
+      if (cat === 'New Fresh Lead') {
         if (c.ever_contacted) next.contactedFresh++;
-        else next.newFresh++;
+        else if (!inRotation) next.newFresh++;
       }
 
-      // Old Fresh / Old Campaign bucket
-      if ((cat === 'Old Fresh Lead' || cat === 'Old Campaign') && !hasPrev) {
+      if (cat === 'Old Fresh Lead' || cat === 'Old Campaign') {
         if (c.ever_contacted) next.contactedOldFresh++;
-        else next.oldFresh++;
+        else if (!inRotation) next.oldFresh++;
       }
 
-      // Cold Calls bucket
-      if (cat === 'Cold Calls' && !hasPrev) {
+      if (cat === 'Cold Calls') {
         if (c.ever_contacted) next.contactedCold++;
-        else next.cold++;
+        else if (!inRotation) next.cold++;
       }
 
       // Callback today / late
@@ -116,7 +112,6 @@ export default function LeadPanels({ userId, isAdmin, onSelectCategory, inSideba
     { key: 'callbackToday',       icon: PhoneCall,     color: '#6E8CAE', label: 'Call Back Today' },
     { key: 'late',                icon: AlertTriangle, color: '#C9714F', label: 'Late Leads' },
     { key: 'reRotation',          icon: RotateCw,      color: '#E0A458', label: 'Re-rotation' },
-    { key: 'contactedReRotation', icon: UserCheck,     color: '#E0A458', label: 'Contacted Re-rotation' },
     { key: 'oldFresh',            icon: Archive,       color: '#9B7EBD', label: 'Old Fresh Leads' },
     { key: 'contactedOldFresh',   icon: UserCheck,     color: '#9B7EBD', label: 'Contacted Old Fresh Leads' },
     { key: 'cold',                icon: Snowflake,     color: '#8B93A3', label: 'Cold Calls' },

@@ -520,6 +520,8 @@ function DetailView({ userId, client, isAdmin, userTitle, profilesList, autoFocu
     if (callResult !== savedCallResult) patch.call_result = callResult || null;
     if (nextFollowUp !== (client.next_follow_up || '')) patch.next_follow_up = nextFollowUp || null;
     patch.last_contacted_at = new Date().toISOString();
+    // Any action removes the lead from re-rotation and marks it as "touched"
+    patch.ever_contacted = true;
 
     if (Object.keys(patch).length > 0) {
       await supabase.from('clients').update(patch).eq('id', client.id);

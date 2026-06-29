@@ -137,7 +137,7 @@ export default function Dashboard({ profile }) {
           .eq('owner_id', userId).eq('via_rotation', false)
           .gte('assigned_at', startISO).lt('assigned_at', endISO),
         supabase.from('client_ownership_log').select('client_id')
-          .eq('owner_id', userId).eq('via_rotation', true).eq('stage_category', 'New Fresh Lead')
+          .eq('owner_id', userId).eq('via_rotation', true).eq('stage_category', 'Old Fresh Lead')
           .gte('assigned_at', startISO).lt('assigned_at', endISO),
         supabase.from('client_ownership_log').select('client_id')
           .eq('owner_id', userId).eq('via_rotation', true)
@@ -282,7 +282,7 @@ export default function Dashboard({ profile }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <MetricTile
           icon={RotateCw}
-          label="Rotated New Fresh"
+          label="Rotated Fresh"
           value={metrics.rotatedNew || 0}
           bg="#6D4F8C"
           sub={range.subLabel}

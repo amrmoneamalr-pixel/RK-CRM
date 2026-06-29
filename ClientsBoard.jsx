@@ -339,7 +339,8 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
       }
       switch (leadFilter) {
         case 'newFresh':
-          q = q.eq('stage_category', 'New Fresh Lead').eq('ever_contacted', false); break;
+          q = q.eq('stage_category', 'New Fresh Lead').eq('ever_contacted', false)
+               .or('previous_owners.is.null,previous_owners.eq.{}'); break;
         case 'contactedFresh':
           q = q.eq('stage_category', 'New Fresh Lead').eq('ever_contacted', true); break;
         case 'callbackToday':
@@ -349,11 +350,13 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
         case 'reRotation':
           q = q.filter('previous_owners', 'neq', 'null').filter('previous_owners', 'neq', '[]'); break;
         case 'oldFresh':
-          q = q.in('stage_category', ['Old Fresh Lead', 'Old Campaign']).eq('ever_contacted', false); break;
+          q = q.in('stage_category', ['Old Fresh Lead', 'Old Campaign']).eq('ever_contacted', false)
+               .or('previous_owners.is.null,previous_owners.eq.{}'); break;
         case 'contactedOldFresh':
           q = q.in('stage_category', ['Old Fresh Lead', 'Old Campaign']).eq('ever_contacted', true); break;
         case 'cold':
-          q = q.eq('stage_category', 'Cold Calls').eq('ever_contacted', false); break;
+          q = q.eq('stage_category', 'Cold Calls').eq('ever_contacted', false)
+               .or('previous_owners.is.null,previous_owners.eq.{}'); break;
         case 'contactedCold':
           q = q.eq('stage_category', 'Cold Calls').eq('ever_contacted', true); break;
         case 'warmLeads':
@@ -376,22 +379,6 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
         p_is_admin: isAdmin || hasTeamAccess,
       });
       const all = (allData || []).filter(c => !c.ever_contacted);
-      setTotalCount(all.length);
-      const paged = all.slice(from, to + 1);
-      setClients(paged);
-      if (paged.length > 0) {
-        const { data: a } = await supabase.from('activities').select('*').in('client_id', paged.map((x) => x.id)).order('date', { ascending: false });
-        setActivities(a || []);
-      } else { setActivities([]); }
-      setLoading(false);
-      return;
-    }
-    if (leadFilter === 'contactedReRotation') {
-      const { data: allData } = await supabase.rpc('get_rerotation_clients', {
-        p_user_id: userId,
-        p_is_admin: isAdmin || hasTeamAccess,
-      });
-      const all = (allData || []).filter(c => c.ever_contacted);
       setTotalCount(all.length);
       const paged = all.slice(from, to + 1);
       setClients(paged);
