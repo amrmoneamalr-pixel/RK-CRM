@@ -131,20 +131,43 @@ export default function Dashboard({ profile }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, period]);
 
-  // Auto-refresh when activity is saved anywhere else (e.g. ClientModal, ImportModal)
+  // Auto-refresh: Supabase realtime + polling + custom event + focus
   useEffect(() => {
     if (!userId) return;
     const handler = () => loadMetrics();
     window.addEventListener('rk-data-updated', handler);
-    // Also refresh when the user comes back to this tab
-    const onFocus = () => loadMetrics();
-    window.addEventListener('focus', onFocus);
+    window.addEventListener('focus', handler);
+
+    // Supabase Realtime: refresh when any new activity for this user is inserted
+    const ch = supabase
+      .channel('dashboard_activities_' + userId)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'activities',
+        filter: `owner_id=eq.${userId}`,
+      }, () => loadMetrics())
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'client_ownership_log',
+        filter: `owner_id=eq.${userId}`,
+      }, () => loadMetrics())
+      .subscribe();
+
+    // Polling fallback every 15s (in case Realtime isn't enabled)
+    const interval = setInterval(handler, 15000);
+
     return () => {
       window.removeEventListener('rk-data-updated', handler);
-      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('focus', handler);
+      supabase.removeChannel(ch);
+      clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, period]);
+
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   const loadMetrics = async () => {
     setLoading(true);
@@ -174,9 +197,11 @@ export default function Dashboard({ profile }) {
           .neq('stage_category', 'New Fresh Lead')
           .gte('assigned_at', startISO).lt('assigned_at', endISO),
 
-        // (2, 3, 6, 7) all activities in period
-        supabase.from('activities').select('client_id, notes')
+        // (2, 3, 6, 7) all MANUAL activities in period from ClientModal (type = call or meeting)
+        // — excludes system events (auto-rotation, reassignment notes, etc.)
+        supabase.from('activities').select('client_id, notes, type')
           .eq('owner_id', userId)
+          .in('type', ['call', 'meeting'])
           .gte('created_at', startISO).lt('created_at', endISO),
 
         // Monthly target
@@ -252,6 +277,7 @@ export default function Dashboard({ profile }) {
       });
 
       setTarget(targetRow?.data?.deals_target || 0);
+      setLastUpdated(new Date());
     } catch (e) {
       console.warn('Dashboard load failed:', e);
       setDebug({ exception: e.message });
@@ -371,7 +397,7 @@ export default function Dashboard({ profile }) {
       </p>
 
       {/* Manual refresh button */}
-      <div className="flex justify-center pt-1">
+      <div className="flex flex-col items-center gap-1 pt-1">
         <button
           onClick={loadMetrics}
           disabled={!userId || loading}
@@ -380,6 +406,12 @@ export default function Dashboard({ profile }) {
         >
           {loading ? 'Loading…' : '↻ Refresh numbers'}
         </button>
+        {lastUpdated && (
+          <span className="text-[10px]" style={{ color: C.muted }}>
+            Last updated: {lastUpdated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            {debug?.activityRows !== undefined && ` · ${debug.activityRows} activities loaded`}
+          </span>
+        )}
       </div>
 
       {/* Debug overlay (temporary — to diagnose why numbers don't update) */}
