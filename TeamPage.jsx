@@ -205,6 +205,7 @@ function UserRow({ profile, currentUserId, teamLeaders, onChanged, setError }) {
   const [username, setUsername] = useState(profile.username || '');
   const [title, setTitle] = useState(profile.title || 'sales');
   const [teamLeaderId, setTeamLeaderId] = useState(profile.team_leader_id || '');
+  const [monthlyTarget, setMonthlyTarget] = useState(profile.monthly_target || 0);
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -223,6 +224,7 @@ function UserRow({ profile, currentUserId, teamLeaders, onChanged, setError }) {
         title,
         role,
         team_leader_id: title === 'sales' ? (teamLeaderId || null) : null,
+        monthly_target: Math.max(0, parseInt(monthlyTarget) || 0),
       })
       .eq('id', profile.id);
     setSaving(false);
@@ -280,6 +282,19 @@ function UserRow({ profile, currentUserId, teamLeaders, onChanged, setError }) {
             {teamLeaders.map((tl) => <option key={tl.id} value={tl.id}>{tl.full_name || tl.username}</option>)}
           </select>
         )}
+        <div className="flex items-center gap-2">
+          <label className="text-xs whitespace-nowrap" style={{ color: C.muted }}>Monthly Target:</label>
+          <input
+            type="number"
+            min="0"
+            value={monthlyTarget}
+            onChange={(e) => setMonthlyTarget(e.target.value)}
+            placeholder="0"
+            className={inputClass}
+            style={inputStyle}
+          />
+          <span className="text-xs whitespace-nowrap" style={{ color: C.muted }}>deals</span>
+        </div>
         <div className="flex gap-2">
           <button onClick={saveEdit} disabled={saving} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-bold disabled:opacity-50" style={{ backgroundColor: C.gold, color: '#14181F' }}>
             <Check size={14} /> Save

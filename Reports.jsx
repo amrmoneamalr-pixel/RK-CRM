@@ -166,18 +166,22 @@ export default function Reports() {
   const load = async () => {
     setLoading(true);
     const mk = monthKey();
-    const [{ data: p }, { data: c }, { data: a }, { data: t }] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, username, title, is_pool').eq('is_pool', false).not('title', 'in', '("top_management","operation","marketing")'),
+    const [{ data: p }, { data: c }, { data: a }] = await Promise.all([
+      supabase.from('profiles').select('id, full_name, username, title, is_pool, monthly_target').eq('is_pool', false).not('title', 'in', '("top_management","operation","marketing")'),
       supabase.from('clients').select('id, owner_id, stage, closed_at, next_follow_up, call_result, last_contacted_at'),
       supabase.from('activities').select('id, owner_id, type, date'),
-      supabase.from('targets').select('*').eq('month', mk),
     ]);
-    // sort: title order, then name (within the included titles: sales_manager > team_leader > sales)
+    // sort: title order, then name
     const sortedProfiles = [...(p || [])].sort(sortByTitleThenName);
     setProfiles(sortedProfiles);
     setAllClients(c || []);
     setActivities(a || []);
-    setTargets(t || []);
+    // Build targets array from profiles for backward compatibility
+    setTargets(sortedProfiles.map(prof => ({
+      owner_id: prof.id,
+      deals_target: prof.monthly_target || 0,
+      meetings_target: 0,
+    })));
     setLoading(false);
   };
 

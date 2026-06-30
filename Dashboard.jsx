@@ -1,13 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from './supabaseClient';
 import { C } from './constants';
 import {
   Sparkles, RotateCw, RefreshCw, Calendar, PhoneCall,
-  CalendarClock, CalendarCheck, Target as TargetIcon
+  CalendarClock, CalendarCheck, Target as TargetIcon, Users, ChevronDown, X, Check
 } from 'lucide-react';
 
 // ─── Period helpers ────────────────────────────────────────────────────
-// Week starts on Saturday. Month starts on the 1st.
 function getPeriodRange(period) {
   const now = new Date();
   const y = now.getFullYear();
@@ -32,8 +31,6 @@ function getPeriodRange(period) {
 }
 
 const fmtDateISO = (d) => d.toISOString();
-// Use LOCAL date components (not UTC) to avoid timezone shift bugs
-// e.g. midnight Cairo = 22:00 UTC the previous day → toISOString().slice(0,10) gives wrong date
 const fmtDateOnly = (d) => {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -68,7 +65,6 @@ function MetricTile({ icon: Icon, label, value, bg, sub, loading }) {
   );
 }
 
-// ─── Target tile (full width, with icon + progress bar) ────────────────
 function TargetTile({ achieved, target, period, loading }) {
   const pct = target > 0 ? Math.min(100, Math.round((achieved / target) * 100)) : 0;
   const bg = pct >= 100 ? '#2E7D5C' : pct >= 50 ? '#B8852A' : '#8B3A2E';
@@ -102,19 +98,112 @@ function TargetTile({ achieved, target, period, loading }) {
   );
 }
 
+// ─── Multi-select dropdown for admin user filter ───────────────────────
+function UserMultiSelect({ users, selectedIds, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const allSelected = selectedIds.length === users.length && users.length > 0;
+  const toggle = (id) => {
+    if (selectedIds.includes(id)) onChange(selectedIds.filter(x => x !== id));
+    else onChange([...selectedIds, id]);
+  };
+  const selectAll = () => onChange(users.map(u => u.id));
+  const clearAll = () => onChange([]);
+
+  const summary = allSelected
+    ? `All Sales (${users.length})`
+    : selectedIds.length === 0
+      ? 'None selected'
+      : `${selectedIds.length} selected`;
+
+  return (
+    <div ref={ref} className="relative" style={{ minWidth: 220 }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm"
+        style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}
+      >
+        <span className="flex items-center gap-2">
+          <Users size={14} style={{ color: C.gold }} />
+          {summary}
+        </span>
+        <ChevronDown size={14} style={{ color: C.muted }} />
+      </button>
+      {open && (
+        <div
+          className="absolute right-0 mt-1 rounded-lg z-20 shadow-lg"
+          style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, minWidth: 260, maxHeight: 360, overflowY: 'auto' }}
+        >
+          <div className="flex gap-1 p-2 sticky top-0" style={{ backgroundColor: C.surface, borderBottom: `1px solid ${C.border}` }}>
+            <button onClick={selectAll} className="flex-1 text-xs py-1 rounded" style={{ backgroundColor: C.bg, color: C.gold, border: `1px solid ${C.border}` }}>
+              Select All
+            </button>
+            <button onClick={clearAll} className="flex-1 text-xs py-1 rounded" style={{ backgroundColor: C.bg, color: C.muted, border: `1px solid ${C.border}` }}>
+              Clear
+            </button>
+          </div>
+          {users.length === 0 && (
+            <div className="text-xs text-center py-4" style={{ color: C.muted }}>No sales reps found.</div>
+          )}
+          {users.map(u => {
+            const isOn = selectedIds.includes(u.id);
+            return (
+              <button
+                key={u.id}
+                onClick={() => toggle(u.id)}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:opacity-80"
+                style={{ color: C.text }}
+              >
+                <div
+                  className="flex items-center justify-center rounded"
+                  style={{
+                    width: 16, height: 16,
+                    backgroundColor: isOn ? C.gold : 'transparent',
+                    border: `1px solid ${isOn ? C.gold : C.border}`,
+                  }}
+                >
+                  {isOn && <Check size={11} style={{ color: '#14181F' }} strokeWidth={3} />}
+                </div>
+                <span className="flex-1 truncate">{u.full_name || u.username || '—'}</span>
+                {u.monthly_target > 0 && (
+                  <span className="text-[10px] opacity-70">target: {u.monthly_target}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Dashboard ─────────────────────────────────────────────────────────
 export default function Dashboard({ profile }) {
+  const isAdmin = profile?.role === 'admin' || profile?.title === 'top_management';
+
   const [period, setPeriod] = useState('daily');
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({});
   const [target, setTarget] = useState(0);
   const [resolvedUserId, setResolvedUserId] = useState(profile?.id || null);
   const [debug, setDebug] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+
+  // Admin-only: list of all sales reps + which ones are selected
+  const [salesUsers, setSalesUsers] = useState([]);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   const range = useMemo(() => getPeriodRange(period), [period]);
   const userId = resolvedUserId;
 
-  // If profile prop wasn't passed, fall back to the current auth user
+  // Fallback userId
   useEffect(() => {
     if (resolvedUserId) return;
     (async () => {
@@ -125,102 +214,105 @@ export default function Dashboard({ profile }) {
     })();
   }, [resolvedUserId]);
 
+  // Load sales reps list (admin only)
   useEffect(() => {
-    if (!userId) return;
+    if (!isAdmin) return;
+    (async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, full_name, username, monthly_target')
+        .eq('role', 'sales')
+        .eq('is_pool', false)
+        .order('full_name');
+      const list = data || [];
+      setSalesUsers(list);
+      // default = all selected
+      setSelectedIds(list.map(u => u.id));
+    })();
+  }, [isAdmin]);
+
+  // Effective owner IDs for queries
+  const effectiveUserIds = isAdmin ? selectedIds : (userId ? [userId] : []);
+
+  useEffect(() => {
+    if (effectiveUserIds.length === 0 && !isAdmin) return;
+    if (isAdmin && salesUsers.length === 0) return; // wait for sales list
     loadMetrics();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, period]);
+  }, [JSON.stringify(effectiveUserIds), period]);
 
-  // Auto-refresh: Supabase realtime + polling + custom event + focus
+  // Auto-refresh: realtime + polling + custom event + focus
   useEffect(() => {
-    if (!userId) return;
+    if (effectiveUserIds.length === 0) return;
     const handler = () => loadMetrics();
     window.addEventListener('rk-data-updated', handler);
     window.addEventListener('focus', handler);
 
-    // Supabase Realtime: refresh when any new activity for this user is inserted
-    const ch = supabase
-      .channel('dashboard_activities_' + userId)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'activities',
-        filter: `owner_id=eq.${userId}`,
-      }, () => loadMetrics())
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'client_ownership_log',
-        filter: `owner_id=eq.${userId}`,
-      }, () => loadMetrics())
-      .subscribe();
-
-    // Polling fallback every 15s (in case Realtime isn't enabled)
+    // Polling fallback every 15s
     const interval = setInterval(handler, 15000);
 
     return () => {
       window.removeEventListener('rk-data-updated', handler);
       window.removeEventListener('focus', handler);
-      supabase.removeChannel(ch);
       clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, period]);
-
-  const [lastUpdated, setLastUpdated] = useState(null);
+  }, [JSON.stringify(effectiveUserIds), period]);
 
   const loadMetrics = async () => {
+    if (effectiveUserIds.length === 0) {
+      setMetrics({});
+      setTarget(0);
+      setLoading(false);
+      setLastUpdated(new Date());
+      return;
+    }
     setLoading(true);
     try {
       const startISO = fmtDateISO(range.start);
       const endISO = fmtDateISO(range.end);
 
-      const [freshRes, rotatedFreshRes, reRotationRes, activitiesRes, targetRow, closedRes] = await Promise.all([
-        // (1) Fresh Leads — PERIOD: distinct leads received without rotation, with category='New Fresh Lead'
+      const [freshRes, rotatedFreshRes, reRotationRes, activitiesRes, targetRows, closedRes] = await Promise.all([
+        // (1) Fresh Leads — PERIOD
         supabase.from('client_ownership_log').select('client_id')
-          .eq('owner_id', userId)
+          .in('owner_id', effectiveUserIds)
           .eq('via_rotation', false)
           .eq('stage_category', 'New Fresh Lead')
           .gte('assigned_at', startISO).lt('assigned_at', endISO),
 
-        // (4) Rotated Fresh — PERIOD: distinct leads received via rotation with category='New Fresh Lead'
+        // (4) Rotated Fresh — PERIOD
         supabase.from('client_ownership_log').select('client_id')
-          .eq('owner_id', userId)
+          .in('owner_id', effectiveUserIds)
           .eq('via_rotation', true)
           .eq('stage_category', 'New Fresh Lead')
           .gte('assigned_at', startISO).lt('assigned_at', endISO),
 
-        // (5) Re-rotation — PERIOD: distinct leads received via rotation, NOT 'New Fresh Lead'
+        // (5) Re-rotation — PERIOD
         supabase.from('client_ownership_log').select('client_id')
-          .eq('owner_id', userId)
+          .in('owner_id', effectiveUserIds)
           .eq('via_rotation', true)
           .neq('stage_category', 'New Fresh Lead')
           .gte('assigned_at', startISO).lt('assigned_at', endISO),
 
-        // (2, 3, 6, 7) all MANUAL activities in period from ClientModal (type = call or meeting)
-        // — excludes system events (auto-rotation, reassignment notes, etc.)
+        // (2, 3, 6, 7) manual activities in period
         supabase.from('activities').select('client_id, notes, type')
-          .eq('owner_id', userId)
+          .in('owner_id', effectiveUserIds)
           .in('type', ['call', 'meeting'])
           .gte('created_at', startISO).lt('created_at', endISO),
 
-        // Monthly target
-        supabase.from('targets').select('deals_target')
-          .eq('owner_id', userId)
-          .eq('month', new Date().toISOString().slice(0, 7))
-          .maybeSingle(),
+        // Targets: sum monthly_target from profiles
+        supabase.from('profiles').select('monthly_target')
+          .in('id', effectiveUserIds),
 
         // Closed deals in period
         supabase.from('clients').select('id', { count: 'exact', head: true })
-          .eq('owner_id', userId).eq('stage', 'won')
+          .in('owner_id', effectiveUserIds)
+          .eq('stage', 'won')
           .gte('closed_at', startISO).lt('closed_at', endISO),
       ]);
 
       const distinctIds = (rows) => new Set((rows || []).map(r => r.client_id)).size;
 
-      // (2) Follow-ups: distinct clients with ANY activity in period (each activity = one comment from client card)
-      // (3) Active Calls: distinct clients where Action ∈ ACTIVE set
-      // (6,7) Meetings
       const ACTIVE = ['Contacted', 'Interest in Resale', 'Interest in Separate', 'Not Interested', 'Not Qualified', 'Deal with the client'];
       const followupClients = new Set();
       const activeClients = new Set();
@@ -235,6 +327,8 @@ export default function Dashboard({ profile }) {
         if (n.includes('Actual Meeting')) actualClients.add(a.client_id);
       });
 
+      const summedTarget = (targetRows.data || []).reduce((sum, r) => sum + (r.monthly_target || 0), 0);
+
       setMetrics({
         fresh: distinctIds(freshRes.data),
         rotatedFresh: distinctIds(rotatedFreshRes.data),
@@ -246,9 +340,12 @@ export default function Dashboard({ profile }) {
         closed: closedRes.count || 0,
       });
 
-      // Debug snapshot
+      setTarget(summedTarget);
+
       setDebug({
-        uid: userId,
+        mode: isAdmin ? 'admin' : 'sales',
+        userIds: effectiveUserIds,
+        userCount: effectiveUserIds.length,
         period,
         rangeStart: startISO,
         rangeEnd: endISO,
@@ -266,17 +363,16 @@ export default function Dashboard({ profile }) {
           activeCalls: activeClients.size,
           closed: closedRes.count,
         },
-        targetRow: targetRow?.data,
+        summedTarget,
         errors: {
           fresh: freshRes.error?.message,
           rotatedFresh: rotatedFreshRes.error?.message,
           reRotation: reRotationRes.error?.message,
           activities: activitiesRes.error?.message,
+          targets: targetRows.error?.message,
           closed: closedRes.error?.message,
         },
       });
-
-      setTarget(targetRow?.data?.deals_target || 0);
       setLastUpdated(new Date());
     } catch (e) {
       console.warn('Dashboard load failed:', e);
@@ -292,27 +388,38 @@ export default function Dashboard({ profile }) {
         <div>
           <h2 className="font-display font-bold text-lg">Dashboard</h2>
           <p className="text-xs" style={{ color: C.muted }}>
-            Welcome back, {profile?.full_name?.split(' ')[0] || 'there'}!
+            {isAdmin
+              ? `Team overview · ${selectedIds.length}/${salesUsers.length} sales reps selected`
+              : `Welcome back, ${profile?.full_name?.split(' ')[0] || 'there'}!`}
           </p>
         </div>
-        <div className="flex rounded-lg overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
-          {[
-            { id: 'daily',   label: 'Daily' },
-            { id: 'weekly',  label: 'Weekly' },
-            { id: 'monthly', label: 'Monthly' },
-          ].map(t => (
-            <button
-              key={t.id}
-              onClick={() => setPeriod(t.id)}
-              className="px-4 py-1.5 text-xs font-bold transition-colors"
-              style={{
-                backgroundColor: period === t.id ? C.gold : C.surface,
-                color: period === t.id ? '#14181F' : C.muted,
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          {isAdmin && (
+            <UserMultiSelect
+              users={salesUsers}
+              selectedIds={selectedIds}
+              onChange={setSelectedIds}
+            />
+          )}
+          <div className="flex rounded-lg overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+            {[
+              { id: 'daily',   label: 'Daily' },
+              { id: 'weekly',  label: 'Weekly' },
+              { id: 'monthly', label: 'Monthly' },
+            ].map(t => (
+              <button
+                key={t.id}
+                onClick={() => setPeriod(t.id)}
+                className="px-4 py-1.5 text-xs font-bold transition-colors"
+                style={{
+                  backgroundColor: period === t.id ? C.gold : C.surface,
+                  color: period === t.id ? '#14181F' : C.muted,
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -324,83 +431,34 @@ export default function Dashboard({ profile }) {
         loading={loading}
       />
 
-      {/* Row 1: Fresh · Followups · Active Calls */}
+      {/* Row 1 */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <MetricTile
-          icon={Sparkles}
-          label="Fresh Leads"
-          value={metrics.fresh || 0}
-          bg="#2E7D5C"
-          sub={range.subLabel}
-          loading={loading}
-        />
-        <MetricTile
-          icon={Calendar}
-          label="Follow-ups"
-          value={metrics.followups || 0}
-          bg="#1E88B5"
-          sub={range.subLabel}
-          loading={loading}
-        />
-        <MetricTile
-          icon={PhoneCall}
-          label="Active Calls"
-          value={metrics.activeCalls || 0}
-          bg="#B8852A"
-          sub={range.subLabel}
-          loading={loading}
-        />
+        <MetricTile icon={Sparkles}   label="Fresh Leads"   value={metrics.fresh || 0}        bg="#2E7D5C" sub={range.subLabel} loading={loading} />
+        <MetricTile icon={Calendar}   label="Follow-ups"    value={metrics.followups || 0}    bg="#1E88B5" sub={range.subLabel} loading={loading} />
+        <MetricTile icon={PhoneCall}  label="Active Calls"  value={metrics.activeCalls || 0}  bg="#B8852A" sub={range.subLabel} loading={loading} />
       </div>
 
-      {/* Row 2: Rotated Fresh · Re-rotation */}
+      {/* Row 2 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <MetricTile
-          icon={RotateCw}
-          label="Rotated Fresh"
-          value={metrics.rotatedFresh || 0}
-          bg="#6D4F8C"
-          sub={range.subLabel}
-          loading={loading}
-        />
-        <MetricTile
-          icon={RefreshCw}
-          label="Re-rotation"
-          value={metrics.reRotation || 0}
-          bg="#C9714F"
-          sub={range.subLabel}
-          loading={loading}
-        />
+        <MetricTile icon={RotateCw}   label="Rotated Fresh" value={metrics.rotatedFresh || 0} bg="#6D4F8C" sub={range.subLabel} loading={loading} />
+        <MetricTile icon={RefreshCw}  label="Re-rotation"   value={metrics.reRotation || 0}   bg="#C9714F" sub={range.subLabel} loading={loading} />
       </div>
 
-      {/* Row 3: (6) Planned Meetings · (7) Actual Meetings */}
+      {/* Row 3 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <MetricTile
-          icon={CalendarClock}
-          label="Planned Meetings"
-          value={metrics.plannedMeetings || 0}
-          bg="#4A6FA5"
-          sub={range.subLabel}
-          loading={loading}
-        />
-        <MetricTile
-          icon={CalendarCheck}
-          label="Actual Meetings"
-          value={metrics.actualMeetings || 0}
-          bg="#2C3E50"
-          sub={range.subLabel}
-          loading={loading}
-        />
+        <MetricTile icon={CalendarClock} label="Planned Meetings" value={metrics.plannedMeetings || 0} bg="#4A6FA5" sub={range.subLabel} loading={loading} />
+        <MetricTile icon={CalendarCheck} label="Actual Meetings"  value={metrics.actualMeetings || 0}  bg="#2C3E50" sub={range.subLabel} loading={loading} />
       </div>
 
       <p className="text-[10px] text-center" style={{ color: C.muted }}>
         Showing data from {range.start.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} to {new Date(range.end.getTime() - 1).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
       </p>
 
-      {/* Manual refresh button */}
+      {/* Refresh + status */}
       <div className="flex flex-col items-center gap-1 pt-1">
         <button
           onClick={loadMetrics}
-          disabled={!userId || loading}
+          disabled={effectiveUserIds.length === 0 || loading}
           className="text-xs px-4 py-1.5 rounded-lg disabled:opacity-40"
           style={{ backgroundColor: C.surface, color: C.gold, border: `1px solid ${C.border}` }}
         >
@@ -414,7 +472,6 @@ export default function Dashboard({ profile }) {
         )}
       </div>
 
-      {/* Debug overlay (temporary — to diagnose why numbers don't update) */}
       {debug && (
         <details className="rounded-lg p-2 text-[10px]" style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.muted }}>
           <summary className="cursor-pointer" style={{ color: C.gold }}>🔧 Debug info (tap to expand)</summary>
