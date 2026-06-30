@@ -68,6 +68,13 @@ function MetricTile({ icon: Icon, label, value, bg, sub, loading }) {
 function TargetTile({ achieved, target, period, loading }) {
   const pct = target > 0 ? Math.min(100, Math.round((achieved / target) * 100)) : 0;
   const bg = pct >= 100 ? '#2E7D5C' : pct >= 50 ? '#B8852A' : '#8B3A2E';
+  // Format big EGP numbers as 1.2M / 850K instead of 1,200,000 to fit nicely
+  const compact = (n) => {
+    if (!n) return '0';
+    if (n >= 1_000_000) return (n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1) + 'M';
+    if (n >= 1_000) return (n / 1_000).toFixed(n % 1_000 === 0 ? 0 : 1) + 'K';
+    return n.toLocaleString('en-US');
+  };
   return (
     <div className="rounded-xl p-5 relative" style={{ backgroundColor: bg, minHeight: 128 }}>
       <div
@@ -82,13 +89,13 @@ function TargetTile({ achieved, target, period, loading }) {
       </div>
       <div style={{ color: '#fff' }}>
         <div className="flex items-baseline gap-2 mb-2">
-          <span className="font-display font-bold leading-none" style={{ fontSize: '2.4rem' }}>
-            {loading ? '—' : achieved}
+          <span className="font-display font-bold leading-none" style={{ fontSize: '2.2rem' }}>
+            {loading ? '—' : compact(achieved)}
           </span>
-          <span className="text-base opacity-80">/ {target || '—'}</span>
+          <span className="text-base opacity-80">/ {compact(target) || '—'} EGP</span>
           <span className="ml-auto mr-12 text-sm font-bold opacity-90">{pct}%</span>
         </div>
-        <div className="text-sm font-semibold leading-tight">Target — Deals Closed</div>
+        <div className="text-sm font-semibold leading-tight">Sales Target</div>
         <div className="text-xs mt-0.5 opacity-80">{period}</div>
         <div className="h-1.5 mt-2 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.18)' }}>
           <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: '#fff' }} />
@@ -304,8 +311,8 @@ export default function Dashboard({ profile }) {
         supabase.from('profiles').select('monthly_target')
           .in('id', effectiveUserIds),
 
-        // Closed deals in period
-        supabase.from('clients').select('id', { count: 'exact', head: true })
+        // Closed deals in period — get deal_value to sum
+        supabase.from('clients').select('deal_value')
           .in('owner_id', effectiveUserIds)
           .eq('stage', 'won')
           .gte('closed_at', startISO).lt('closed_at', endISO),
@@ -328,6 +335,7 @@ export default function Dashboard({ profile }) {
       });
 
       const summedTarget = (targetRows.data || []).reduce((sum, r) => sum + (r.monthly_target || 0), 0);
+      const summedClosedValue = (closedRes.data || []).reduce((sum, r) => sum + (r.deal_value || 0), 0);
 
       setMetrics({
         fresh: distinctIds(freshRes.data),
@@ -337,7 +345,8 @@ export default function Dashboard({ profile }) {
         activeCalls: activeClients.size,
         plannedMeetings: plannedClients.size,
         actualMeetings: actualClients.size,
-        closed: closedRes.count || 0,
+        closed: summedClosedValue,
+        closedCount: (closedRes.data || []).length,
       });
 
       setTarget(summedTarget);
@@ -361,7 +370,8 @@ export default function Dashboard({ profile }) {
           reRotation: distinctIds(reRotationRes.data),
           followups: followupClients.size,
           activeCalls: activeClients.size,
-          closed: closedRes.count,
+          closedDeals: (closedRes.data || []).length,
+          closedValueEGP: summedClosedValue,
         },
         summedTarget,
         errors: {

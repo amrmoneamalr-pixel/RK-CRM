@@ -57,6 +57,12 @@ function TeamTab({ profiles, clients, activities, targets }) {
   const funnelTotal = STAGES.map((s) => ({ ...s, count: clients.filter((c) => c.stage === s.id).length }));
   const funnelMax = Math.max(1, ...funnelTotal.map((f) => f.count));
   const mk = monthKey();
+  const compact = (n) => {
+    if (!n) return '0';
+    if (n >= 1_000_000) return (n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1) + 'M';
+    if (n >= 1_000) return (n / 1_000).toFixed(n % 1_000 === 0 ? 0 : 1) + 'K';
+    return n.toLocaleString('en-US');
+  };
   return (
     <div className="space-y-6">
       <div className="rounded-xl p-4" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
@@ -81,8 +87,8 @@ function TeamTab({ profiles, clients, activities, targets }) {
             <tr style={{ color: C.muted }} className="text-left text-xs">
               <th className="py-2 pl-2">Name</th>
               <th className="py-2">Active Clients</th>
-              <th className="py-2">Meetings</th>
-              <th className="py-2">Deals / Target</th>
+              <th className="py-2">Deals (Count)</th>
+              <th className="py-2">Sales / Target (EGP)</th>
               <th className="py-2">Progress</th>
             </tr>
           </thead>
@@ -90,18 +96,21 @@ function TeamTab({ profiles, clients, activities, targets }) {
             {profiles.map((p) => {
               const myClients = clients.filter((c) => c.owner_id === p.id);
               const active = myClients.filter((c) => c.stage !== 'won' && c.stage !== 'lost').length;
-              const meetings = activities.filter((a) => a.owner_id === p.id && a.type === 'meeting' && a.date?.startsWith(mk)).length;
-              const deals = myClients.filter((c) => c.stage === 'won' && c.closed_at?.startsWith(mk)).length;
+              const wonThisMonth = myClients.filter((c) => c.stage === 'won' && c.closed_at?.startsWith(mk));
+              const dealsCount = wonThisMonth.length;
+              const salesValue = wonThisMonth.reduce((sum, c) => sum + (c.deal_value || 0), 0);
               const target = targets.find((t) => t.owner_id === p.id);
               const dealsTarget = target?.deals_target || 0;
-              const meetingsTarget = target?.meetings_target || 0;
+              const pct = dealsTarget > 0 ? Math.round((salesValue / dealsTarget) * 100) : 0;
               return (
                 <tr key={p.id} style={{ borderTop: `1px solid ${C.border}` }}>
                   <td className="py-2 font-medium pl-2">{p.full_name || '—'}</td>
                   <td className="py-2" style={{ color: C.gold }}>{active}</td>
-                  <td className="py-2">{meetings} / {meetingsTarget || '—'}</td>
-                  <td className="py-2">{deals} / {dealsTarget || '—'}</td>
-                  <td className="py-2" style={{ color: C.muted }}>{dealsTarget ? `${Math.round((deals / dealsTarget) * 100)}%` : '—'}</td>
+                  <td className="py-2">{dealsCount}</td>
+                  <td className="py-2">{compact(salesValue)} / {compact(dealsTarget) || '—'}</td>
+                  <td className="py-2" style={{ color: pct >= 100 ? '#7FA887' : pct >= 50 ? C.gold : C.muted }}>
+                    {dealsTarget ? `${pct}%` : '—'}
+                  </td>
                 </tr>
               );
             })}
@@ -114,36 +123,37 @@ function TeamTab({ profiles, clients, activities, targets }) {
 
 function TargetTab({ profiles, clients, activities, targets }) {
   const mk = monthKey();
+  const compact = (n) => {
+    if (!n) return '0';
+    if (n >= 1_000_000) return (n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1) + 'M';
+    if (n >= 1_000) return (n / 1_000).toFixed(n % 1_000 === 0 ? 0 : 1) + 'K';
+    return n.toLocaleString('en-US');
+  };
   return (
     <div className="space-y-3">
       {profiles.map((p) => {
         const myClients = clients.filter((c) => c.owner_id === p.id);
-        const deals = myClients.filter((c) => c.stage === 'won' && c.closed_at?.startsWith(mk)).length;
-        const meetings = activities.filter((a) => a.owner_id === p.id && a.type === 'meeting' && a.date?.startsWith(mk)).length;
+        const wonThisMonth = myClients.filter((c) => c.stage === 'won' && c.closed_at?.startsWith(mk));
+        const dealsCount = wonThisMonth.length;
+        const salesValue = wonThisMonth.reduce((sum, c) => sum + (c.deal_value || 0), 0);
         const target = targets.find((t) => t.owner_id === p.id);
         const dt = target?.deals_target || 0;
-        const mt = target?.meetings_target || 0;
-        const dp = dt ? Math.min(100, Math.round((deals / dt) * 100)) : 0;
-        const mp = mt ? Math.min(100, Math.round((meetings / mt) * 100)) : 0;
+        const dp = dt ? Math.min(100, Math.round((salesValue / dt) * 100)) : 0;
         return (
           <div key={p.id} className="rounded-xl p-4" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
             <p className="font-display font-bold text-sm mb-3">{p.full_name || p.username}</p>
             <div className="space-y-2">
               <div>
                 <div className="flex justify-between text-xs mb-1" style={{ color: C.muted }}>
-                  <span>Deals</span><span>{deals} / {dt || '—'} {dt ? `(${dp}%)` : ''}</span>
+                  <span>Sales Value (EGP)</span>
+                  <span>{compact(salesValue)} / {compact(dt) || '—'} {dt ? `(${dp}%)` : ''}</span>
                 </div>
                 <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: C.bg }}>
-                  <div className="h-full rounded-full" style={{ width: `${dp}%`, backgroundColor: '#7FA887' }} />
+                  <div className="h-full rounded-full" style={{ width: `${dp}%`, backgroundColor: dp >= 100 ? '#7FA887' : C.gold }} />
                 </div>
               </div>
-              <div>
-                <div className="flex justify-between text-xs mb-1" style={{ color: C.muted }}>
-                  <span>Meetings</span><span>{meetings} / {mt || '—'} {mt ? `(${mp}%)` : ''}</span>
-                </div>
-                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: C.bg }}>
-                  <div className="h-full rounded-full" style={{ width: `${mp}%`, backgroundColor: C.gold }} />
-                </div>
+              <div className="text-xs" style={{ color: C.muted }}>
+                Deals closed this month: <span style={{ color: C.text }}>{dealsCount}</span>
               </div>
             </div>
           </div>
@@ -168,7 +178,7 @@ export default function Reports() {
     const mk = monthKey();
     const [{ data: p }, { data: c }, { data: a }] = await Promise.all([
       supabase.from('profiles').select('id, full_name, username, title, is_pool, monthly_target').eq('is_pool', false).not('title', 'in', '("top_management","operation","marketing")'),
-      supabase.from('clients').select('id, owner_id, stage, closed_at, next_follow_up, call_result, last_contacted_at'),
+      supabase.from('clients').select('id, owner_id, stage, closed_at, deal_value, next_follow_up, call_result, last_contacted_at'),
       supabase.from('activities').select('id, owner_id, type, date'),
     ]);
     // sort: title order, then name

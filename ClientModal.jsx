@@ -545,10 +545,11 @@ function DetailView({ userId, client, isAdmin, userTitle, profilesList, autoFocu
     patch.last_contacted_at = new Date().toISOString();
     // Any action removes the lead from re-rotation and marks it as "touched"
     patch.ever_contacted = true;
-    // "Deal with the client" → close as won
+    // "Deal with the client" → close as won + save deal value
     if (callResult === 'Deal with the client') {
       patch.stage = 'won';
       patch.closed_at = new Date().toISOString();
+      patch.deal_value = dealValueNum;
     }
 
     if (Object.keys(patch).length > 0) {

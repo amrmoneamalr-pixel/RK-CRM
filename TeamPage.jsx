@@ -284,16 +284,22 @@ function UserRow({ profile, currentUserId, teamLeaders, onChanged, setError }) {
         )}
         <div className="flex items-center gap-2">
           <label className="text-xs whitespace-nowrap" style={{ color: C.muted }}>Monthly Target:</label>
-          <input
-            type="number"
-            min="0"
-            value={monthlyTarget}
-            onChange={(e) => setMonthlyTarget(e.target.value)}
-            placeholder="0"
-            className={inputClass}
-            style={inputStyle}
-          />
-          <span className="text-xs whitespace-nowrap" style={{ color: C.muted }}>deals</span>
+          <div className="flex items-center gap-1 flex-1">
+            <span className="text-xs" style={{ color: C.gold }}>💰</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={monthlyTarget ? Number(monthlyTarget).toLocaleString('en-US') : ''}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/[^0-9]/g, '');
+                setMonthlyTarget(raw ? Number(raw) : 0);
+              }}
+              placeholder="e.g. 5,000,000"
+              className={inputClass}
+              style={inputStyle}
+            />
+            <span className="text-xs whitespace-nowrap" style={{ color: C.muted }}>EGP</span>
+          </div>
         </div>
         <div className="flex gap-2">
           <button onClick={saveEdit} disabled={saving} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-bold disabled:opacity-50" style={{ backgroundColor: C.gold, color: '#14181F' }}>
