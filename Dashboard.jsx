@@ -3,7 +3,7 @@ import { supabase } from './supabaseClient';
 import { C } from './constants';
 import {
   Sparkles, RotateCw, RefreshCw, Calendar, PhoneCall,
-  CalendarClock, CalendarCheck, Target as TargetIcon, Users, ChevronDown, X, Check
+  CalendarClock, CalendarCheck, Target as TargetIcon, Users, ChevronDown, ChevronLeft, ChevronRight, X, Check
 } from 'lucide-react';
 
 // ─── Period helpers ────────────────────────────────────────────────────
@@ -221,6 +221,10 @@ export default function Dashboard({ profile }) {
   }, [effectiveProfile]);
 
   const [period, setPeriod] = useState('daily');
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({});
   const [target, setTarget] = useState(0);
@@ -239,7 +243,30 @@ export default function Dashboard({ profile }) {
   const [salesUsers, setSalesUsers] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
 
-  const range = useMemo(() => getPeriodRange(period), [period]);
+  const range = useMemo(() => {
+    if (period === 'monthly') {
+      const start = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1, 0, 0, 0, 0);
+      const end = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1, 0, 0, 0, 0);
+      const monthName = start.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+      return { start, end, label: monthName, subLabel: monthName };
+    }
+    return getPeriodRange(period);
+  }, [period, selectedMonth]);
+
+  // Whether the selected month is the current real-world month
+  const isCurrentMonth = (() => {
+    const now = new Date();
+    return selectedMonth.getFullYear() === now.getFullYear()
+      && selectedMonth.getMonth() === now.getMonth();
+  })();
+
+  // Reset to current month when switching away from Monthly tab
+  useEffect(() => {
+    if (period !== 'monthly') {
+      const now = new Date();
+      setSelectedMonth(new Date(now.getFullYear(), now.getMonth(), 1));
+    }
+  }, [period]);
   const userId = resolvedUserId;
 
   // Fallback userId
@@ -463,6 +490,30 @@ export default function Dashboard({ profile }) {
               selectedIds={selectedIds}
               onChange={setSelectedIds}
             />
+          )}
+          {period === 'monthly' && (
+            <div className="flex items-center rounded-lg overflow-hidden" style={{ border: `1px solid ${C.border}`, backgroundColor: C.surface }}>
+              <button
+                onClick={() => setSelectedMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+                className="px-2 py-1.5"
+                style={{ color: C.muted }}
+                title="Previous month"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <span className="text-xs font-bold px-2 min-w-[110px] text-center" style={{ color: C.gold }}>
+                {range.subLabel}
+              </span>
+              <button
+                onClick={() => setSelectedMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+                disabled={isCurrentMonth}
+                className="px-2 py-1.5 disabled:opacity-30"
+                style={{ color: C.muted }}
+                title="Next month"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
           )}
           <div className="flex rounded-lg overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
             {[
