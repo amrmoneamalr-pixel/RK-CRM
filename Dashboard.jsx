@@ -351,11 +351,11 @@ export default function Dashboard({ profile }) {
         supabase.from('profiles').select('monthly_target')
           .in('id', effectiveUserIds),
 
-        // Closed deals in period — fetch full info for debugging
+        // Closed deals — fetch ALL won deals for selected users, filter by period in JS
+        // (more robust than SQL timestamp comparison which can mismatch with date columns)
         supabase.from('clients').select('id, name, deal_value, closed_at, owner_id')
           .in('owner_id', effectiveUserIds)
-          .eq('stage', 'won')
-          .gte('closed_at', startISO).lt('closed_at', endISO),
+          .eq('stage', 'won'),
       ]);
 
       const distinctIds = (rows) => new Set((rows || []).map(r => r.client_id)).size;
@@ -375,7 +375,13 @@ export default function Dashboard({ profile }) {
       });
 
       const summedTarget = (targetRows.data || []).reduce((sum, r) => sum + Number(r.monthly_target || 0), 0);
-      const summedClosedValue = (closedRes.data || []).reduce((sum, r) => sum + Number(r.deal_value || 0), 0);
+      // Filter closed deals to the current period in JS (robust to date/timestamp column types)
+      const closedInPeriod = (closedRes.data || []).filter(c => {
+        if (!c.closed_at) return false;
+        const t = new Date(c.closed_at).getTime();
+        return t >= range.start.getTime() && t < range.end.getTime();
+      });
+      const summedClosedValue = closedInPeriod.reduce((sum, c) => sum + Number(c.deal_value || 0), 0);
 
       setMetrics({
         fresh: distinctIds(freshRes.data),
@@ -386,7 +392,7 @@ export default function Dashboard({ profile }) {
         plannedMeetings: plannedClients.size,
         actualMeetings: actualClients.size,
         closed: summedClosedValue,
-        closedCount: (closedRes.data || []).length,
+        closedCount: closedInPeriod.length,
       });
 
       setTarget(summedTarget);
@@ -410,10 +416,11 @@ export default function Dashboard({ profile }) {
           reRotation: distinctIds(reRotationRes.data),
           followups: followupClients.size,
           activeCalls: activeClients.size,
-          closedDeals: (closedRes.data || []).length,
+          closedDealsAllTime: (closedRes.data || []).length,
+          closedDealsInPeriod: closedInPeriod.length,
           closedValueEGP: summedClosedValue,
         },
-        closedDealsDetail: (closedRes.data || []).map(d => ({
+        closedDealsDetail: closedInPeriod.map(d => ({
           name: d.name,
           deal_value: d.deal_value,
           deal_value_type: typeof d.deal_value,
