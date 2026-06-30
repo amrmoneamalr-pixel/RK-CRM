@@ -351,8 +351,8 @@ export default function Dashboard({ profile }) {
         supabase.from('profiles').select('monthly_target')
           .in('id', effectiveUserIds),
 
-        // Closed deals in period — get deal_value to sum
-        supabase.from('clients').select('deal_value')
+        // Closed deals in period — fetch full info for debugging
+        supabase.from('clients').select('id, name, deal_value, closed_at, owner_id')
           .in('owner_id', effectiveUserIds)
           .eq('stage', 'won')
           .gte('closed_at', startISO).lt('closed_at', endISO),
@@ -413,6 +413,12 @@ export default function Dashboard({ profile }) {
           closedDeals: (closedRes.data || []).length,
           closedValueEGP: summedClosedValue,
         },
+        closedDealsDetail: (closedRes.data || []).map(d => ({
+          name: d.name,
+          deal_value: d.deal_value,
+          deal_value_type: typeof d.deal_value,
+          closed_at: d.closed_at,
+        })),
         summedTarget,
         errors: {
           fresh: freshRes.error?.message,
