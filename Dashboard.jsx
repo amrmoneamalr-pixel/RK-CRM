@@ -193,16 +193,45 @@ function UserMultiSelect({ users, selectedIds, onChange }) {
 
 // ─── Dashboard ─────────────────────────────────────────────────────────
 export default function Dashboard({ profile }) {
-  const isAdmin = profile?.role === 'admin'
-    || profile?.title === 'top_management'
-    || profile?.title === 'sales_manager'
-    || profile?.title === 'team_leader';
+  const [resolvedProfile, setResolvedProfile] = useState(profile || null);
+  const effectiveProfile = resolvedProfile;
+
+  const isAdmin = effectiveProfile?.role === 'admin'
+    || effectiveProfile?.title === 'top_management'
+    || effectiveProfile?.title === 'sales_manager'
+    || effectiveProfile?.title === 'team_leader';
+
+  // If profile wasn't passed as a prop, fetch it from the DB using the auth user
+  useEffect(() => {
+    if (effectiveProfile?.id) return;
+    (async () => {
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        const uid = authData?.user?.id;
+        if (!uid) return;
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('id, role, title, full_name, username, monthly_target')
+          .eq('id', uid)
+          .maybeSingle();
+        if (prof) setResolvedProfile(prof);
+        else setResolvedProfile({ id: uid });
+      } catch (e) { console.warn('profile fetch failed', e); }
+    })();
+  }, [effectiveProfile]);
 
   const [period, setPeriod] = useState('daily');
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({});
   const [target, setTarget] = useState(0);
   const [resolvedUserId, setResolvedUserId] = useState(profile?.id || null);
+
+  // Keep userId in sync with effectiveProfile
+  useEffect(() => {
+    if (effectiveProfile?.id && effectiveProfile.id !== resolvedUserId) {
+      setResolvedUserId(effectiveProfile.id);
+    }
+  }, [effectiveProfile, resolvedUserId]);
   const [debug, setDebug] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
 
@@ -411,7 +440,7 @@ export default function Dashboard({ profile }) {
           <p className="text-xs" style={{ color: C.muted }}>
             {isAdmin
               ? `Team overview · ${selectedIds.length}/${salesUsers.length} sales reps selected`
-              : `Welcome back, ${profile?.full_name?.split(' ')[0] || 'there'}!`}
+              : `Welcome back, ${effectiveProfile?.full_name?.split(' ')[0] || 'there'}!`}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
