@@ -272,6 +272,7 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
     lead_origin: client.lead_origin || '', origin_name: client.origin_name || '',
     location: client.location || '', owner_id: client.owner_id, potential: client.potential || false,
     secondary_phone: client.secondary_phone || '',
+    deal_value: client.deal_value || 0,
   });
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -304,6 +305,7 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
       lead_origin: form.lead_origin || null,
       origin_name: form.lead_origin === 'Marketing' || form.lead_origin === 'Top Management' ? (form.origin_name || null) : null,
       location: form.location || null, potential: form.potential, owner_id: form.owner_id,
+      deal_value: Number(form.deal_value) || 0,
     };
     if (ownerChanged) {
       patch.no_answer_count = 0;
@@ -394,6 +396,26 @@ function EditForm({ userId, client, profilesList, onClose, onSaved }) {
           <input type="checkbox" checked={form.potential} onChange={(e) => setForm((f) => ({ ...f, potential: e.target.checked }))} />
           <span style={{ color: C.muted }}>Mark as high-potential lead</span>
         </label>
+        {client.stage === 'won' && (
+          <Field label="Deal Value (EGP)">
+            <div className="flex items-center gap-2 rounded-lg p-2.5" style={{ backgroundColor: '#7FA88715', border: `1px solid #7FA887` }}>
+              <span style={{ color: '#7FA887' }}>💰</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={form.deal_value ? Number(form.deal_value).toLocaleString('en-US') : ''}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/[^0-9]/g, '');
+                  setForm((f) => ({ ...f, deal_value: raw ? Number(raw) : 0 }));
+                }}
+                placeholder="e.g. 5,000,000"
+                className={inputClass}
+                style={{ ...inputStyle, backgroundColor: C.surface }}
+              />
+              <span className="text-xs" style={{ color: C.muted }}>EGP</span>
+            </div>
+          </Field>
+        )}
       </div>
       <button disabled={!form.name.trim() || saving} onClick={save} className="w-full mt-5 py-2.5 rounded-lg font-bold text-sm disabled:opacity-40" style={{ backgroundColor: C.gold, color: '#14181F' }}>
         {saving ? '...' : 'Save Changes'}

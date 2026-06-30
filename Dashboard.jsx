@@ -253,19 +253,19 @@ export default function Dashboard({ profile }) {
     })();
   }, [resolvedUserId]);
 
-  // Load sales reps list (admin only)
+  // Load sales reps list (admin only) — excludes marketing
   useEffect(() => {
     if (!isAdmin) return;
     (async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('id, full_name, username, monthly_target')
+        .select('id, full_name, username, monthly_target, title')
         .eq('role', 'sales')
         .eq('is_pool', false)
+        .neq('title', 'marketing')
         .order('full_name');
       const list = data || [];
       setSalesUsers(list);
-      // default = all selected
       setSelectedIds(list.map(u => u.id));
     })();
   }, [isAdmin]);
@@ -374,8 +374,8 @@ export default function Dashboard({ profile }) {
         if (n.includes('Actual Meeting')) actualClients.add(a.client_id);
       });
 
-      const summedTarget = (targetRows.data || []).reduce((sum, r) => sum + (r.monthly_target || 0), 0);
-      const summedClosedValue = (closedRes.data || []).reduce((sum, r) => sum + (r.deal_value || 0), 0);
+      const summedTarget = (targetRows.data || []).reduce((sum, r) => sum + Number(r.monthly_target || 0), 0);
+      const summedClosedValue = (closedRes.data || []).reduce((sum, r) => sum + Number(r.deal_value || 0), 0);
 
       setMetrics({
         fresh: distinctIds(freshRes.data),
