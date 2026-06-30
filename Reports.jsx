@@ -98,9 +98,9 @@ function TeamTab({ profiles, clients, activities, targets }) {
               const active = myClients.filter((c) => c.stage !== 'won' && c.stage !== 'lost').length;
               const wonThisMonth = myClients.filter((c) => c.stage === 'won' && c.closed_at?.startsWith(mk));
               const dealsCount = wonThisMonth.length;
-              const salesValue = wonThisMonth.reduce((sum, c) => sum + (c.deal_value || 0), 0);
+              const salesValue = wonThisMonth.reduce((sum, c) => sum + Number(c.deal_value || 0), 0);
               const target = targets.find((t) => t.owner_id === p.id);
-              const dealsTarget = target?.deals_target || 0;
+              const dealsTarget = Number(target?.deals_target || 0);
               const pct = dealsTarget > 0 ? Math.round((salesValue / dealsTarget) * 100) : 0;
               return (
                 <tr key={p.id} style={{ borderTop: `1px solid ${C.border}` }}>
@@ -135,9 +135,9 @@ function TargetTab({ profiles, clients, activities, targets }) {
         const myClients = clients.filter((c) => c.owner_id === p.id);
         const wonThisMonth = myClients.filter((c) => c.stage === 'won' && c.closed_at?.startsWith(mk));
         const dealsCount = wonThisMonth.length;
-        const salesValue = wonThisMonth.reduce((sum, c) => sum + (c.deal_value || 0), 0);
+        const salesValue = wonThisMonth.reduce((sum, c) => sum + Number(c.deal_value || 0), 0);
         const target = targets.find((t) => t.owner_id === p.id);
-        const dt = target?.deals_target || 0;
+        const dt = Number(target?.deals_target || 0);
         const dp = dt ? Math.min(100, Math.round((salesValue / dt) * 100)) : 0;
         return (
           <div key={p.id} className="rounded-xl p-4" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}>
