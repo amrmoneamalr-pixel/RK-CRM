@@ -193,7 +193,10 @@ function UserMultiSelect({ users, selectedIds, onChange }) {
 
 // ─── Dashboard ─────────────────────────────────────────────────────────
 export default function Dashboard({ profile }) {
-  const isAdmin = profile?.role === 'admin' || profile?.title === 'top_management';
+  const isAdmin = profile?.role === 'admin'
+    || profile?.title === 'top_management'
+    || profile?.title === 'sales_manager'
+    || profile?.title === 'team_leader';
 
   const [period, setPeriod] = useState('daily');
   const [loading, setLoading] = useState(true);
@@ -239,25 +242,33 @@ export default function Dashboard({ profile }) {
   }, [isAdmin]);
 
   // Effective owner IDs for queries
-  const effectiveUserIds = isAdmin ? selectedIds : (userId ? [userId] : []);
+  // For admin: use selected sales rep IDs
+  // For sales: use own ID
+  // While the sales list is still loading for admin, return null (not empty) to skip query
+  const effectiveUserIds = isAdmin
+    ? (salesUsers.length === 0 ? null : selectedIds)
+    : (userId ? [userId] : null);
 
   useEffect(() => {
-    if (effectiveUserIds.length === 0 && !isAdmin) return;
-    if (isAdmin && salesUsers.length === 0) return; // wait for sales list
+    if (effectiveUserIds === null) return;       // still loading
+    if (effectiveUserIds.length === 0) {         // explicitly cleared
+      setMetrics({});
+      setTarget(0);
+      setLoading(false);
+      setLastUpdated(new Date());
+      return;
+    }
     loadMetrics();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(effectiveUserIds), period]);
 
-  // Auto-refresh: realtime + polling + custom event + focus
+  // Auto-refresh: polling + custom event + focus
   useEffect(() => {
-    if (effectiveUserIds.length === 0) return;
+    if (effectiveUserIds === null || effectiveUserIds.length === 0) return;
     const handler = () => loadMetrics();
     window.addEventListener('rk-data-updated', handler);
     window.addEventListener('focus', handler);
-
-    // Polling fallback every 15s
     const interval = setInterval(handler, 15000);
-
     return () => {
       window.removeEventListener('rk-data-updated', handler);
       window.removeEventListener('focus', handler);
@@ -267,7 +278,7 @@ export default function Dashboard({ profile }) {
   }, [JSON.stringify(effectiveUserIds), period]);
 
   const loadMetrics = async () => {
-    if (effectiveUserIds.length === 0) {
+    if (!effectiveUserIds || effectiveUserIds.length === 0) {
       setMetrics({});
       setTarget(0);
       setLoading(false);
@@ -468,7 +479,7 @@ export default function Dashboard({ profile }) {
       <div className="flex flex-col items-center gap-1 pt-1">
         <button
           onClick={loadMetrics}
-          disabled={effectiveUserIds.length === 0 || loading}
+          disabled={!effectiveUserIds || effectiveUserIds.length === 0 || loading}
           className="text-xs px-4 py-1.5 rounded-lg disabled:opacity-40"
           style={{ backgroundColor: C.surface, color: C.gold, border: `1px solid ${C.border}` }}
         >

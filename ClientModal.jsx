@@ -469,6 +469,7 @@ function DetailView({ userId, client, isAdmin, userTitle, profilesList, autoFocu
   const [plannedMeeting, setPlannedMeeting] = useState(false);
   const [actualMeeting, setActualMeeting] = useState(false);
   const [dealValue, setDealValue] = useState('');
+  const [dealDate, setDealDate] = useState(todayStr());
   const [saving, setSaving] = useState(false);
   const activityRef = useRef(null);
 
@@ -545,10 +546,11 @@ function DetailView({ userId, client, isAdmin, userTitle, profilesList, autoFocu
     patch.last_contacted_at = new Date().toISOString();
     // Any action removes the lead from re-rotation and marks it as "touched"
     patch.ever_contacted = true;
-    // "Deal with the client" → close as won + save deal value
+    // "Deal with the client" → close as won + save deal value + use chosen date
     if (callResult === 'Deal with the client') {
       patch.stage = 'won';
-      patch.closed_at = new Date().toISOString();
+      // dealDate is YYYY-MM-DD; set time to noon UTC to avoid timezone date-shift
+      patch.closed_at = new Date(dealDate + 'T12:00:00').toISOString();
       patch.deal_value = dealValueNum;
     }
 
@@ -607,6 +609,7 @@ function DetailView({ userId, client, isAdmin, userTitle, profilesList, autoFocu
     setNextFollowUp(''); setFollowUpTime(''); setPlannedMeeting(false); setActualMeeting(false);
     setLeadStage('');
     setDealValue('');
+    setDealDate(todayStr());
     onSaved(); onClose();
   };
 
@@ -761,7 +764,7 @@ function DetailView({ userId, client, isAdmin, userTitle, profilesList, autoFocu
 
             {isDeal && (
               <Field label="Deal Value (EGP) *">
-                <div className="rounded-lg p-2.5" style={{ backgroundColor: '#7FA88715', border: `1px solid #7FA887` }}>
+                <div className="rounded-lg p-2.5 space-y-2" style={{ backgroundColor: '#7FA88715', border: `1px solid #7FA887` }}>
                   <div className="flex items-center gap-2">
                     <span style={{ color: '#7FA887' }}>💰</span>
                     <input
@@ -769,7 +772,6 @@ function DetailView({ userId, client, isAdmin, userTitle, profilesList, autoFocu
                       inputMode="numeric"
                       value={dealValue}
                       onChange={(e) => {
-                        // Allow only digits and format with commas
                         const raw = e.target.value.replace(/[^0-9]/g, '');
                         setDealValue(raw ? Number(raw).toLocaleString('en-US') : '');
                       }}
@@ -778,8 +780,20 @@ function DetailView({ userId, client, isAdmin, userTitle, profilesList, autoFocu
                       style={{ ...inputStyle, backgroundColor: C.surface }}
                     />
                   </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar size={12} style={{ color: '#7FA887' }} />
+                    <span className="text-xs whitespace-nowrap" style={{ color: C.muted }}>Deal Date:</span>
+                    <input
+                      type="date"
+                      value={dealDate}
+                      max={todayStr()}
+                      onChange={(e) => setDealDate(e.target.value)}
+                      className={inputClass}
+                      style={{ ...inputStyle, backgroundColor: C.surface, flex: 1 }}
+                    />
+                  </div>
                   {!dealValueValid && (
-                    <p className="text-[10px] mt-1.5" style={{ color: '#C9714F' }}>
+                    <p className="text-[10px]" style={{ color: '#C9714F' }}>
                       Please enter the deal value to close this client
                     </p>
                   )}
