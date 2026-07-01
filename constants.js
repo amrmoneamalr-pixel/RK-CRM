@@ -51,10 +51,14 @@ export const CALL_RESULTS = ['No Answer', 'No Answer - Multiple Times', 'Interes
 export const TITLES = [
   { id: 'sales', label: 'Sales' },
   { id: 'team_leader', label: 'Team Leader' },
+  { id: 'sales_supervisor', label: 'Sales Supervisor' },
   { id: 'sales_manager', label: 'Sales Manager' },
   { id: 'marketing', label: 'Marketing' },
+  { id: 'marketing_manager', label: 'Marketing Manager' },
   { id: 'operation', label: 'Operation' },
+  { id: 'accountant', label: 'Accountant' },
   { id: 'hr', label: 'HR' },
+  { id: 'admin', label: 'Admin' },
   { id: 'top_management', label: 'Top Management' },
 ];
 

@@ -6,7 +6,7 @@ import { Plus, Pencil, Trash2, Check, X, KeyRound, Eye, EyeOff, Lock } from 'luc
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
 const inputClass = 'rounded-lg px-3 py-2 text-sm outline-none w-full';
 
-const TITLE_ORDER = ['top_management','sales_manager','team_leader','sales','marketing','operation','hr'];
+const TITLE_ORDER = ['top_management','admin','sales_manager','sales_supervisor','team_leader','sales','marketing_manager','marketing','operation','accountant','hr'];
 
 const TITLE_COLORS = {
   top_management: C.gold,
@@ -44,7 +44,7 @@ export default function TeamPage({ currentUserId, currentUserTitle }) {
   // Members tab — exclude pools entirely + apply visibility rules
   const visibleProfiles = profiles.filter((p) =>
     !p.is_pool && (
-      currentUserTitle === 'top_management' || p.id === currentUserId || !['operation', 'marketing', 'hr'].includes(p.title)
+      currentUserTitle === 'top_management' || p.id === currentUserId || !['operation', 'marketing', 'marketing_manager', 'hr', 'accountant', 'admin'].includes(p.title)
     )
   );
 
@@ -215,7 +215,7 @@ function UserRow({ profile, currentUserId, teamLeaders, onChanged, setError }) {
   const saveEdit = async () => {
     setSaving(true);
     setError('');
-    const role = ['top_management', 'operation', 'hr'].includes(title) ? 'admin' : 'sales';
+    const role = ['top_management', 'admin', 'operation', 'hr', 'accountant', 'marketing_manager'].includes(title) ? 'admin' : 'sales';
     const { error } = await supabase
       .from('profiles')
       .update({
@@ -401,8 +401,8 @@ function AddUserModal({ teamLeaders, onClose, onSaved, setError }) {
       const { data: newProfile } = await supabase.from('profiles').select('id').eq('username', username.trim()).single();
       if (newProfile) {
         const updatePatch = { plain_password: password };
-        // HR should be admin role (RPC defaults to sales for non-standard admin titles)
-        if (title === 'hr') updatePatch.role = 'admin';
+        // Back-office/admin titles should be admin role (RPC defaults to sales for non-standard admin titles)
+        if (['hr', 'admin', 'accountant', 'marketing_manager'].includes(title)) updatePatch.role = 'admin';
         await supabase.from('profiles').update(updatePatch).eq('id', newProfile.id);
       }
     }
