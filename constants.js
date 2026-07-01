@@ -54,6 +54,7 @@ export const TITLES = [
   { id: 'sales_manager', label: 'Sales Manager' },
   { id: 'marketing', label: 'Marketing' },
   { id: 'operation', label: 'Operation' },
+  { id: 'hr', label: 'HR' },
   { id: 'top_management', label: 'Top Management' },
 ];
 
