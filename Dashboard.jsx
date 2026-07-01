@@ -316,7 +316,7 @@ export default function Dashboard({ profile }) {
     }
     loadMetrics();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(effectiveUserIds), period]);
+  }, [JSON.stringify(effectiveUserIds), period, selectedMonth.getTime()]);
 
   // Auto-refresh: polling + custom event + focus
   useEffect(() => {
@@ -331,7 +331,7 @@ export default function Dashboard({ profile }) {
       clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(effectiveUserIds), period]);
+  }, [JSON.stringify(effectiveUserIds), period, selectedMonth.getTime()]);
 
   const loadMetrics = async () => {
     if (!effectiveUserIds || effectiveUserIds.length === 0) {
