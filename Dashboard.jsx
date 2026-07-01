@@ -5,6 +5,7 @@ import {
   Sparkles, RotateCw, RefreshCw, Calendar, PhoneCall,
   CalendarClock, CalendarCheck, Target as TargetIcon, Users, ChevronDown, ChevronLeft, ChevronRight, X, Check
 } from 'lucide-react';
+import { canSeeDashboard } from './authorityUtils';
 
 // ─── Period helpers ────────────────────────────────────────────────────
 function getPeriodRange(period) {
@@ -211,7 +212,7 @@ export default function Dashboard({ profile }) {
         if (!uid) return;
         const { data: prof } = await supabase
           .from('profiles')
-          .select('id, role, title, full_name, username, monthly_target')
+          .select('id, role, title, full_name, username, monthly_target, is_system')
           .eq('id', uid)
           .maybeSingle();
         if (prof) setResolvedProfile(prof);

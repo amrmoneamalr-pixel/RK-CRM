@@ -10,6 +10,8 @@ import Notifications from './Notifications';
 import { SourceTag } from './BrandIcons';
 import PhoneFlag, { detectCountry } from './PhoneFlag';
 import DateRangePicker from './DateRangePicker';
+import { canImportExport, getResignScope } from './authorityUtils';
+import { showAuthorityToast } from './AuthorityToast';
 
 function FilterSelect({ value, onChange, options, placeholder }) {
   return (
@@ -120,6 +122,13 @@ const sortByTitleThenName = (a, b) =>
   (a.full_name || '').localeCompare(b.full_name || '');
 
 export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle, leadFilter, onClearLeadFilter, initialPage = 1, onPageChange, onOpenMail, onSelectCategory }) {
+  // Derived permission flags (Phase 2 UI gating).
+  // Build minimal profile shape from props for authorityUtils.
+  const _permProfile = { id: userId, title: userTitle, role: isAdmin ? 'admin' : 'sales', is_system: false };
+  const canImportExportUI = canImportExport(_permProfile);
+  const _resignScope = getResignScope(_permProfile);
+  const canBulkAssign = _resignScope === 'any' || _resignScope === 'team';
+
   const [clients, setClients] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [activities, setActivities] = useState([]);
@@ -431,6 +440,11 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
 
   const bulkReassign = async () => {
     if (selectedIds.size === 0 || bulkBusy) return;
+    // Authority gate (Phase 2 defense-in-depth; UI hides button too)
+    if (!canBulkAssign) {
+      showAuthorityToast();
+      return;
+    }
     let targets = [];
     if (bulkSource === 'sales') {
       targets = Array.from(bulkSalesIds);
@@ -507,7 +521,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
         <p className="text-sm mb-4" style={{ color: C.muted }}>Tap "New Client" to start tracking your first one, or import a CSV file</p>
         <div className="flex items-center justify-center gap-2">
           <button onClick={() => setShowAdd(true)} className="px-4 py-2 rounded-lg font-bold text-sm" style={{ backgroundColor: C.gold, color: '#14181F' }}>+ New Client</button>
-          {isAdmin && (
+          {canImportExportUI && (
             <button onClick={() => setShowImport(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
               <Upload size={14} /> Import CSV
             </button>
@@ -684,7 +698,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
       <div className="space-y-2">
         {/* Row 1 (top): Export, Import, Notification, Mail */}
         <div className="flex items-center justify-end gap-2">
-          {isAdmin && (
+          {canImportExportUI && (
             <>
               <button onClick={exportCsv} disabled={exporting} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium shrink-0 disabled:opacity-50" style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
                 {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} {exporting ? 'Exporting...' : 'Export'}
@@ -734,7 +748,7 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
         <div className="flex flex-wrap items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: C.surface, border: `1px solid ${C.gold}` }}>
           <span className="text-sm font-medium">{selectedIds.size} selected</span>
           <span className="flex-1" />
-          {hasTeamAccess && profilesList.length > 0 && (
+          {canBulkAssign && profilesList.length > 0 && (
             <>
               {/* Source toggle */}
               <div className="flex rounded-lg overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
@@ -743,11 +757,13 @@ export default function ClientsBoard({ userId, isAdmin, hasTeamAccess, userTitle
                   className="px-3 py-2 text-xs font-bold"
                   style={{ backgroundColor: bulkSource === 'sales' ? C.gold : C.bg, color: bulkSource === 'sales' ? '#14181F' : C.muted }}
                 >Sales</button>
-                <button
-                  onClick={() => { setBulkSource('pools'); setBulkSalesIds(new Set()); }}
-                  className="px-3 py-2 text-xs font-bold"
-                  style={{ backgroundColor: bulkSource === 'pools' ? C.gold : C.bg, color: bulkSource === 'pools' ? '#14181F' : C.muted }}
-                >Pools</button>
+                {_resignScope === 'any' && (
+                  <button
+                    onClick={() => { setBulkSource('pools'); setBulkSalesIds(new Set()); }}
+                    className="px-3 py-2 text-xs font-bold"
+                    style={{ backgroundColor: bulkSource === 'pools' ? C.gold : C.bg, color: bulkSource === 'pools' ? '#14181F' : C.muted }}
+                  >Pools</button>
+                )}
               </div>
 
               {/* Target picker */}

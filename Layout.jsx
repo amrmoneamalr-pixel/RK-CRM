@@ -6,6 +6,16 @@ import { BarChart3, Users, Clock, Target, LogOut, Briefcase, Network, UserCog, A
 import LeadPanels from './LeadPanels';
 import PoolPanels from './PoolPanels';
 import TeamChat from './TeamChat';
+import {
+  canSeePools,
+  canSeeUsers,
+  canControlSettings,
+  canSeeReports,
+  canSeeActivity,
+  canSeeDashboard,
+  getClientVisibilityScope,
+  isTopTier,
+} from './authorityUtils';
 
 // COVO CRM logo — identical to COVO Projects
  function CovoLogo({ size = "md" }) {
@@ -72,7 +82,7 @@ import TeamChat from './TeamChat';
   );
 }
 export default function Layout({ profile, tab, setTab, onSelectCategory, onSignOut, children }) {
-  const showPoolsTab = profile.role === 'admin' || profile.title === 'top_management';
+  const showPoolsTab = canSeePools(profile);
   const [sidebarTab, setSidebarTab] = useState('sales');
   const [allActive, setAllActive] = useState(false);
   const [salesTotal, setSalesTotal] = useState(null);
@@ -117,27 +127,24 @@ export default function Layout({ profile, tab, setTab, onSelectCategory, onSignO
     })();
     return () => { cancelled = true; };
   }, [showPoolsTab, tab]);
-  const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-    { id: 'clients', label: 'Clients', icon: Users },
-    { id: 'developers', label: 'Developers', icon: Building2 },
-    { id: 'orgchart', label: 'Company Structure', icon: Network },
-  ];
+  // Build tabs based on policy permissions (authorityUtils)
+  const tabs = [];
+  if (canSeeDashboard(profile)) tabs.push({ id: 'dashboard', label: 'Dashboard', icon: BarChart3 });
+  if (getClientVisibilityScope(profile) !== 'none') tabs.push({ id: 'clients', label: 'Clients', icon: Users });
+  // Developers & OrgChart remain visible to all (informational, no data privacy concern)
+  tabs.push({ id: 'developers', label: 'Developers', icon: Building2 });
+  tabs.push({ id: 'orgchart', label: 'Company Structure', icon: Network });
 
-  const isAdmin = profile.role === 'admin';
-  const hasTeamAccess = isAdmin || ['sales_manager', 'team_leader', 'top_management'].includes(profile.title);
-
-  if (hasTeamAccess) {
-    tabs.push({ id: 'reports', label: 'Reports', icon: Briefcase });
-    tabs.push({ id: 'activity', label: 'Activity', icon: ActivityIcon });
-  }
+  if (canSeeReports(profile)) tabs.push({ id: 'reports', label: 'Reports', icon: Briefcase });
+  if (canSeeActivity(profile)) tabs.push({ id: 'activity', label: 'Activity', icon: ActivityIcon });
 
   tabs.push({ id: 'mail', label: 'Mail', icon: MailIcon });
 
-  if (isAdmin) {
-    tabs.push({ id: 'team', label: 'Users', icon: UserCog });
-    tabs.push({ id: 'settings', label: 'Settings', icon: SettingsIcon });
-  }
+  if (canSeeUsers(profile)) tabs.push({ id: 'team', label: 'Users', icon: UserCog });
+  if (canControlSettings(profile)) tabs.push({ id: 'settings', label: 'Settings', icon: SettingsIcon });
+
+  // Legacy vars kept for existing references below (label + LeadPanels prop compatibility)
+  const isAdmin = profile.role === 'admin';
 
   return (
     <div dir="ltr" lang="en" className="min-h-screen font-body sm:flex" style={{ backgroundColor: C.bg, color: C.text }}>

@@ -2,6 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
 import { C, TITLES, titleLabel } from './constants';
 import { Plus, Pencil, Trash2, Check, X, KeyRound, Eye, EyeOff, Lock } from 'lucide-react';
+import {
+  filterVisibleUsers,
+  canSeeCredentials,
+  canSeeCredentialsOf,
+  canDeleteUser,
+  deleteUserDenialReason,
+} from './authorityUtils';
+import { showAuthorityToast } from './AuthorityToast';
 
 const inputStyle = { backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.text };
 const inputClass = 'rounded-lg px-3 py-2 text-sm outline-none w-full';
@@ -25,8 +33,14 @@ export default function TeamPage({ currentUserId, currentUserTitle }) {
   const [activeTab, setActiveTab] = useState('members'); // 'members' | 'pools' | 'credentials'
 
   const isTopManagement = currentUserTitle === 'top_management';
-  const isOperation = currentUserTitle === 'operation';
-  const showCredentialsTab = isTopManagement || isOperation;
+  // Current profile lookup (needed for authorityUtils permission checks)
+  const currentProfile = profiles.find((p) => p.id === currentUserId) || {
+    id: currentUserId,
+    title: currentUserTitle,
+    role: null,
+    is_system: false,
+  };
+  const showCredentialsTab = canSeeCredentials(currentProfile);
 
   useEffect(() => {
     load();
@@ -41,12 +55,9 @@ export default function TeamPage({ currentUserId, currentUserTitle }) {
 
   if (loading) return <p style={{ color: C.muted }} className="text-sm">Loading...</p>;
 
-  // Members tab — exclude pools entirely + apply visibility rules
-  const visibleProfiles = profiles.filter((p) =>
-    !p.is_pool && (
-      currentUserTitle === 'top_management' || p.id === currentUserId || !['operation', 'marketing', 'marketing_manager', 'hr', 'accountant', 'admin'].includes(p.title)
-    )
-  );
+  // Members tab — exclude pools entirely + apply policy-based visibility
+  const nonPoolProfiles = profiles.filter((p) => !p.is_pool);
+  const visibleProfiles = filterVisibleUsers(currentProfile, nonPoolProfiles);
 
   // Pools tab — only pools, ordered by pool_key (matches the order in PoolPanels)
   const POOL_KEY_ORDER = ['newFresh','oldFresh','oldCampaign','cold','reRotation','noAnswer','notInterested','notQualified'];
@@ -112,7 +123,7 @@ export default function TeamPage({ currentUserId, currentUserTitle }) {
       {activeTab === 'members' && (
         <div className="space-y-2">
           {visibleProfiles.map((p) => (
-            <UserRow key={p.id} profile={p} currentUserId={currentUserId} teamLeaders={teamLeaders} onChanged={load} setError={setError} />
+            <UserRow key={p.id} profile={p} currentUserId={currentUserId} currentProfile={currentProfile} teamLeaders={teamLeaders} onChanged={load} setError={setError} />
           ))}
         </div>
       )}
@@ -197,7 +208,7 @@ function PoolRow({ profile }) {
   );
 }
 
-function UserRow({ profile, currentUserId, teamLeaders, onChanged, setError }) {
+function UserRow({ profile, currentUserId, currentProfile, teamLeaders, onChanged, setError }) {
   const [editing, setEditing] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -257,6 +268,12 @@ function UserRow({ profile, currentUserId, teamLeaders, onChanged, setError }) {
   };
 
   const remove = async () => {
+    // Authority gate — hard stop with toast if not allowed
+    if (!canDeleteUser(currentProfile, profile)) {
+      showAuthorityToast(deleteUserDenialReason(currentProfile, profile));
+      setConfirmDelete(false);
+      return;
+    }
     setSaving(true);
     setError('');
     const { error } = await supabase.rpc('admin_delete_user', { p_id: profile.id });
@@ -332,10 +349,12 @@ function UserRow({ profile, currentUserId, teamLeaders, onChanged, setError }) {
           <button onClick={() => setEditing(true)} title="Edit">
             <Pencil size={14} style={{ color: C.muted }} />
           </button>
-          <button onClick={() => setResetting((s) => !s)} title="Reset password">
-            <KeyRound size={14} style={{ color: C.muted }} />
-          </button>
-          {!isSelf && (
+          {canSeeCredentialsOf(currentProfile, profile) && (
+            <button onClick={() => setResetting((s) => !s)} title="Reset password">
+              <KeyRound size={14} style={{ color: C.muted }} />
+            </button>
+          )}
+          {!isSelf && canDeleteUser(currentProfile, profile) && (
             !confirmDelete ? (
               <button onClick={() => setConfirmDelete(true)} title="Delete">
                 <Trash2 size={14} style={{ color: '#C9714F' }} />
