@@ -1,10 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
 import { C } from './constants';
-import { Plus, Pencil, Trash2, Check, X, Crown, Sparkles, Briefcase, Building2, Tag } from 'lucide-react';
+import { Plus, Pencil, Trash2, Check, X, Crown, Sparkles, Briefcase, Building2 } from 'lucide-react';
 
-// Icon shown next to each branch badge — cycles by index
-const BRANCH_ICONS = [Sparkles, Briefcase, Building2, Tag];
+// Fixed sections — labels are permanent, admin can only add/edit people under them
+const SECTIONS = [
+  { key: 'top_management', label: 'Top Management', icon: Crown,     flat: true  },
+  { key: 'sales_manager',  label: 'Sales Manager',  icon: Sparkles,  flat: false },
+  { key: 'marketing_team', label: 'Marketing Team', icon: Briefcase, flat: false },
+  { key: 'back_office',    label: 'Back Office',    icon: Building2, flat: false },
+];
 
 export default function OrgChart({ isAdmin }) {
   const [nodes, setNodes] = useState([]);
@@ -16,7 +21,7 @@ export default function OrgChart({ isAdmin }) {
   const load = async () => {
     setLoading(true);
     const [{ data: n }, { data: u }] = await Promise.all([
-      supabase.from('org_chart_nodes').select('*').order('tier').order('sort_order'),
+      supabase.from('org_chart_nodes').select('*').order('sort_order'),
       supabase.from('profiles').select('id, full_name, username, title').eq('is_pool', false).order('full_name'),
     ]);
     setNodes(n || []);
@@ -27,13 +32,26 @@ export default function OrgChart({ isAdmin }) {
   if (loading) return <p style={{ color: C.muted }} className="text-sm">Loading...</p>;
 
   const childrenOf = (parentId) => nodes.filter((n) => n.parent_id === parentId).sort((a, b) => a.sort_order - b.sort_order);
-  const topManagement = nodes.filter((n) => n.tier === 0 && !n.parent_id).sort((a, b) => a.sort_order - b.sort_order);
-  const branches = nodes.filter((n) => n.tier === 1 && !n.parent_id).sort((a, b) => a.sort_order - b.sort_order);
+  const rootsOfSection = (section) => nodes.filter((n) => n.section === section && !n.parent_id).sort((a, b) => a.sort_order - b.sort_order);
 
-  const addNode = async (parentId, tier) => {
-    const siblings = parentId ? childrenOf(parentId) : nodes.filter((n) => n.tier === tier && !n.parent_id);
+  // Add a new node.
+  // If parentId is null → adds a top-level node in the passed `section`.
+  // If parentId is set → adds a child; section is inherited from the parent.
+  const addNode = async (parentId, section) => {
+    const parentNode = parentId ? nodes.find((n) => n.id === parentId) : null;
+    const finalSection = parentNode?.section || section;
+    if (!finalSection) return;
+    const siblings = parentId ? childrenOf(parentId) : rootsOfSection(finalSection);
     const maxSort = Math.max(0, ...siblings.map((n) => n.sort_order));
-    await supabase.from('org_chart_nodes').insert({ name: 'New', title: '', parent_id: parentId, tier, sort_order: maxSort + 1 });
+    const tier = parentNode ? (parentNode.tier || 0) + 1 : (finalSection === 'top_management' ? 0 : 2);
+    await supabase.from('org_chart_nodes').insert({
+      name: 'New',
+      title: '',
+      parent_id: parentId,
+      tier,
+      section: finalSection,
+      sort_order: maxSort + 1,
+    });
     load();
   };
 
@@ -43,15 +61,49 @@ export default function OrgChart({ isAdmin }) {
   };
 
   const deleteNode = async (id) => {
-    await supabase.from('org_chart_nodes').delete().eq('id', id);
+    // recursive delete: gather this + all descendants
+    const gather = (nid, acc = []) => {
+      const kids = nodes.filter((n) => n.parent_id === nid);
+      kids.forEach((k) => { acc.push(k.id); gather(k.id, acc); });
+      return acc;
+    };
+    const ids = [id, ...gather(id)];
+    await supabase.from('org_chart_nodes').delete().in('id', ids);
     load();
   };
 
   const treeLineColor = C.border;
 
+  // Recursive tree renderer
+  const renderTreeNode = (node) => {
+    const kids = childrenOf(node.id);
+    const isDeep = (node.tier || 0) >= 3;
+    return (
+      <li key={node.id}>
+        <NodeCard
+          node={node}
+          isAdmin={isAdmin}
+          users={users}
+          onUpdate={updateNode}
+          onDelete={deleteNode}
+          small={isDeep}
+        />
+        {(kids.length > 0 || isAdmin) && (
+          <ul>
+            {kids.map(renderTreeNode)}
+            {isAdmin && (
+              <li>
+                <AddCard onAdd={() => addNode(node.id, null)} label="Add" small={isDeep} />
+              </li>
+            )}
+          </ul>
+        )}
+      </li>
+    );
+  };
+
   return (
-    <div className="space-y-10 overflow-x-auto">
-      {/* CSS tree lines */}
+    <div className="space-y-10">
       <style>{`
         .rk-tree, .rk-tree ul {
           list-style: none;
@@ -135,50 +187,56 @@ export default function OrgChart({ isAdmin }) {
         }
       `}</style>
 
-      {/* ─── Top Management ─── */}
-      <section className="text-center">
-        <BranchBadge label="Top Management" icon={Crown} />
-        <div className="flex flex-wrap justify-center gap-3 mt-5">
-          {topManagement.map((n) => (
-            <NodeCard key={n.id} node={n} isAdmin={isAdmin} users={users} onUpdate={updateNode} onDelete={deleteNode} accent />
-          ))}
-          {isAdmin && <AddCard onAdd={() => addNode(null, 0)} label="Add person" />}
-        </div>
-      </section>
+      {/* Render all 4 fixed sections */}
+      {SECTIONS.map((sec) => {
+        const rootNodes = rootsOfSection(sec.key);
 
-      {/* ─── Each branch as its OWN vertical tree ─── */}
-      {branches.map((branch, idx) => (
-        <BranchSection
-          key={branch.id}
-          branch={branch}
-          index={idx}
-          childrenOf={childrenOf}
-          isAdmin={isAdmin}
-          users={users}
-          onUpdate={updateNode}
-          onDelete={deleteNode}
-          onAdd={addNode}
-        />
-      ))}
+        // Top Management: flat row (no tree)
+        if (sec.flat) {
+          return (
+            <section key={sec.key} className="text-center">
+              <BranchBadge label={sec.label} icon={sec.icon} />
+              <div className="flex flex-wrap justify-center gap-3 mt-5">
+                {rootNodes.map((n) => (
+                  <NodeCard key={n.id} node={n} isAdmin={isAdmin} users={users} onUpdate={updateNode} onDelete={deleteNode} accent />
+                ))}
+                {isAdmin && <AddCard onAdd={() => addNode(null, sec.key)} label="Add person" />}
+              </div>
+            </section>
+          );
+        }
 
-      {/* Add branch button */}
-      {isAdmin && (
-        <div className="flex justify-center pt-2">
-          <button
-            onClick={() => addNode(null, 1)}
-            className="flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-lg"
-            style={{ color: C.gold, border: `1px dashed ${C.gold}`, backgroundColor: 'transparent' }}
-          >
-            <Plus size={12} /> Add another team / section
-          </button>
-        </div>
-      )}
+        // Other sections: yellow badge + tree (scrolls horizontally if wide)
+        return (
+          <section key={sec.key}>
+            <div style={{ overflowX: 'auto', textAlign: 'center', width: '100%' }}>
+              <div className="rk-tree" style={{ display: 'inline-block', minWidth: '100%', padding: '0 20px' }}>
+                <ul>
+                  <li>
+                    <BranchBadge label={sec.label} icon={sec.icon} />
+                    {(rootNodes.length > 0 || isAdmin) && (
+                      <ul>
+                        {rootNodes.map(renderTreeNode)}
+                        {isAdmin && (
+                          <li>
+                            <AddCard onAdd={() => addNode(null, sec.key)} label="Add person" />
+                          </li>
+                        )}
+                      </ul>
+                    )}
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }
 
-// ─── Yellow pill badge (like TOP MANAGEMENT) ─────
-function BranchBadge({ label, icon: Icon, editable, onEdit, onDelete }) {
+// ─── Fixed yellow-pill section header (NOT editable) ─────
+function BranchBadge({ label, icon: Icon }) {
   return (
     <div
       className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full"
@@ -188,109 +246,7 @@ function BranchBadge({ label, icon: Icon, editable, onEdit, onDelete }) {
       <span className="font-display font-bold text-sm uppercase tracking-wider">
         {label}
       </span>
-      {editable && (
-        <div className="flex items-center gap-1.5 ml-1 pl-2" style={{ borderLeft: `1px solid ${C.gold}55` }}>
-          <button onClick={onEdit} title="Edit label"><Pencil size={11} style={{ color: C.gold }} /></button>
-          <button onClick={onDelete} title="Delete section"><Trash2 size={11} style={{ color: '#C9714F' }} /></button>
-        </div>
-      )}
     </div>
-  );
-}
-
-// ─── One vertical branch section ─────
-function BranchSection({ branch, index, childrenOf, isAdmin, users, onUpdate, onDelete, onAdd }) {
-  const [editing, setEditing] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [name, setName] = useState(branch.name);
-  const children = childrenOf(branch.id);
-  const Icon = BRANCH_ICONS[index % BRANCH_ICONS.length];
-
-  const saveName = async () => {
-    await onUpdate(branch.id, { name: name.trim() || 'Section' });
-    setEditing(false);
-  };
-
-  const renderTreeNode = (node) => {
-    const kids = childrenOf(node.id);
-    const nextTier = (node.tier || 2) + 1;
-    return (
-      <li key={node.id}>
-        <NodeCard
-          node={node}
-          isAdmin={isAdmin}
-          users={users}
-          onUpdate={onUpdate}
-          onDelete={onDelete}
-          small={node.tier >= 3}
-        />
-        {(kids.length > 0 || isAdmin) && (
-          <ul>
-            {kids.map(renderTreeNode)}
-            {isAdmin && (
-              <li>
-                <AddCard onAdd={() => onAdd(node.id, nextTier)} label="Add" small={nextTier >= 3} />
-              </li>
-            )}
-          </ul>
-        )}
-      </li>
-    );
-  };
-
-  return (
-    <section>
-      <div className="rk-tree text-center">
-        <ul>
-          <li>
-            {/* Yellow badge as root */}
-            {editing ? (
-              <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full" style={{ backgroundColor: C.surface, border: `1.5px solid ${C.gold}` }}>
-                <input
-                  autoFocus
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') { setName(branch.name); setEditing(false); } }}
-                  className="text-sm font-bold outline-none px-1"
-                  style={{ backgroundColor: 'transparent', color: C.gold, width: 200, textTransform: 'uppercase' }}
-                />
-                <button onClick={saveName}><Check size={13} style={{ color: C.gold }} /></button>
-                <button onClick={() => { setName(branch.name); setEditing(false); }}><X size={13} style={{ color: C.muted }} /></button>
-              </div>
-            ) : (
-              <>
-                <BranchBadge
-                  label={branch.name}
-                  icon={Icon}
-                  editable={isAdmin && !confirmDelete}
-                  onEdit={() => setEditing(true)}
-                  onDelete={() => setConfirmDelete(true)}
-                />
-                {confirmDelete && (
-                  <div className="mt-2 flex items-center justify-center gap-2 text-xs">
-                    <span style={{ color: '#C9714F' }}>Delete section and everything under it?</span>
-                    <button onClick={() => onDelete(branch.id)} className="px-2 py-0.5 rounded font-bold" style={{ backgroundColor: '#C9714F', color: '#fff' }}>Delete</button>
-                    <button onClick={() => setConfirmDelete(false)} className="px-2 py-0.5 rounded" style={{ color: C.muted, border: `1px solid ${C.border}` }}>Cancel</button>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Children tree below the badge */}
-            {(children.length > 0 || isAdmin) && (
-              <ul>
-                {children.map(renderTreeNode)}
-                {isAdmin && (
-                  <li>
-                    <AddCard onAdd={() => onAdd(branch.id, 2)} label="Add" />
-                  </li>
-                )}
-              </ul>
-            )}
-          </li>
-        </ul>
-      </div>
-    </section>
   );
 }
 
