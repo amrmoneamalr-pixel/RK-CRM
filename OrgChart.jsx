@@ -6,7 +6,7 @@ import { Plus, Pencil, Trash2, Check, X, Crown, Sparkles, Briefcase, Building2 }
 // Fixed sections — labels are permanent, admin can only add/edit people under them
 const SECTIONS = [
   { key: 'top_management', label: 'Top Management', icon: Crown,     flat: true  },
-  { key: 'sales_manager',  label: 'Sales Manager',  icon: Sparkles,  flat: false },
+  { key: 'sales_manager',  label: 'Sales Team',     icon: Sparkles,  flat: false },
   { key: 'marketing_team', label: 'Marketing Team', icon: Briefcase, flat: false },
   { key: 'back_office',    label: 'Back Office',    icon: Building2, flat: false },
 ];
